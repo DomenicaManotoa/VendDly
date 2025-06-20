@@ -8,8 +8,8 @@ module.exports = {
         lessLoaderOptions: {
           lessOptions: {
             modifyVars: {
-              '@primary-color': '#1DA57A', // Color primario personalizado
-              '@link-color': '#1DA57A',    // Color de enlaces
+              '@primary-color': '#27ae60', // Verde como color base
+              '@link-color': '#f56a00',    // Naranja como color secundario
               '@border-radius-base': '5px', // Radio de bordes
             },
             javascriptEnabled: true,
