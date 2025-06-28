@@ -1,8 +1,5 @@
-interface User {
-  email: string;
-  password: string;
-  name?: string;
-}
+import { User } from "types/types";
+
 const fakeDB: User[] = [];
 
 export const authService = {
