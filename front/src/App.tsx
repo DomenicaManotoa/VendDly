@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Login } from './auth/Login';
+import { Login } from './Controllers/Login';
 import { Button } from 'antd';
 
 function Home() {
@@ -19,6 +19,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+        
       </Routes>
     </BrowserRouter>
   );
