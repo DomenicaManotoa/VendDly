@@ -5,7 +5,7 @@ from routes.auth_routes import router as auth_router
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 
-
+3
 app = FastAPI()
 
 app.include_router(roles_router)

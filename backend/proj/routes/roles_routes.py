@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from controllers import roles_controller
+from models.models import RolCreate
 
 router = APIRouter()
 
@@ -21,12 +22,12 @@ def obtener_rol(id_rol: int, db: Session = Depends(get_db)):
     return roles_controller.get_rol(db, id_rol)
 
 @router.post("/roles")
-def crear_rol(descripcion: str = Body(...), db: Session = Depends(get_db)):
-    return roles_controller.create_rol(db, descripcion)
+def crear_rol(rol: RolCreate, db: Session = Depends(get_db)):
+    return roles_controller.create_rol(db, rol.dict())
 
 @router.put("/roles/{id_rol}")
-def editar_rol(id_rol: int, descripcion: str = Body(...), db: Session = Depends(get_db)):
-    return roles_controller.update_rol(db, id_rol, descripcion)
+def editar_rol(id_rol: int, rol: RolCreate, db: Session = Depends(get_db)):
+    return roles_controller.update_rol(db, id_rol, rol.dict())
 
 @router.delete("/roles/{id_rol}")
 def eliminar_rol(id_rol: int, db: Session = Depends(get_db)):

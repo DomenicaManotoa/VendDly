@@ -8,10 +8,11 @@ CREATE TABLE roles (
 
 -- Tabla de usuarios
 CREATE TABLE usuarios (
-    identificacion INT PRIMARY KEY,
+    identificacion VARCHAR(50) PRIMARY KEY,
+    rucempresarial VARCHAR(50),
     nombre VARCHAR(100),
     correo VARCHAR(100),
-    celular INT,
+    celular VARCHAR(20),
     contrasena VARCHAR(100),
     estado VARCHAR(50),
     fecha_actualizacion DATE,
@@ -35,7 +36,7 @@ CREATE TABLE marca (
 CREATE TABLE productos (
     id_producto SERIAL PRIMARY KEY,
     id_marca SERIAL,
-    stock INT,
+    stock VARCHAR,
     precio_mayorista FLOAT,
     precio_minorista FLOAT,
     id_categoria SERIAL,
@@ -47,7 +48,7 @@ CREATE TABLE productos (
 
 -- Tabla de clientes
 CREATE TABLE cliente (
-    identificacion SERIAL PRIMARY KEY,
+    identificacion VARCHAR(50) PRIMARY KEY,
     nombre VARCHAR(100),
     direccion VARCHAR(200),
     celular VARCHAR(20),
@@ -55,20 +56,19 @@ CREATE TABLE cliente (
     razon_social VARCHAR(100),
     sector VARCHAR(100),
     fecha_registro DATE,
-    id_usuario INT,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(identificacion)
+    FOREIGN KEY (identificacion) REFERENCES usuarios(identificacion)
 );
 
 -- Tabla de pedidos
 CREATE TABLE pedido (
     id_pedido SERIAL PRIMARY KEY,
     estado VARCHAR(50),
-    numero_pedido INT,
+    numero_pedido VARCHAR,
     fecha_pedido DATE,
     subtotal FLOAT,
     iva FLOAT,
     total FLOAT,
-    identificacion INT,
+    identificacion VARCHAR(50),
     FOREIGN KEY (identificacion) REFERENCES cliente(identificacion)
 );
 
@@ -98,7 +98,7 @@ CREATE TABLE detalle_pedido (
 -- Tabla de facturas
 CREATE TABLE factura (
     id_factura SERIAL PRIMARY KEY,
-    id_cliente SERIAL,
+    id_cliente VARCHAR(50),
     numero_factura SERIAL,
     fecha_emision DATE,
     estado VARCHAR(50),

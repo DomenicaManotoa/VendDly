@@ -6,7 +6,11 @@ from pydantic import BaseModel
 class LoginRequest(BaseModel):
     correo: str
     contrasena: str
-    
+
+class RolCreate(BaseModel):
+    descripcion: str
+    id_rol: int | None = None  # Opcional si es autoincremental
+
 class Rol(Base):
     __tablename__ = 'roles'
 
@@ -19,6 +23,7 @@ class Usuario(Base):
     __tablename__ = 'usuarios'
 
     identificacion = Column(Integer, primary_key=True, index=True)
+    rucempresarial = Column(String(50), nullable=True)
     nombre = Column(String(100))
     correo = Column(String(100))
     celular = Column(String(200))

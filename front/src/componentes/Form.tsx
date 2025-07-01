@@ -32,7 +32,7 @@ export const AuthForm = ({ isLogin, onSubmit, loading }: AuthFormProps) => {
                 headStyle={{ textAlign: 'center' }}
               >
                 <Form onFinish={onSubmit}>
-                  <Form.Item name="name" >
+                  <Form.Item name="name" rules={[{ required: true, message: 'RUC o Razón Social requerido' }]}>
                     <Input prefix={<BankOutlined />} placeholder="RUC o Razón Social" />
                   </Form.Item>
 
