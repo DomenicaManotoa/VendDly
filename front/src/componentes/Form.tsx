@@ -37,13 +37,22 @@ export const AuthForm = ({ isLogin, onSubmit, loading }: AuthFormProps) => {
                   headStyle={{ textAlign: 'center' }}
                 >
                   <Form onFinish={onSubmit}>
-                    <Form.Item name="name" >
-                      <Input prefix={<BankOutlined />} placeholder="RUC o Razón Social" />
+                    <Form.Item
+                      name="rucempresarial"
+                      rules={[{ required: true, message: 'Ingrese su RUC empresarial' }]}
+                    >
+                      <Input prefix={<BankOutlined />} placeholder="RUC Empresarial" />
                     </Form.Item>
-                    <Form.Item name="email" rules={[{ required: true, type: 'email', message: 'Email inválido' }]}>
+                    <Form.Item
+                      name="email"
+                      rules={[{ required: true, type: 'email', message: 'Email inválido' }]}
+                    >
                       <Input prefix={<MailOutlined />} placeholder="Email" />
                     </Form.Item>
-                    <Form.Item name="password" rules={[{ required: true, min: 6, message: 'Mínimo 6 caracteres' }]}>
+                    <Form.Item
+                      name="password"
+                      rules={[{ required: true, min: 6, message: 'Mínimo 6 caracteres' }]}
+                    >
                       <Input.Password prefix={<LockOutlined />} placeholder="Contraseña" />
                     </Form.Item>
                     <Form.Item>

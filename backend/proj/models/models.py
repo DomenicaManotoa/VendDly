@@ -4,6 +4,7 @@ from database import Base
 from pydantic import BaseModel
 
 class LoginRequest(BaseModel):
+    rucempresarial: str
     correo: str
     contrasena: str
     
@@ -18,7 +19,8 @@ class Rol(Base):
 class Usuario(Base):
     __tablename__ = 'usuarios'
 
-    identificacion = Column(Integer, primary_key=True, index=True)
+    identificacion = Column(String(50), primary_key=True, index=True)  # Cambiado de Integer a String(50)
+    rucempresarial = Column(String(50)) 
     nombre = Column(String(100))
     correo = Column(String(100))
     celular = Column(String(200))
@@ -44,3 +46,15 @@ class Cliente(Base):
     fecha_registro = Column(Date)
 
     usuario = relationship("Usuario", backref="clientes")
+
+class Categoria(Base):
+    __tablename__ = 'categoria'
+
+    id_categoria = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    descripcion = Column(String(100), nullable=False)
+
+class Marca(Base):
+    __tablename__ = 'marca'
+
+    id_marca = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    descripcion = Column(String(100), nullable=False)
