@@ -39,7 +39,10 @@ export const AuthForm = ({ onSubmit, loading }: AuthFormProps) => {
                     <Form.Item name="email" rules={[{ required: true, type: 'email', message: 'Email inválido' }]}>
                       <Input prefix={<MailOutlined />} placeholder="Email" />
                     </Form.Item>
-                    <Form.Item name="password" rules={[{ required: true, min: 6, message: 'Mínimo 6 caracteres' }]}>
+                    <Form.Item
+                      name="password"
+                      rules={[{ required: true, min: 6, message: 'Mínimo 6 caracteres' }]}
+                    >
                       <Input.Password prefix={<LockOutlined />} placeholder="Contraseña" />
                     </Form.Item>
                     <Form.Item>

@@ -2,8 +2,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from models.models import Usuario
 
-def login(db: Session, correo: str, contrasena: str):
+def login(db: Session, rucempresarial: str, correo: str, contrasena: str):
     usuario = db.query(Usuario).filter(
+        Usuario.rucempresarial == rucempresarial,
         Usuario.correo == correo,
         Usuario.contrasena == contrasena
     ).first()

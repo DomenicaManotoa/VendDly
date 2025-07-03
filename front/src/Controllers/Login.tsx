@@ -10,9 +10,9 @@ export const Login = () => {
 
   const handleSubmit = async (values: any) => {
     setLoading(true);
-    const { email, password } = values;
-    const { success, error } = await authService.login(email, password);
-    
+    const { rucempresarial, email, password } = values;
+    const { success, error } = await authService.login(rucempresarial, email, password);
+
     if (success) {
       notification.success({ message: 'Bienvenido' });
       navigate('/dashboard');

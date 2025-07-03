@@ -3,12 +3,12 @@ import { User } from "types/types";
 const fakeDB: User[] = [];
 
 export const authService = {
-  login: async (email: string, password: string): Promise<{ success: boolean; error?: string; usuario?: string }> => {
+  login: async (rucempresarial: string, email: string, password: string): Promise<{ success: boolean; error?: string; usuario?: string }> => {
     try {
       const response = await fetch('http://localhost:8000/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo: email, contrasena: password }),
+        body: JSON.stringify({ rucempresarial, correo: email, contrasena: password }),
       });
       if (response.ok) {
         const data = await response.json();

@@ -18,4 +18,4 @@ def login(
     datos: LoginRequest,
     db: Session = Depends(get_db)
 ):
-    return auth_controller.login(db, datos.correo, datos.contrasena)
+    return auth_controller.login(db, datos.rucempresarial, datos.correo, datos.contrasena)
