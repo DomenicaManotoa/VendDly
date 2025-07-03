@@ -1,24 +1,23 @@
+import Home from 'componentes/Home';
+import { Login } from './Controllers/Login';
+import Catalogo from 'componentes/Catalogo';
+import LayoutConSidebar from 'componentes/LayoutConSidebar';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Login } from './auth/Login';
-import { Button } from 'antd';
+import { Footer } from 'antd/es/layout/layout';
 
-function Home() {
-  return (
-    <div style={{ padding: '24px', textAlign: 'center' }}>
-      <h1>Bienvenido</h1>
-      <Button type="primary" href="/login" style={{ marginRight: 8 }}>
-        Login
-      </Button>
-      <Button href="/register">Register</Button>
-    </div>
-  );
-}
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/" element={<Footer />} />  
+        {/* Protected Routes */}
+        <Route element={<LayoutConSidebar />}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/catalogo" element={<Catalogo />} />
+        </Route>
+        
       </Routes>
     </BrowserRouter>
   );

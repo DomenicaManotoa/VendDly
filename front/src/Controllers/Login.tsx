@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notification } from 'antd';
-import { authService } from './auth';
+import { authService } from '../auth/auth';
 import { AuthForm } from 'componentes/Form';
 
 export const Login = () => {
