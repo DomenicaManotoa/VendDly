@@ -1,7 +1,7 @@
 import { FooterCustom } from './Footer';
 import { AuthFormProps } from 'types/types';
 import { Button, Form, Input, Card, Typography, Row, Col, Layout } from 'antd';
-import { LockOutlined, MailOutlined, BankOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { BankOutlined, LockOutlined, MailOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 
 const { Content } = Layout;
 
@@ -33,9 +33,9 @@ export const AuthForm = ({ onSubmit, loading }: AuthFormProps) => {
                   headStyle={{ textAlign: 'center' }}
                 >
                   <Form onFinish={onSubmit}>
-                    {/* <Form.Item name="razonSocial" >
+                    <Form.Item name="razonSocial" >
                       <Input prefix={<BankOutlined />} placeholder="RUC o Razón Social" />
-                    </Form.Item> */}
+                    </Form.Item>
                     <Form.Item name="email" rules={[{ required: true, type: 'email', message: 'Email inválido' }]}>
                       <Input prefix={<MailOutlined />} placeholder="Email" />
                     </Form.Item>

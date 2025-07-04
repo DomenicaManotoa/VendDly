@@ -23,14 +23,13 @@ type MenuItem = Required<MenuProps>['items'][number];
 const items: MenuItem[] = [
   { key: '/home', icon: <HomeOutlined />, label: 'Dashboard' },
   { key: '/catalogo', icon: <ReadOutlined />, label: 'Catálogo' },
-  { key: '2', icon: <ShopOutlined />, label: 'Inventario' },
-  { key: '3', icon: <TeamOutlined />, label: 'Clientes' },
-  { key: '4', icon: <IdcardOutlined />, label: 'Empleados' },
-  { key: '5', icon: <SnippetsOutlined />, label: 'Pedidos' },
-  { key: '6', icon: <ContainerOutlined />, label: 'Facturas' },
-  { key: '8', icon: <TruckOutlined />, label: 'Entregas' },
-  { key: '7', icon: <LogoutOutlined />, label: 'Cerrar Seción' },
-
+  { key: '/inventario', icon: <ShopOutlined />, label: 'Inventario' },
+  { key: '/clientes', icon: <TeamOutlined />, label: 'Clientes' },
+  { key: '/empleados', icon: <IdcardOutlined />, label: 'Empleados' },
+  { key: '/pedidos', icon: <SnippetsOutlined />, label: 'Pedidos' },
+  { key: '/facturas', icon: <ContainerOutlined />, label: 'Facturas' },
+  { key: '/entregas', icon: <TruckOutlined />, label: 'Entregas' },
+  { key: '/logout', icon: <LogoutOutlined />, label: 'Cerrar Sesión' },
 ];
 
 const SidebarCustom: React.FC = () => {
