@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Login } from './Controllers/Login';
 import { Button } from 'antd';
+import Clientes from 'componentes/Clientes';
 
 function Home() {
   return (
@@ -19,7 +20,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-        
+        <Route path="/clientes" element={<Clientes />} />
       </Routes>
     </BrowserRouter>
   );
