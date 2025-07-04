@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from controllers import roles_controller
-from models.models import RolCreate
 
 router = APIRouter()
 
