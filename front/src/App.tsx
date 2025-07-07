@@ -1,26 +1,25 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from 'componentes/Home';
 import { Login } from './Controllers/Login';
-import { Button } from 'antd';
+import Catalogo from 'componentes/Catalogo';
+import LayoutConSidebar from 'componentes/LayoutConSidebar';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Clientes from 'componentes/Clientes';
+import Inventario from 'componentes/Inventario/Inventario_Index';
 
-function Home() {
-  return (
-    <div style={{ padding: '24px', textAlign: 'center' }}>
-      <h1>Bienvenido</h1>
-      <Button type="primary" href="/login" style={{ marginRight: 8 }}>
-        Login
-      </Button>
-      <Button href="/register">Register</Button>
-    </div>
-  );
-}
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/clientes" element={<Clientes />} />
+        <Route path="/" element={<Login />} /> 
+        {/* Rutas que van dentro del menu */}
+        <Route element={<LayoutConSidebar />}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/catalogo" element={<Catalogo />} />
+          <Route path="/clientes" element={<Clientes/>} />
+          <Route path="/inventario" element={<Inventario />} />
+        </Route>
+        
       </Routes>
     </BrowserRouter>
   );

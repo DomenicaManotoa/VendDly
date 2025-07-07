@@ -1,65 +1,53 @@
+import type { MenuProps } from 'antd';
 import React, { useState } from 'react';
+import { Button, Menu, Layout } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import {
-  AppstoreOutlined,
   ContainerOutlined,
-  DesktopOutlined,
-  MailOutlined,
+  HomeOutlined,
+  IdcardOutlined,
+  LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  PieChartOutlined,
+  ReadOutlined,
+  ShopOutlined,
+  SnippetsOutlined,
+  TeamOutlined,
+  TruckOutlined,
 } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-import { Button, Menu, Layout } from 'antd';
 
 const { Sider } = Layout;
 
 type MenuItem = Required<MenuProps>['items'][number];
 
 const items: MenuItem[] = [
-  { key: '1', icon: <PieChartOutlined />, label: 'Option 1' },
-  { key: '2', icon: <DesktopOutlined />, label: 'Option 2' },
-  { key: '3', icon: <ContainerOutlined />, label: 'Option 3' },
-  {
-    key: 'sub1',
-    label: 'Navigation One',
-    icon: <MailOutlined />,
-    children: [
-      { key: '5', label: 'Option 5' },
-      { key: '6', label: 'Option 6' },
-      { key: '7', label: 'Option 7' },
-      { key: '8', label: 'Option 8' },
-    ],
-  },
-  {
-    key: 'sub2',
-    label: 'Navigation Two',
-    icon: <AppstoreOutlined />,
-    children: [
-      { key: '9', label: 'Option 9' },
-      { key: '10', label: 'Option 10' },
-      {
-        key: 'sub3',
-        label: 'Submenu',
-        children: [
-          { key: '11', label: 'Option 11' },
-          { key: '12', label: 'Option 12' },
-        ],
-      },
-    ],
-  },
+  { key: '/home', icon: <HomeOutlined />, label: 'Dashboard' },
+  { key: '/catalogo', icon: <ReadOutlined />, label: 'Catálogo' },
+  { key: '/inventario', icon: <ShopOutlined />, label: 'Inventario' },
+  { key: '/clientes', icon: <TeamOutlined />, label: 'Clientes' },
+  { key: '/empleados', icon: <IdcardOutlined />, label: 'Empleados' },
+  { key: '/pedidos', icon: <SnippetsOutlined />, label: 'Pedidos' },
+  { key: '/facturas', icon: <ContainerOutlined />, label: 'Facturas' },
+  { key: '/entregas', icon: <TruckOutlined />, label: 'Entregas' },
+  { key: '/logout', icon: <LogoutOutlined />, label: 'Cerrar Sesión' },
 ];
 
 const SidebarCustom: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
-
+  const navigate = useNavigate();
+  
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
   };
-
+  const handleMenuClick = (e: any) => {
+    if (e.key.startsWith('/')) {
+      navigate(e.key);
+    }
+  };
   return (
-    <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={256} theme="dark">
-      <Button type="primary" onClick={toggleCollapsed} style={{ margin: 16 }}>
-        {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+    <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={256} theme="dark" style={{ backgroundColor: '#ABD904' }}>
+      <Button onClick={toggleCollapsed} style={{ margin: 16,backgroundColor: '#ABD904', borderColor: '#ABD904' }} type="primary">
+        {collapsed ? <MenuUnfoldOutlined  /> : <MenuFoldOutlined />}
       </Button>
       <Menu
         defaultSelectedKeys={['1']}
@@ -68,6 +56,8 @@ const SidebarCustom: React.FC = () => {
         theme="dark"
         inlineCollapsed={collapsed}
         items={items}
+        style={{ backgroundColor: '#ABD904', height: '100%' }}
+        onClick={handleMenuClick}
       />
     </Sider>
   );

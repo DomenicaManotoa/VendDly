@@ -16,7 +16,7 @@ CREATE TABLE usuarios (
     contrasena VARCHAR(100),
     estado VARCHAR(50),
     fecha_actualizacion DATE,
-    id_rol SERIAL,
+    id_rol INT,
     FOREIGN KEY (id_rol) REFERENCES roles(id_rol)
 );
 
@@ -35,11 +35,11 @@ CREATE TABLE marca (
 -- Tabla de productos
 CREATE TABLE productos (
     id_producto SERIAL PRIMARY KEY,
-    id_marca SERIAL,
+    id_marca INT,
     stock VARCHAR,
     precio_mayorista FLOAT,
     precio_minorista FLOAT,
-    id_categoria SERIAL,
+    id_categoria INT,
     iva FLOAT,
     estado VARCHAR(50),
     FOREIGN KEY (id_marca) REFERENCES marca(id_marca),
@@ -48,7 +48,8 @@ CREATE TABLE productos (
 
 -- Tabla de clientes
 CREATE TABLE cliente (
-    identificacion VARCHAR(50) PRIMARY KEY,
+    cod_cliente SERIAL PRIMARY KEY,
+    identificacion VARCHAR(50),
     nombre VARCHAR(100),
     direccion VARCHAR(200),
     celular VARCHAR(20),
@@ -56,7 +57,7 @@ CREATE TABLE cliente (
     razon_social VARCHAR(100),
     sector VARCHAR(100),
     fecha_registro DATE,
-    FOREIGN KEY (identificacion) REFERENCES usuarios(identificacion)
+    CONSTRAINT fk_identificacion_usuario FOREIGN KEY (identificacion) REFERENCES usuarios(identificacion)
 );
 
 -- Tabla de pedidos
@@ -68,14 +69,14 @@ CREATE TABLE pedido (
     subtotal FLOAT,
     iva FLOAT,
     total FLOAT,
-    identificacion VARCHAR(50),
-    FOREIGN KEY (identificacion) REFERENCES cliente(identificacion)
+    cod_cliente INT,
+    FOREIGN KEY (cod_cliente) REFERENCES cliente(cod_cliente)
 );
 
 -- Tabla de estado de pedidos
 CREATE TABLE estado_pedido (
     id_estado_pedido SERIAL PRIMARY KEY,
-    id_pedido SERIAL,
+    id_pedido INT,
     fecha_actualizada DATE,
     descripcion VARCHAR(200),
     FOREIGN KEY (id_pedido) REFERENCES pedido(id_pedido)
@@ -84,8 +85,8 @@ CREATE TABLE estado_pedido (
 -- Tabla de detalle de pedidos
 CREATE TABLE detalle_pedido (
     id_detalle_pedido SERIAL PRIMARY KEY,
-    id_pedido SERIAL,
-    id_producto SERIAL,
+    id_pedido INT,
+    id_producto INT,
     cantidad INT,
     precio_unitario FLOAT,
     descuento FLOAT,
@@ -98,20 +99,20 @@ CREATE TABLE detalle_pedido (
 -- Tabla de facturas
 CREATE TABLE factura (
     id_factura SERIAL PRIMARY KEY,
-    id_cliente VARCHAR(50),
+    cod_cliente INT,
     numero_factura SERIAL,
     fecha_emision DATE,
     estado VARCHAR(50),
     subtotal FLOAT,
     iva FLOAT,
     total FLOAT,
-    FOREIGN KEY (id_cliente) REFERENCES cliente(identificacion)
+    FOREIGN KEY (cod_cliente) REFERENCES cliente(cod_cliente)
 );
 
 -- Tabla de detalle de facturas
 CREATE TABLE detalle_factura (
     id_detalle_factura SERIAL PRIMARY KEY,
-    id_factura SERIAL,
+    id_factura INT,
     id_producto INT,
     cantidad INT,
     precio_unitario FLOAT,

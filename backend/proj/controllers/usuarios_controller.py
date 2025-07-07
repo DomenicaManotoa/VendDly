@@ -5,7 +5,7 @@ from models.models import Usuario
 def get_usuarios(db: Session):
     return db.query(Usuario).all()
 
-def get_usuario(db: Session, identificacion: int):
+def get_usuario(db: Session, identificacion: str):
     usuario = db.query(Usuario).filter(Usuario.identificacion == identificacion).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -18,7 +18,7 @@ def create_usuario(db: Session, usuario_data: dict):
     db.refresh(nuevo_usuario)
     return nuevo_usuario
 
-def update_usuario(db: Session, identificacion: int, usuario_data: dict):
+def update_usuario(db: Session, identificacion: str, usuario_data: dict):
     usuario = db.query(Usuario).filter(Usuario.identificacion == identificacion).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -28,7 +28,7 @@ def update_usuario(db: Session, identificacion: int, usuario_data: dict):
     db.refresh(usuario)
     return usuario
 
-def delete_usuario(db: Session, identificacion: int):
+def delete_usuario(db: Session, identificacion: str):
     usuario = db.query(Usuario).filter(Usuario.identificacion == identificacion).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")

@@ -9,3 +9,7 @@ body {
 code {
   @apply font-mono;
 }
+
+html, body, #root {
+  overflow: hidden;
+}
