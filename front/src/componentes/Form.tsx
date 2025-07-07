@@ -1,11 +1,31 @@
-import { FooterCustom } from './Footer';
 import { AuthFormProps } from 'types/types';
-import { Button, Form, Input, Card, Typography, Row, Col, Layout } from 'antd';
+import { Button, Form, Input, Card, Typography, Row, Col, Layout, message } from 'antd';
 import { BankOutlined, LockOutlined, MailOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from 'auth/auth';
 
 const { Content } = Layout;
 
 export const AuthForm = ({ onSubmit, loading }: AuthFormProps) => {
+  const [internalLoading, setInternalLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogin = async (values: any) => {
+    setInternalLoading(true);
+    const { razonSocial, email, password } = values;
+    
+    const result = await authService.login(razonSocial, email, password);
+
+    if (result.success) {
+      message.success('Inicio de sesión exitoso');
+      navigate('/home')
+    } else {
+      message.error(result.error || 'Error al iniciar sesión');
+    }
+
+    setInternalLoading(false);
+  };
   return (
     <Layout style={{ minHeight: '100vh', flexDirection: 'column' }}>
       <Layout style={{ flex: 1 }}>
@@ -32,7 +52,7 @@ export const AuthForm = ({ onSubmit, loading }: AuthFormProps) => {
                   style={{ width: 400 }}
                   headStyle={{ textAlign: 'center' }}
                 >
-                  <Form onFinish={onSubmit}>
+                  <Form onFinish={handleLogin}>
                     <Form.Item name="razonSocial" >
                       <Input prefix={<BankOutlined />} placeholder="RUC o Razón Social" />
                     </Form.Item>
@@ -49,7 +69,7 @@ export const AuthForm = ({ onSubmit, loading }: AuthFormProps) => {
                       <Button 
                         type="primary" 
                         htmlType="submit" 
-                        loading={loading} 
+                        loading={internalLoading} 
                         block
                         style={{ backgroundColor: '#389e0d', borderColor: '#389e0d' }}
                       >
@@ -63,7 +83,6 @@ export const AuthForm = ({ onSubmit, loading }: AuthFormProps) => {
           </Row>
         </Content>
       </Layout>
-      <FooterCustom />
     </Layout>
   );
 };
