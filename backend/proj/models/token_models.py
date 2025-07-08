@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 class Token(BaseModel):
-    """Modelo para la respuesta del token"""
+    """Modelo básico para la respuesta del token"""
     access_token: str
     token_type: str
 
@@ -21,3 +21,18 @@ class UserResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+class UserLoginInfo(BaseModel):
+    """Modelo para la información del usuario en el login"""
+    identificacion: str
+    nombre: str
+    correo: str
+    rucempresarial: str
+    estado: str
+    rol: int
+
+class LoginResponse(BaseModel):
+    """Modelo completo para la respuesta del login"""
+    access_token: str
+    token_type: str
+    user: UserLoginInfo

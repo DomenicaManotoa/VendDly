@@ -1,31 +1,23 @@
 import { AuthFormProps } from 'types/types';
 import { Button, Form, Input, Card, Typography, Row, Col, Layout, message } from 'antd';
 import { BankOutlined, LockOutlined, MailOutlined, ShoppingCartOutlined } from '@ant-design/icons';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authService } from 'auth/auth';
 
 const { Content } = Layout;
 
 export const AuthForm = ({ onSubmit, loading }: AuthFormProps) => {
-  const [internalLoading, setInternalLoading] = useState(false);
-  const navigate = useNavigate();
-
   const handleLogin = async (values: any) => {
-    setInternalLoading(true);
-    const { razonSocial, email, password } = values;
-    
-    const result = await authService.login(razonSocial, email, password);
-
-    if (result.success) {
-      message.success('Inicio de sesión exitoso');
-      navigate('/home')
-    } else {
-      message.error(result.error || 'Error al iniciar sesión');
+    try {
+      console.log('Formulario enviado con valores:', values);
+      
+      // Llamar a la función onSubmit que viene del componente padre (Login)
+      await onSubmit(values);
+      
+    } catch (error) {
+      console.error('Error en handleLogin:', error);
+      message.error('Error inesperado durante el inicio de sesión');
     }
-
-    setInternalLoading(false);
   };
+
   return (
     <Layout style={{ minHeight: '100vh', flexDirection: 'column' }}>
       <Layout style={{ flex: 1 }}>
@@ -52,24 +44,46 @@ export const AuthForm = ({ onSubmit, loading }: AuthFormProps) => {
                   style={{ width: 400 }}
                   headStyle={{ textAlign: 'center' }}
                 >
-                  <Form onFinish={handleLogin}>
-                    <Form.Item name="razonSocial" >
+                  <Form onFinish={handleLogin} layout="vertical">
+                    <Form.Item 
+                      name="rucempresarial" 
+                      label="RUC Empresarial"
+                      rules={[
+                        { required: true, message: 'El RUC es requerido' },
+                        { min: 10, message: 'El RUC debe tener al menos 10 caracteres' },
+                        { max: 13, message: 'El RUC debe tener máximo 13 caracteres' }
+                      ]}
+                    >
                       <Input prefix={<BankOutlined />} placeholder="RUC o Razón Social" />
                     </Form.Item>
-                    <Form.Item name="email" rules={[{ required: true, type: 'email', message: 'Email inválido' }]}>
+                    
+                    <Form.Item 
+                      name="email" 
+                      label="Correo Electrónico"
+                      rules={[
+                        { required: true, message: 'El email es requerido' },
+                        { type: 'email', message: 'Email inválido' }
+                      ]}
+                    >
                       <Input prefix={<MailOutlined />} placeholder="Email" />
                     </Form.Item>
+                    
                     <Form.Item
                       name="password"
-                      rules={[{ required: true, min: 6, message: 'Mínimo 6 caracteres' }]}
+                      label="Contraseña"
+                      rules={[
+                        { required: true, message: 'La contraseña es requerida' },
+                        { min: 8, message: 'La contraseña debe tener al menos 8 caracteres' }
+                      ]}
                     >
                       <Input.Password prefix={<LockOutlined />} placeholder="Contraseña" />
                     </Form.Item>
+                    
                     <Form.Item>
                       <Button 
                         type="primary" 
                         htmlType="submit" 
-                        loading={internalLoading} 
+                        loading={loading} 
                         block
                         style={{ backgroundColor: '#389e0d', borderColor: '#389e0d' }}
                       >

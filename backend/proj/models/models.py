@@ -8,7 +8,7 @@ from typing import Optional
 
 
 
-# Modelo Pydantic para login con validaciones básicas
+# Modelo Pydantic para login con validaciones mejoradas
 class LoginRequest(BaseModel):
     rucempresarial: str
     correo: str
@@ -21,17 +21,17 @@ class LoginRequest(BaseModel):
         v = v.strip()
         if len(v) < 10 or len(v) > 13:
             raise ValueError('El RUC debe tener entre 10 y 13 caracteres')
-        if not v.isdigit():
-            raise ValueError('El RUC solo debe contener números')
+        # Remover validación de solo números para permitir más flexibilidad
         return v
 
     @validator('correo')
     def validate_email(cls, v):
         if not v:
             raise ValueError('El correo no puede estar vacío')
+        v = v.strip().lower()  # Normalizar email
         if '@' not in v or '.' not in v.split('@')[-1]:
             raise ValueError('Formato de correo electrónico inválido')
-        return v.strip()
+        return v
 
     @validator('contrasena')
     def validate_password(cls, v):

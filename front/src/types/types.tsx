@@ -10,17 +10,23 @@ export interface User {
   name?: string;
 }
 
+// Definición de la interfaz Rol
+export interface Rol {
+  id_rol: number;
+  descripcion: string;
+}
+
 export interface Usuario {
   identificacion: string;
   rucempresarial?: string;
   nombre: string;
   correo: string;
   celular: string;
-  contrasena: string;
+  contrasena?: string;
   estado: string;
   fecha_actualizacion?: string;
   id_rol: number;
-  rol?: string;
+  rol?: Rol | string; // Puede ser un objeto Rol o string (descripción)
 }
 
 export interface Props {
@@ -28,5 +34,5 @@ export interface Props {
   onCancel: () => void;
   onSubmit: (user: Usuario) => void;
   userToEdit?: Usuario | null;
-  roles: { id_rol: number; descripcion: string }[];
+  roles: Rol[]; // Simplificado usando la interfaz Rol
 }

@@ -10,16 +10,46 @@ export const Login = () => {
 
   const handleSubmit = async (values: any) => {
     setLoading(true);
-    const { rucempresarial, email, password } = values;
-    const { success, error } = await authService.login(rucempresarial, email, password);
+    
+    try {
+      const { rucempresarial, email, password } = values;
+      console.log('Datos del formulario:', { rucempresarial, email, password: '****' });
+      
+      const result = await authService.login(rucempresarial, email, password);
+      console.log('Resultado del login:', result);
 
-    if (success) {
-      notification.success({ message: 'Bienvenido' });
-      navigate('/dashboard');
-    } else {
-      notification.error({ message: error });
+      if (result.success) {
+        notification.success({ 
+          message: 'Bienvenido',
+          description: `Hola ${result.usuario}`,
+          duration: 3
+        });
+        
+        // Verificar que el token se guardó correctamente
+        const savedToken = authService.getToken();
+        console.log('Token guardado verificado:', savedToken ? 'Sí' : 'No');
+        
+        // Esperar un poco para asegurar que el token se guardó
+        setTimeout(() => {
+          navigate('/home');
+        }, 500);
+      } else {
+        notification.error({ 
+          message: 'Error de autenticación',
+          description: result.error || 'Credenciales incorrectas',
+          duration: 5
+        });
+      }
+    } catch (error) {
+      console.error('Error en handleSubmit:', error);
+      notification.error({ 
+        message: 'Error', 
+        description: 'Error inesperado al iniciar sesión',
+        duration: 5
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
