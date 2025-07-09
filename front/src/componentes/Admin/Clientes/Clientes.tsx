@@ -1,4 +1,3 @@
-import SidebarCustom from "./Sidebar";
 const Clientes = () => {
     // Aquí puedes agregar la lógica específica para la página de Clientes
   return (

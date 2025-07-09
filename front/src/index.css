@@ -13,3 +13,6 @@ code {
 html, body, #root {
   overflow: hidden;
 }
+.logout-item:hover {
+  color: red !important;
+}
