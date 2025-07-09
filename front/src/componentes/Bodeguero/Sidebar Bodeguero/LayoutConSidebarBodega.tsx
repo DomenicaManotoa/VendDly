@@ -1,7 +1,7 @@
-import SidebarCustom from './Sidebar';
-import { Outlet } from 'react-router-dom';
+import { Outlet } from "react-router-dom";
+import SidebarCustom from "./Sidebar_Bodeguero";
 
-const LayoutConSidebar = () => {
+const LayoutConSidebarBodega = () => {
   return (
     <div style={{ display: 'flex' }}>
       <SidebarCustom />
@@ -12,4 +12,4 @@ const LayoutConSidebar = () => {
   );
 };
 
-export default LayoutConSidebar;
+export default LayoutConSidebarBodega;
