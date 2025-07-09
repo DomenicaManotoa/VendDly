@@ -228,20 +228,6 @@ const Usuarios: React.FC = () => {
     <div style={{ padding: '20px' }}>
       <Typography.Title level={1}>Lista de empleados</Typography.Title>
 
-      {/* Información de debug */}
-      <div style={{ 
-        marginBottom: '20px', 
-        padding: '10px', 
-        backgroundColor: '#f5f5f5', 
-        borderRadius: '4px',
-        fontSize: '12px' 
-      }}>
-        <strong>Debug Info:</strong> Token: {debugInfo.token} | 
-        Autenticado: {debugInfo.authenticated ? 'Sí' : 'No'} | 
-        Usuarios: {debugInfo.usuariosLength} | 
-        Cargando: {debugInfo.loading ? 'Sí' : 'No'}
-      </div>
-
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
         <Input
           placeholder="Buscar por nombre o identificación..."

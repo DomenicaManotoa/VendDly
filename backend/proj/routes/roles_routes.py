@@ -22,7 +22,7 @@ def obtener_rol(id_rol: int, db: Session = Depends(get_db)):
 
 @router.post("/roles")
 def crear_rol(rol: dict = Body(...), db: Session = Depends(get_db)):
-    return roles_controller.create_rol(db, rol["descripcion"])
+    return roles_controller.create_rol(db, rol)  # Pasa el diccionario completo, no solo "descripcion"
 
 @router.put("/roles/{id_rol}")
 def editar_rol(id_rol: int, rol: dict = Body(...), db: Session = Depends(get_db)):
