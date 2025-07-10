@@ -17,6 +17,9 @@ import LayoutConSidebarTransportista from 'componentes/Transportista/Sidebar Tra
 import LayoutConSidebarVendedor from 'componentes/Vendedor/Sidebar Vendedor/LayoutConSidebarVendedor';
 import HomeVendedor from 'componentes/Vendedor/Home Vendedor/Home_Vendedor';
 import Usuarios from 'componentes/Admin/Empleados/Index_usuarios';
+import Categorias_Admin from 'componentes/Admin/Categorias/Categorias_Admin';
+import Roles_Admin from 'componentes/Admin/Roles/Roles_Admin';
+import Marcas_Admin from 'componentes/Admin/Marcas/Marcas_Admin';
 
 
 export default function App() {
@@ -34,6 +37,9 @@ export default function App() {
           <Route path="/entregas" element={<Entregas />} />
           <Route path="/facturas" element={<Facturas />} />
           <Route path="/pedidos" element={<Pedidos />} />
+          <Route path="/categorias" element={<Categorias_Admin />} />
+          <Route path="/marcas" element={<Marcas_Admin />} />
+          <Route path="/roles" element={<Roles_Admin />} />
         </Route>
         <Route element={<LayoutConSidebarBodega />}>
           <Route path="/bodega/home" element={<HomeBodeguero />} />

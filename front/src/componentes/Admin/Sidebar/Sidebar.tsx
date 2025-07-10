@@ -12,8 +12,10 @@ import {
   ReadOutlined,
   ShopOutlined,
   SnippetsOutlined,
+  TagsOutlined,
   TeamOutlined,
   TruckOutlined,
+  UserSwitchOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -29,6 +31,9 @@ const mainItems: MenuItem[] = [
   { key: '/pedidos', icon: <SnippetsOutlined />, label: 'Pedidos' },
   { key: '/facturas', icon: <ContainerOutlined />, label: 'Facturas' },
   { key: '/entregas', icon: <TruckOutlined />, label: 'Entregas' },
+  { key: '/categorias', icon: <ShopOutlined />, label: 'Categorías' },      // Tienda, productos
+  { key: '/marcas', icon: <TagsOutlined />, label: 'Marcas' },              // Etiquetas o tags para marcas
+  { key: '/roles', icon: <UserSwitchOutlined />, label: 'Roles' },
 ];
 
 const logoutItem: MenuItem[] = [
