@@ -6,7 +6,6 @@ CREATE TABLE roles (
     descripcion VARCHAR(100)
 );
 
--- Tabla de usuarios
 CREATE TABLE usuarios (
     identificacion VARCHAR(50) PRIMARY KEY,
     rucempresarial VARCHAR(50),
@@ -14,6 +13,7 @@ CREATE TABLE usuarios (
     correo VARCHAR(100),
     celular VARCHAR(20),
     contrasena VARCHAR(100),
+    salt VARCHAR(64) NOT NULL DEFAULT md5(random()::text),  -- Salt con generación automática
     estado VARCHAR(50),
     fecha_actualizacion DATE,
     id_rol INT,
@@ -32,7 +32,6 @@ CREATE TABLE marca (
     descripcion VARCHAR(100)
 );
 
--- Tabla de productos
 CREATE TABLE productos (
     id_producto SERIAL PRIMARY KEY,
     id_marca INT,
@@ -42,6 +41,7 @@ CREATE TABLE productos (
     id_categoria INT,
     iva FLOAT,
     estado VARCHAR(50),
+    imagen VARCHAR(255),  -- Campo para rutas de imágenes
     FOREIGN KEY (id_marca) REFERENCES marca(id_marca),
     FOREIGN KEY (id_categoria) REFERENCES categoria(id_categoria)
 );
@@ -53,6 +53,7 @@ CREATE TABLE cliente (
     nombre VARCHAR(100),
     direccion VARCHAR(200),
     celular VARCHAR(20),
+    correo VARCHAR(100),  
     tipo_cliente VARCHAR(50),
     razon_social VARCHAR(100),
     sector VARCHAR(100),
