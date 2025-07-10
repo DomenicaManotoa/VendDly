@@ -52,18 +52,18 @@ class Rol(Base):
 class Usuario(Base):
     __tablename__ = 'usuarios'
 
-    identificacion = Column(String(50), primary_key=True, index=True)  # Cambiado de Integer a String(50)
+    identificacion = Column(String(50), primary_key=True, index=True)
     rucempresarial = Column(String(50), nullable=True)
     nombre = Column(String(100))
     correo = Column(String(100))
     celular = Column(String(200))
     contrasena = Column(String(100))
+    salt = Column(String(64), nullable=False)  # ← Campo nuevo agregado
     estado = Column(String(50))
     fecha_actualizacion = Column(Date)
     id_rol = Column(Integer, ForeignKey('roles.id_rol'))
 
     rol = relationship("Rol", back_populates="usuarios")
-    
 
 class Cliente(Base):
     __tablename__ = 'cliente'
