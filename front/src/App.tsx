@@ -3,7 +3,7 @@ import { Login } from './Controllers/Login';
 import Catalogo from 'componentes/Admin/Catalogo/Catalogo';
 import LayoutConSidebar from 'componentes/Admin/Sidebar/LayoutConSidebar';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Clientes from 'componentes/Admin/Clientes/Clientes';
+import Clientes from 'componentes/Admin/Clientes/IndexClientes';
 import Inventario from 'componentes/Admin/Inventario/Inventario_Index';
 import Entregas from 'componentes/Admin/Entregas/Entregas';
 import Facturas from 'componentes/Admin/Facturas/Facturas';

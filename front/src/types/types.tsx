@@ -36,3 +36,21 @@ export interface Props {
   userToEdit?: Usuario | null;
   roles: Rol[]; // Simplificado usando la interfaz Rol
 }
+
+export interface Cliente {
+  identificacion: string;
+  nombre: string;
+  direccion: string;
+  celular: string;
+  tipo_cliente: string;
+  razon_social: string;
+  sector: string;
+  fecha_registro?: string;
+  fecha_actualizacion?: string;
+}
+
+export interface FormClientesProps {
+  cliente: Cliente | null;
+  onCancel: () => void;
+  onSubmit: (cliente: Usuario) => Promise<void>;
+}
