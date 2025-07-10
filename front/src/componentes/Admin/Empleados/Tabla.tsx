@@ -144,8 +144,8 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
           <Select 
             placeholder="Seleccione el estado"
             options={[
-              { value: 'Activo', label: 'Activo' },
-              { value: 'Inactivo', label: 'Inactivo' }
+              { value: 'activo', label: 'activo' },
+              { value: 'inactivo', label: 'inactivo' }
             ]} 
           />
         </Form.Item>

@@ -3,7 +3,7 @@ import { Space, Table, Typography, Button, Input, message, Popconfirm } from 'an
 import { DeleteOutlined, EditOutlined, SearchOutlined, FilePdfOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { Usuario } from 'types/types';
-import { authService } from '../../auth/auth';
+import { authService } from '../../../auth/auth';
 import UsuarioModal from './Tabla';
 
 const { Column } = Table;

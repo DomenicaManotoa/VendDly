@@ -2,11 +2,11 @@ from datetime import timedelta
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from models.models import Usuario
-from utils.security import verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from utils.security import verify_password_with_salt, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 
 def authenticate_user(db: Session, rucempresarial: str, correo: str, contrasena: str) -> Usuario:
     """
-    Autentica un usuario verificando sus credenciales
+    Autentica un usuario verificando sus credenciales con salt
     """
     print(f"Buscando usuario con RUC: {rucempresarial} y correo: {correo}")
     
@@ -21,9 +21,17 @@ def authenticate_user(db: Session, rucempresarial: str, correo: str, contrasena:
     
     print(f"Usuario encontrado: {usuario.nombre}")
     
-    if not verify_password(contrasena, usuario.contrasena):
-        print("Contraseña incorrecta")
-        return None
+    # Verificar contraseña con salt
+    if usuario.salt:
+        # Usuario con salt - usar verificación con salt
+        if not verify_password_with_salt(contrasena, usuario.contrasena, usuario.salt):
+            print("Contraseña incorrecta (con salt)")
+            return None
+    else:
+        # Usuario sin salt - usar verificación legacy (para compatibilidad)
+        if not verify_password(contrasena, usuario.contrasena):
+            print("Contraseña incorrecta (sin salt)")
+            return None
     
     print("Autenticación exitosa")
     return usuario
