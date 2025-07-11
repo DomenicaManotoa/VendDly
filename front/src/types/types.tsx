@@ -38,6 +38,7 @@ export interface Props {
 }
 
 export interface Cliente {
+  cod_cliente: number;
   identificacion: string;
   nombre: string;
   direccion: string;

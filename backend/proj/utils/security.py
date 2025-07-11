@@ -3,6 +3,8 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
+import hashlib
+import secrets
 
 # Configuración para el hashing de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -12,12 +14,28 @@ SECRET_KEY = "tu_clave_secreta_super_segura_aqui"  # En producción, usa variabl
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+def generate_salt() -> str:
+    """Genera un salt aleatorio"""
+    return secrets.token_hex(32)  # 64 caracteres hexadecimales
+
+def hash_password_with_salt(password: str, salt: str) -> str:
+    """Hashea una contraseña usando bcrypt con salt personalizado"""
+    # Combinar la contraseña con el salt
+    salted_password = password + salt
+    return pwd_context.hash(salted_password)
+
 def hash_password(password: str) -> str:
-    """Hashea una contraseña usando bcrypt"""
+    """Hashea una contraseña usando bcrypt (mantener para compatibilidad)"""
     return pwd_context.hash(password)
 
+def verify_password_with_salt(plain_password: str, hashed_password: str, salt: str) -> bool:
+    """Verifica una contraseña contra su hash usando salt"""
+    # Combinar la contraseña con el salt
+    salted_password = plain_password + salt
+    return pwd_context.verify(salted_password, hashed_password)
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifica una contraseña contra su hash"""
+    """Verifica una contraseña contra su hash (mantener para compatibilidad)"""
     return pwd_context.verify(plain_password, hashed_password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

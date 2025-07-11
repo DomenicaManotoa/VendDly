@@ -109,12 +109,12 @@ const Clientes = () => {
     setClientToEdit(cliente);
   };
 
-  const handleDelete = async (identificacion: string) => {
+  const handleDelete = async (cod_cliente: number) => {
     try {
       const config = getAxiosConfig();
       if (!config) return;
 
-      await axios.delete(`http://127.0.0.1:8000/clientes/${identificacion}`, config);
+      await axios.delete(`http://127.0.0.1:8000/clientes/${cod_cliente}`, config);
       message.success('Cliente eliminado correctamente');
       fetchClientes();
     } catch (error: any) {
@@ -138,7 +138,7 @@ const Clientes = () => {
       if (!config) return;
 
       if (clientToEdit) {
-        await axios.put(`http://127.0.0.1:8000/clientes/${cliente.identificacion}`, cliente, config);
+        await axios.put(`http://127.0.0.1:8000/clientes/${clientToEdit?.cod_cliente}`, cliente, config);
         message.success('Cliente actualizado correctamente');
       } else {
         await axios.post('http://127.0.0.1:8000/clientes', cliente, config);
@@ -174,6 +174,13 @@ const Clientes = () => {
 
   // Columnas para la tabla
   const columns: ColumnsType<Cliente> = [
+    {
+      title: "Cédula Cliente",
+      dataIndex: 'cod_cliente',
+      key: 'cod_cliente',
+      sorter: (a, b) => (a.cod_cliente ?? 0) - (b.cod_cliente ?? 0),
+      responsive: ['md'],
+    },
     {
       title: 'Identificación',
       dataIndex: 'identificacion',
@@ -255,7 +262,7 @@ const Clientes = () => {
           <Popconfirm
             title="¿Eliminar cliente?"
             description="Esta acción no se puede deshacer"
-            onConfirm={() => handleDelete(record.identificacion)}
+            onConfirm={() => handleDelete(record.cod_cliente)}
             okText="Sí, eliminar"
             cancelText="Cancelar"
             okButtonProps={{ danger: true }}
@@ -277,7 +284,7 @@ const Clientes = () => {
   const renderMobileCards = () => (
     <Row gutter={[16, 16]}>
       {filteredClientes.map((cliente) => (
-        <Col xs={24} sm={12} key={cliente.identificacion}>
+        <Col xs={24} sm={12} key={cliente.cod_cliente}>
           <Card
             size="small"
             title={
@@ -297,7 +304,7 @@ const Clientes = () => {
                 <Popconfirm
                   title="¿Eliminar cliente?"
                   description="Esta acción no se puede deshacer"
-                  onConfirm={() => handleDelete(cliente.identificacion)}
+                  onConfirm={() => handleDelete(cliente.cod_cliente)}
                   okText="Sí"
                   cancelText="No"
                 >
@@ -391,7 +398,7 @@ const Clientes = () => {
           dataSource={filteredClientes}
           rowKey="identificacion"
           loading={loading}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1000 }}
           locale={{
             emptyText: 'No hay clientes disponibles'
           }}
@@ -406,7 +413,6 @@ const Clientes = () => {
         />
       )}
 
-      {/* Modal para agregar/editar cliente */}
       <FormClientes
         cliente={clientToEdit}
         onCancel={() => setClientToEdit(null)}
@@ -418,4 +424,3 @@ const Clientes = () => {
 };
 
 export default Clientes;
-

@@ -70,6 +70,13 @@ const FormClientes: React.FC<FormClientesProps> = ({ cliente, onCancel, onSubmit
       destroyOnClose
     >
       <Form form={form} layout="vertical">
+        <Form.Item
+          name="cod_cliente"
+          label="Código de Cliente"
+          rules={[{ required: false, message: 'El código de cliente es opcional' }]}
+        >
+          <Input disabled placeholder="Código autogenerado" />
+        </Form.Item>
         <Form.Item 
           name="identificacion" 
           label="Identificación" 
