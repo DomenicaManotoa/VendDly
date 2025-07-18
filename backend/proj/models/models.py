@@ -96,6 +96,7 @@ class Producto(Base):
     __tablename__ = 'productos'
 
     id_producto = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    nombre = Column(String(100), nullable=False)
     id_marca = Column(Integer, ForeignKey('marca.id_marca'))
     stock = Column(String)  # Si quieres que sea numérico, usa Float o Integer según tu necesidad
     precio_mayorista = Column(Float)
@@ -103,6 +104,7 @@ class Producto(Base):
     id_categoria = Column(Integer, ForeignKey('categoria.id_categoria'))
     iva = Column(Float)
     estado = Column(String(50))
+    imagen = Column(String(255))
 
     marca = relationship("Marca")
     categoria = relationship("Categoria")

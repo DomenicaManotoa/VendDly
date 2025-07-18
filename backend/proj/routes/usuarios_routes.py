@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, Body, HTTPException
+from fastapi.responses import StreamingResponse  # ← Nueva importación
 from sqlalchemy.orm import Session
 from dependencias.auth import get_db, get_current_user, require_role, require_admin
 from controllers import usuarios_controller
 from models.models import Usuario
 import logging
+import io  # ← Nueva importación
+from datetime import datetime  # ← Nueva importación
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -27,6 +30,40 @@ def listar_usuarios(
     except Exception as e:
         logger.error(f"Error al listar usuarios: {e}")
         raise HTTPException(status_code=500, detail="Error interno del servidor")
+
+# ← Mover la ruta de exportar Excel ANTES de la ruta con parámetro dinámico
+@router.get("/usuarios/exportar-excel")
+def exportar_usuarios_excel(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """
+    Exporta los usuarios a un archivo Excel (requiere autenticación)
+    """
+    try:
+        logger.info(f"Usuario {current_user.identificacion} solicita exportar usuarios a Excel")
+        
+        # Generar archivo Excel
+        excel_data = usuarios_controller.export_usuarios_to_excel(db)
+        
+        # Crear nombre del archivo con fecha
+        fecha_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"usuarios_{fecha_actual}.xlsx"
+        
+        # Crear el stream de respuesta
+        excel_stream = io.BytesIO(excel_data)
+        
+        logger.info(f"Archivo Excel generado exitosamente: {filename}")
+        
+        return StreamingResponse(
+            io.BytesIO(excel_data),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error al exportar usuarios a Excel: {e}")
+        raise HTTPException(status_code=500, detail="Error al generar archivo Excel")
 
 @router.get("/usuarios/{identificacion}")
 def obtener_usuario(
