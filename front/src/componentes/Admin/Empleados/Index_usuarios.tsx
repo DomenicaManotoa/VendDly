@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Space, Table, Typography, Button, Input, message, Popconfirm } from 'antd';
-import { DeleteOutlined, EditOutlined, SearchOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, SearchOutlined, FileExcelOutlined  } from '@ant-design/icons';
 import axios from 'axios';
 import { Usuario } from 'types/types';
 import { authService } from '../../../auth/auth';
@@ -15,6 +15,7 @@ const Usuarios: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [userToEdit, setUserToEdit] = useState<Usuario | null>(null);
   const [roles, setRoles] = useState([]);
+  const [exportingExcel, setExportingExcel] = useState(false); // ← Nuevo estado para controlar el loading del botón Excel
 
   // Configurar axios con el token
   const getAxiosConfig = () => {
@@ -123,6 +124,68 @@ const Usuarios: React.FC = () => {
     }
   };
 
+  // ← Nueva función para exportar a Excel
+  const handleExportExcel = async () => {
+    setExportingExcel(true);
+    try {
+      const config = getAxiosConfig();
+      if (!config) {
+        setExportingExcel(false);
+        return;
+      }
+
+      // Configurar axios para recibir un blob (archivo)
+      const excelConfig = {
+        ...config,
+        responseType: 'blob' as const
+      };
+
+      console.log('Iniciando exportación a Excel...');
+      const response = await axios.get('http://127.0.0.1:8000/usuarios/exportar-excel', excelConfig);
+      
+      // Crear un blob con el archivo Excel
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      // Crear un enlace para descargar el archivo
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Generar nombre del archivo con fecha actual
+      const fecha = new Date().toLocaleDateString('es-ES').replace(/\//g, '-');
+      link.download = `usuarios_${fecha}.xlsx`;
+      
+      // Hacer clic automáticamente para descargar
+      document.body.appendChild(link);
+      link.click();
+      
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      message.success('Archivo Excel exportado correctamente');
+      
+    } catch (error: any) {
+      console.error('Error al exportar Excel:', error);
+      
+      if (error.response?.status === 401) {
+        message.error('Token de autenticación inválido o expirado');
+        authService.logout();
+        window.location.href = '/login';
+      } else if (error.response?.status === 403) {
+        message.error('No tienes permisos para exportar datos');
+      } else if (error.response?.status === 500) {
+        message.error('Error interno del servidor al generar el archivo');
+      } else {
+        message.error('Error al exportar archivo Excel');
+      }
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   useEffect(() => {
     console.log('Componente Usuarios montado');
     
@@ -228,20 +291,6 @@ const Usuarios: React.FC = () => {
     <div style={{ padding: '20px' }}>
       <Typography.Title level={1}>Lista de empleados</Typography.Title>
 
-      {/* Información de debug */}
-      <div style={{ 
-        marginBottom: '20px', 
-        padding: '10px', 
-        backgroundColor: '#f5f5f5', 
-        borderRadius: '4px',
-        fontSize: '12px' 
-      }}>
-        <strong>Debug Info:</strong> Token: {debugInfo.token} | 
-        Autenticado: {debugInfo.authenticated ? 'Sí' : 'No'} | 
-        Usuarios: {debugInfo.usuariosLength} | 
-        Cargando: {debugInfo.loading ? 'Sí' : 'No'}
-      </div>
-
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
         <Input
           placeholder="Buscar por nombre o identificación..."
@@ -251,8 +300,14 @@ const Usuarios: React.FC = () => {
           style={{ width: 300 }}
         />
         <Space>
-          <Button icon={<FilePdfOutlined />} style={{ backgroundColor: 'red', color: 'white' }}>
-            Exportar PDF
+          <Button 
+            icon={<FileExcelOutlined />} 
+            style={{ backgroundColor: 'green', color: 'white' }}
+            onClick={handleExportExcel}
+            loading={exportingExcel}
+            disabled={usuarios.length === 0}
+          >
+            {exportingExcel ? 'Exportando...' : 'Exportar Excel'}
           </Button>
           <Button type="primary" onClick={handleAdd}>
             + Agregar Usuario

@@ -6,6 +6,7 @@ CREATE TABLE roles (
     descripcion VARCHAR(100)
 );
 
+-- Tabla de usuarios
 CREATE TABLE usuarios (
     identificacion VARCHAR(50) PRIMARY KEY,
     rucempresarial VARCHAR(50),
@@ -13,7 +14,7 @@ CREATE TABLE usuarios (
     correo VARCHAR(100),
     celular VARCHAR(20),
     contrasena VARCHAR(100),
-    salt VARCHAR(64) NOT NULL DEFAULT md5(random()::text),  -- Salt con generación automática
+    salt VARCHAR(64) NOT NULL DEFAULT md5(random()::text),
     estado VARCHAR(50),
     fecha_actualizacion DATE,
     id_rol INT,
@@ -32,8 +33,10 @@ CREATE TABLE marca (
     descripcion VARCHAR(100)
 );
 
+-- Tabla de productos
 CREATE TABLE productos (
     id_producto SERIAL PRIMARY KEY,
+    nombre VARCHAR(255),
     id_marca INT,
     stock VARCHAR,
     precio_mayorista FLOAT,
@@ -41,14 +44,14 @@ CREATE TABLE productos (
     id_categoria INT,
     iva FLOAT,
     estado VARCHAR(50),
-    imagen VARCHAR(255),  -- Campo para rutas de imágenes
+    imagen VARCHAR(255),
     FOREIGN KEY (id_marca) REFERENCES marca(id_marca),
     FOREIGN KEY (id_categoria) REFERENCES categoria(id_categoria)
 );
 
--- Tabla de clientes
+-- Tabla de clientes (MODIFICADA: cod_cliente ahora es VARCHAR)
 CREATE TABLE cliente (
-    cod_cliente SERIAL PRIMARY KEY,
+    cod_cliente VARCHAR(50) PRIMARY KEY,  -- Cambiado de SERIAL a VARCHAR
     identificacion VARCHAR(50),
     nombre VARCHAR(100),
     direccion VARCHAR(200),
@@ -61,7 +64,7 @@ CREATE TABLE cliente (
     CONSTRAINT fk_identificacion_usuario FOREIGN KEY (identificacion) REFERENCES usuarios(identificacion)
 );
 
--- Tabla de pedidos
+-- Tabla de pedidos (MODIFICADA: cod_cliente ahora es VARCHAR)
 CREATE TABLE pedido (
     id_pedido SERIAL PRIMARY KEY,
     estado VARCHAR(50),
@@ -70,7 +73,7 @@ CREATE TABLE pedido (
     subtotal FLOAT,
     iva FLOAT,
     total FLOAT,
-    cod_cliente INT,
+    cod_cliente VARCHAR(50),  -- Cambiado de INT a VARCHAR
     FOREIGN KEY (cod_cliente) REFERENCES cliente(cod_cliente)
 );
 
@@ -97,10 +100,10 @@ CREATE TABLE detalle_pedido (
     FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
 );
 
--- Tabla de facturas
+-- Tabla de facturas (MODIFICADA: cod_cliente ahora es VARCHAR)
 CREATE TABLE factura (
     id_factura SERIAL PRIMARY KEY,
-    cod_cliente INT,
+    cod_cliente VARCHAR(50),  -- Cambiado de INT a VARCHAR
     numero_factura SERIAL,
     fecha_emision DATE,
     estado VARCHAR(50),
