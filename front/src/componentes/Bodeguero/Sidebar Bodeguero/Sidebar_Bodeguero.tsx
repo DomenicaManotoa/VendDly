@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout, Menu, Button, Modal } from 'antd';
 import {
+  AppstoreOutlined,
   HomeOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ShoppingOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -30,7 +32,9 @@ const SidebarBodega: React.FC = () => {
   };
 
   const menuItems = [
-    { key: '/bodega/home', icon: <HomeOutlined />, label: 'Home' },
+    { key: '/bodega/home', icon: <HomeOutlined />, label: 'Home Bodega' },
+    { key: '/bodega/inventario', icon: <ShoppingOutlined />, label: 'Inventario Bodega' },
+    { key: '/bodega/catalogo', icon: <AppstoreOutlined />, label: 'Catálogo Bodega' },
   ];
 
   return (

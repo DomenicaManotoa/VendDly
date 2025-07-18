@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout, Menu, Button, Modal } from 'antd';
 import {
+  AppstoreOutlined,
+  EnvironmentOutlined,
   HomeOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MoneyCollectOutlined,
+  ShoppingCartOutlined,
+  ShoppingOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -31,6 +37,36 @@ const SidebarVendedor: React.FC = () => {
 
   const menuItems = [
     { key: '/vendedor/home', icon: <HomeOutlined />, label: 'Home' },
+     {
+    key: '/vendedor/inventario',
+    icon: <ShoppingOutlined />,
+    label: 'Inventario',
+  },
+  {
+    key: '/vendedor/catalogo',
+    icon: <AppstoreOutlined />,
+    label: 'Catálogo',
+  },
+  {
+    key: '/vendedor/clientes',
+    icon: <TeamOutlined />,
+    label: 'Clientes',
+  },
+  {
+    key: '/vendedor/rutas',
+    icon: <EnvironmentOutlined />,
+    label: 'Rutas',
+  },
+  {
+    key: '/vendedor/pedidos',
+    icon: <ShoppingCartOutlined />,
+    label: 'Pedidos',
+  },
+  {
+    key: '/vendedor/caja',
+    icon: <MoneyCollectOutlined />,
+    label: 'Caja',
+  },
   ];
 
   return (

@@ -1,4 +1,4 @@
-const HomeTransportista: React.FC = () => {
+const HomeTransportista = () => {
   return (
     <div>
       <h1>Home Transportista</h1>

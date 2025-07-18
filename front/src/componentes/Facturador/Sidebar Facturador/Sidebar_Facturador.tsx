@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout, Menu, Button, Modal } from 'antd';
 import {
+  FileTextOutlined,
   HomeOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ShoppingCartOutlined,
+  TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -31,6 +35,26 @@ const SidebarFacturador: React.FC = () => {
 
   const menuItems = [
     { key: '/facturador/home', icon: <HomeOutlined />, label: 'Home' },
+    {
+    key: '/facturador/clientes',
+    icon: <TeamOutlined />,
+    label: 'Clientes',
+  },
+  {
+    key: '/facturador/facturar',
+    icon: <FileTextOutlined />,
+    label: 'Facturar',
+  },
+  {
+    key: '/facturador/pedidos',
+    icon: <ShoppingCartOutlined />,
+    label: 'Pedidos',
+  },
+  {
+    key: '/facturador/vendedor',
+    icon: <UserOutlined />,
+    label: 'Vendedor',
+  },
   ];
 
   return (

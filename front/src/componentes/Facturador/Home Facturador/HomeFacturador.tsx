@@ -1,4 +1,4 @@
-const HomeFacturador: React.FC = () => {
+const HomeFacturador = () => {
   return (
     <div>
       <h1>Home Facturador</h1>
