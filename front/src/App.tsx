@@ -1,22 +1,23 @@
-import Home from 'componentes/Admin/Home/Home';
 import { Login } from './Controllers/Login';
+import Home from 'componentes/Admin/Home/Home';
+import { FooterCustom } from 'componentes/Footer';
+import Pedidos from 'componentes/Admin/Pedidos/Index';
 import Catalogo from 'componentes/Admin/Catalogo/Catalogo';
-import LayoutConSidebar from 'componentes/Admin/Sidebar/LayoutConSidebar';
+import Facturas from 'componentes/Admin/Facturas/Facturas';
+import Entregas from 'componentes/Admin/Entregas/Entregas';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Clientes from 'componentes/Admin/Clientes/IndexClientes';
+import Usuarios from 'componentes/Admin/Empleados/Index_usuarios';
 import Inventario from 'componentes/Admin/Inventario/Inventario_Index';
-import Entregas from 'componentes/Admin/Entregas/Entregas';
-import Facturas from 'componentes/Admin/Facturas/Facturas';
-import Pedidos from 'componentes/Admin/Pedidos/Pedidos';
-import LayoutConSidebarBodega from 'componentes/Bodeguero/Sidebar Bodeguero/LayoutConSidebarBodega';
+import LayoutConSidebar from 'componentes/Admin/Sidebar/LayoutConSidebar';
+import HomeVendedor from 'componentes/Vendedor/Home Vendedor/Home_Vendedor';
 import HomeBodeguero from 'componentes/Bodeguero/Home Bodeguero/HomeBodeguero';
-import LayoutConSidebarFacturador from 'componentes/Facturador/Sidebar Facturador/LayoutConSideFacturador';
 import HomeFacturador from 'componentes/Facturador/Home Facturador/HomeFacturador';
 import HomeTransportista from 'componentes/Transportista/Home Transportista/Home_Transportiste';
-import LayoutConSidebarTransportista from 'componentes/Transportista/Sidebar Transportista/LayoutConSidebarTransportista';
+import LayoutConSidebarBodega from 'componentes/Bodeguero/Sidebar Bodeguero/LayoutConSidebarBodega';
 import LayoutConSidebarVendedor from 'componentes/Vendedor/Sidebar Vendedor/LayoutConSidebarVendedor';
-import HomeVendedor from 'componentes/Vendedor/Home Vendedor/Home_Vendedor';
-import Usuarios from 'componentes/Admin/Empleados/Index_usuarios';
+import LayoutConSidebarFacturador from 'componentes/Facturador/Sidebar Facturador/LayoutConSideFacturador';
+import LayoutConSidebarTransportista from 'componentes/Transportista/Sidebar Transportista/LayoutConSidebarTransportista';
 
 
 export default function App() {
