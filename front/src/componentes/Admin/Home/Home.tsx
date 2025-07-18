@@ -1,102 +1,202 @@
-import { Row, Col, Button } from 'antd';
+import { Row, Col, Card, Typography } from 'antd';
 import {
-  FilePdfOutlined,
-  AppstoreAddOutlined,
-  UserOutlined,
-  FileTextOutlined,
-  ShoppingCartOutlined,
-  TeamOutlined,
-} from '@ant-design/icons';
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  LineChart,
+  Line,
+  CartesianGrid,
+  ResponsiveContainer,
+} from 'recharts';
 
-const buttonStyle = {
-  height: '120px',
-  width: '100%',
-  fontSize: '16px',
-  display: 'flex',
-  flexDirection: 'column' as const,
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderRadius: '12px',
-  color: 'white',
+const { Title } = Typography;
+
+const COLORS = ['#1890ff', '#52c41a', '#faad14', '#eb2f96'];
+
+const inventarioData = [
+  { name: 'Producto A', stock: 120 },
+  { name: 'Producto B', stock: 90 },
+  { name: 'Producto C', stock: 60 },
+];
+
+const clientesData = [
+  { name: 'Activos', value: 80 },
+  { name: 'Inactivos', value: 20 },
+];
+
+const empleadosData = [
+  { mes: 'Ene', cantidad: 5 },
+  { mes: 'Feb', cantidad: 8 },
+  { mes: 'Mar', cantidad: 6 },
+];
+
+const pedidosData = [
+  { name: 'Pendientes', value: 40 },
+  { name: 'Entregados', value: 100 },
+];
+
+const productosData = [
+  { name: 'Electrónica', value: 40 },
+  { name: 'Ropa', value: 30 },
+  { name: 'Alimentos', value: 30 },
+];
+
+const facturasData = [
+  { mes: 'Ene', total: 500 },
+  { mes: 'Feb', total: 700 },
+  { mes: 'Mar', total: 600 },
+];
+
+const cardStyle: React.CSSProperties = {
+  borderRadius: '16px',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+  padding: '12px',
+  height: '100%',
 };
 
-const iconStyle = {
-  fontSize: '28px',
-  marginBottom: '8px',
+const chartContainerStyle: React.CSSProperties = {
+  width: '100%',
+  height: 160,
 };
 
 const Home = () => {
   return (
-    <div style={{ padding: '24px' }}>
-      <h1 style={{ textAlign: 'center', fontSize: '40px', color: 'green', marginBottom: '8px' }}>
+    <div
+      style={{
+        height: '100vh',
+        overflowY: 'auto',
+        padding: '24px',
+        boxSizing: 'border-box',
+      }}
+    >
+      <Title level={1} style={{ textAlign: 'center', color: 'green', marginBottom: '8px' }}>
         Inicio
-      </h1>
-      <h2 style={{ textAlign: 'left', fontWeight: 'normal', color: '#555', marginBottom: '40px' }}>
+      </Title>
+      <Title level={4} style={{ textAlign: 'left', color: '#555', marginBottom: '16px' }}>
         Bienvenido Administrador
-      </h2>
+      </Title>
 
-      <Row gutter={[24, 24]} justify="center">
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Button
-            style={{ ...buttonStyle, backgroundColor: '#d32f2f' }}
-            icon={<FilePdfOutlined style={iconStyle} />}
-          >
-            Catálogo PDF
-          </Button>
+      <Row gutter={[16, 16]} wrap align="top" style={{ display: 'flex' }}>
+        {/* Inventario */}
+        <Col xs={24} sm={12} md={8} style={{ height: '260px' }}>
+          <Card title="Inventario" style={cardStyle}>
+            <div style={chartContainerStyle}>
+              <ResponsiveContainer>
+                <BarChart data={inventarioData}>
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="stock" fill="#1890ff" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Button
-            style={{ ...buttonStyle, backgroundColor: '#1976d2' }}
-            icon={<AppstoreAddOutlined style={iconStyle} />}
-          >
-            CRUD Inventario
-          </Button>
+        {/* Clientes */}
+        <Col xs={24} sm={12} md={8} style={{ height: '260px' }}>
+          <Card title="Clientes" style={cardStyle}>
+            <div style={chartContainerStyle}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={clientesData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={50}
+                    label
+                  >
+                    {clientesData.map((entry, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Button
-            style={{ ...buttonStyle, backgroundColor: '#388e3c' }}
-            icon={<UserOutlined style={iconStyle} />}
-          >
-            CRUD Clientes
-          </Button>
+        {/* Empleados */}
+        <Col xs={24} sm={12} md={8} style={{ height: '260px' }}>
+          <Card title="Empleados" style={cardStyle}>
+            <div style={chartContainerStyle}>
+              <ResponsiveContainer>
+                <LineChart data={empleadosData}>
+                  <XAxis dataKey="mes" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="cantidad" stroke="#722ed1" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Button
-            style={{ ...buttonStyle, backgroundColor: '#7b1fa2' }}
-            icon={<TeamOutlined style={iconStyle} />}
-          >
-            CRUD Empleados
-          </Button>
+        {/* Pedidos */}
+        <Col xs={24} sm={12} md={8} style={{ height: '260px' }}>
+          <Card title="Pedidos" style={cardStyle}>
+            <div style={chartContainerStyle}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={pedidosData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={50}
+                    label
+                  >
+                    {pedidosData.map((entry, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Button
-            style={{ ...buttonStyle, backgroundColor: '#f57c00' }}
-            icon={<AppstoreAddOutlined style={iconStyle} />}
-          >
-            Agregar Productos
-          </Button>
+        {/* Categorías de productos */}
+        <Col xs={24} sm={12} md={8} style={{ height: '260px' }}>
+          <Card title="Categorías de Productos" style={cardStyle}>
+            <div style={chartContainerStyle}>
+              <ResponsiveContainer>
+                <BarChart data={productosData}>
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#fa8c16" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
         </Col>
 
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Button
-            style={{ ...buttonStyle, backgroundColor: '#c2185b' }}
-            icon={<ShoppingCartOutlined style={iconStyle} />}
-          >
-            CRUD Pedidos
-          </Button>
-        </Col>
-
-        <Col xs={24} sm={12} md={8} lg={6}>
-          <Button
-            style={{ ...buttonStyle, backgroundColor: '#455a64' }}
-            icon={<FileTextOutlined style={iconStyle} />}
-          >
-            Ver Facturas
-          </Button>
+        {/* Facturación mensual */}
+        <Col xs={24} sm={12} md={8} style={{ height: '260px' }}>
+          <Card title="Facturación Mensual" style={cardStyle}>
+            <div style={chartContainerStyle}>
+              <ResponsiveContainer>
+                <LineChart data={facturasData}>
+                  <XAxis dataKey="mes" />
+                  <YAxis />
+                  <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="total" stroke="#13c2c2" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
         </Col>
       </Row>
     </div>

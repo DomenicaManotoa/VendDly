@@ -1,17 +1,42 @@
-import React, { useRef, useState } from 'react';
-import { Input, Button, Form, InputNumber } from 'antd';
+import React, { useRef, useState, useEffect } from 'react';
+import { Input, Button, Form, InputNumber, Select } from 'antd';
+
+interface Marca {
+  key: string;
+  nombre: string;
+}
+
+interface Categoria {
+  key: string;
+  nombre: string;
+}
 
 interface InventarioFormProps {
   onClose: () => void;
+  initialValues?: any;
+  marcas: Marca[];
+  categorias: Categoria[];
 }
 
-const Inventario_Form: React.FC<InventarioFormProps> = ({ onClose }) => {
+const Inventario_Form: React.FC<InventarioFormProps> = ({ onClose, initialValues, marcas, categorias }) => {
   const [form] = Form.useForm();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (initialValues) {
+      form.setFieldsValue(initialValues);
+      if (initialValues.imagen) {
+        setPreview(initialValues.imagen);
+      }
+    } else {
+      form.resetFields();
+      setPreview(null);
+    }
+  }, [initialValues, form]);
+
   const handleFinish = (values: any) => {
-    // Aquí puedes manejar los datos del backend
+    console.log('Formulario enviado:', values);
     onClose();
   };
 
@@ -21,10 +46,12 @@ const Inventario_Form: React.FC<InventarioFormProps> = ({ onClose }) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
+        form.setFieldsValue({ imagen: file });
       };
       reader.readAsDataURL(file);
     } else {
       setPreview(null);
+      form.setFieldsValue({ imagen: null });
     }
   };
 
@@ -59,7 +86,6 @@ const Inventario_Form: React.FC<InventarioFormProps> = ({ onClose }) => {
             />
           )}
         </div>
-        {/* Campos a la derecha */}
         <div style={{ flex: 1 }}>
           <Form.Item
             label="Nombre del producto"
@@ -67,6 +93,36 @@ const Inventario_Form: React.FC<InventarioFormProps> = ({ onClose }) => {
             rules={[{ required: true, message: 'Ingrese el nombre del producto' }]}
           >
             <Input />
+          </Form.Item>
+
+          <Form.Item
+            label="Marca"
+            name="marcaKey"
+            rules={[{ required: true, message: 'Seleccione la marca' }]}
+          >
+            <Select
+              placeholder="Seleccione una marca"
+              options={marcas.map(m => ({ label: m.nombre, value: m.key }))}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Categoría"
+            name="categoriaKey"
+            rules={[{ required: true, message: 'Seleccione la categoría' }]}
+          >
+            <Select
+              placeholder="Seleccione una categoría"
+              options={categorias.map(c => ({ label: c.nombre, value: c.key }))}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+            />
           </Form.Item>
 
           <Form.Item
@@ -85,7 +141,12 @@ const Inventario_Form: React.FC<InventarioFormProps> = ({ onClose }) => {
             <InputNumber
               min={0}
               style={{ width: '100%' }}
-              prefix="$"
+              formatter={value => (value ? `$ ${value}` : '')}
+              parser={value => {
+                if (!value) return 0 as 0;
+                const parsed = value.replace(/\$\s?|(,*)/g, '');
+                return (Number(parsed) || 0) as 0;
+              }}
               step={0.01}
             />
           </Form.Item>
@@ -98,7 +159,12 @@ const Inventario_Form: React.FC<InventarioFormProps> = ({ onClose }) => {
             <InputNumber
               min={0}
               style={{ width: '100%' }}
-              prefix="$"
+              formatter={value => (value ? `$ ${value}` : '')}
+              parser={(value: string | undefined) => {
+                if (!value) return 0 as 0;
+                const parsed = value.replace(/\$\s?|(,*)/g, '');
+                return Number(parsed) as unknown as 0;
+              }}
               step={0.01}
             />
           </Form.Item>
@@ -109,7 +175,7 @@ const Inventario_Form: React.FC<InventarioFormProps> = ({ onClose }) => {
           Cancelar
         </Button>
         <Button type="primary" htmlType="submit" style={{ background: '#2e7d32', borderColor: '#2e7d32' }}>
-          Agregar
+          {initialValues ? 'Guardar Cambios' : 'Agregar'}
         </Button>
       </Form.Item>
     </Form>

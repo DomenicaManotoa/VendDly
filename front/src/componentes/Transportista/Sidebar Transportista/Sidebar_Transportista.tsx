@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout, Menu, Button, Modal } from 'antd';
 import {
+  EnvironmentOutlined,
+  FileTextOutlined,
   HomeOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ShoppingCartOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -31,6 +35,21 @@ const SidebarTransportista: React.FC = () => {
 
   const menuItems = [
     { key: '/transportista/home', icon: <HomeOutlined />, label: 'Home' },
+     {
+    key: '/transportista/clientes',
+    icon: <TeamOutlined />,
+    label: 'Clientes',
+  },
+  {
+    key: '/transportista/pedidos',
+    icon: <ShoppingCartOutlined />,
+    label: 'Pedidos',
+  },
+  {
+    key: '/transportista/rutas',
+    icon: <EnvironmentOutlined />,
+    label: 'Rutas',
+  },
   ];
 
   return (
