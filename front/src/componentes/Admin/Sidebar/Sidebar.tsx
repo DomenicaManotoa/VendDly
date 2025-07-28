@@ -34,6 +34,7 @@ const mainItems: MenuItem[] = [
   { key: '/categorias', icon: <ShopOutlined />, label: 'Categorías' },      // Tienda, productos
   { key: '/marcas', icon: <TagsOutlined />, label: 'Marcas' },              // Etiquetas o tags para marcas
   { key: '/roles', icon: <UserSwitchOutlined />, label: 'Roles' },
+  { key: '/rutas', icon: <ReadOutlined />, label: 'Rutas' },
 ];
 
 const logoutItem: MenuItem[] = [

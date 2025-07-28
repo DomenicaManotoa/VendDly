@@ -1,6 +1,6 @@
+import "leaflet/dist/leaflet.css";
 import { Login } from './Controllers/Login';
 import Home from 'componentes/Admin/Home/Home';
-import { FooterCustom } from 'componentes/Footer';
 import Pedidos from 'componentes/Admin/Pedidos/Index';
 import Catalogo from 'componentes/Admin/Catalogo/Catalogo';
 import Facturas from 'componentes/Admin/Facturas/Facturas';
@@ -36,6 +36,7 @@ import ClientesVendedor from 'componentes/Vendedor/Clientes Vendedor/Clientes_Ve
 import InventarioVendedor from 'componentes/Vendedor/Inventario Vendedor/Inventario_Vendedor';
 import PedidosVendedor from 'componentes/Vendedor/Pedidos Vendedor/Pedidos_Vendedor';
 import RutasVendedor from 'componentes/Vendedor/Rutas Vendedor/Rutas_Vendedor';
+import Rutas from 'componentes/Admin/Rutas/Rutas';
 
 
 export default function App() {
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/categorias" element={<Categorias_Admin />} />
           <Route path="/marcas" element={<Marcas_Admin />} />
           <Route path="/roles" element={<Roles_Admin />} />
+          <Route path="/rutas" element={<Rutas />} />
         </Route>
         <Route element={<LayoutConSidebarBodega />}>
           <Route path="/bodega/home" element={<HomeBodeguero />} />
