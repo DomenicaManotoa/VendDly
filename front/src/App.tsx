@@ -99,7 +99,7 @@ export default function App() {
           <Route path="/transportista/home" element={<HomeTransportista />} />
           <Route path="/transportista/clientes" element={<ClientesTransportista />} />
           <Route path="/transportista/pedidos" element={<PedidosTransportista />} />
-          <Route path="/transportista/rutas" element={<RutasTransportista />} />
+          
         </Route>
         
         {/* ✅ CAMBIO: Envolver LayoutConSidebarVendedor con ProtectedRoute */}

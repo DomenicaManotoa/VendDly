@@ -1,7 +1,9 @@
+import Inventario_Index from "componentes/Admin/Inventario/Inventario_Index";
+
 const InventarioVendedor = () => {
   return (
     <div>
-      <h1>Inventario Vendedor</h1>
+      <Inventario_Index />
     </div>
   );
 };
