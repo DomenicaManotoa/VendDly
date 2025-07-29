@@ -1,8 +1,8 @@
+import Inventario_Index from "componentes/Admin/Inventario/Inventario_Index";
 const InventarioBodeguero = () => {
   return (
     <div>
-      <h1>Inventario Bodeguero</h1>
-      {/* Aquí puedes agregar los componentes o elementos que desees */}
+      <Inventario_Index />
     </div>
   );
 };

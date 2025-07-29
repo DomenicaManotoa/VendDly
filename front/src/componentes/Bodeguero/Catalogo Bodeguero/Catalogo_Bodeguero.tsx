@@ -1,8 +1,9 @@
+import Catalogo from "componentes/Admin/Catalogo/Catalogo";
+
 const CatalogoBodeguero = () => {
   return (
     <div>
-      <h1>Catálogo Bodeguero</h1>
-      {/* Aquí puedes agregar los componentes o elementos que desees */}
+      <Catalogo />
     </div>
   );
 };
