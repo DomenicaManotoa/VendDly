@@ -1,33 +1,39 @@
-import { useState } from 'react';
-import {
-  Button,
-  Table,
-  message,
-  Popconfirm,
-  Modal,
-  Input,
-} from 'antd';
-import {
-  EditOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
+import { useState, useEffect } from 'react';
+import { Button, Table, message, Popconfirm, Modal, Input } from 'antd';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import Rol_Form from './Roles_Form';
+import axios from '../../../utils/axiosConfig';
 
-const initialRoles = [
-  { key: '1', nombre: 'Administrador', grupo: 'Admin' },
-  { key: '2', nombre: 'Usuario', grupo: 'Usuario' },
-  { key: '3', nombre: 'Vendedor', grupo: 'Usuario' },
-];
+interface Rol {
+  id_rol: number;
+  descripcion: string;
+}
 
 const Roles_Admin = () => {
   const [open, setOpen] = useState(false);
-  const [editarRol, setEditarRol] = useState<{ key: string; nombre: string; grupo?: string } | null>(null);
-  const [dataSource, setDataSource] = useState(initialRoles);
+  const [editarRol, setEditarRol] = useState<Rol | null>(null);
+  const [dataSource, setDataSource] = useState<Rol[]>([]);
   const [searchText, setSearchText] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const abrirEditar = (rol: { key: string; nombre: string; grupo?: string }) => {
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  const fetchRoles = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('/roles');
+      setDataSource(response.data);
+    } catch (error) {
+      message.error('Error al cargar los roles');
+      console.error('Error fetching roles:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const abrirEditar = (rol: Rol) => {
     setEditarRol(rol);
     setOpen(true);
   };
@@ -37,60 +43,56 @@ const Roles_Admin = () => {
     setEditarRol(null);
   };
 
-  const handleDelete = (record: { key: string }) => {
-    setDataSource(prev => prev.filter(item => item.key !== record.key));
-    message.success('Rol eliminado correctamente');
-  };
-
-  const handleSave = (values: { key?: string; nombre: string; grupo?: string }) => {
-    if (values.key) {
-      setDataSource(prev =>
-        prev.map(item =>
-          item.key === values.key
-            ? { ...item, nombre: values.nombre, grupo: values.grupo || item.grupo }
-            : item
-        )
-      );
-      message.success('Rol actualizado correctamente');
-    } else {
-      const newKey = (Math.max(0, ...dataSource.map(r => Number(r.key))) + 1).toString();
-      setDataSource(prev => [
-        ...prev,
-        { key: newKey, nombre: values.nombre, grupo: values.grupo || 'Usuario' },
-      ]);
-      message.success('Rol agregado correctamente');
+  const handleDelete = async (record: Rol) => {
+    try {
+      await axios.delete(`/roles/${record.id_rol}`);
+      message.success('Rol eliminado correctamente');
+      fetchRoles();
+    } catch (error) {
+      message.error('Error al eliminar el rol');
+      console.error('Error deleting role:', error);
     }
   };
 
-  const filteredData = dataSource.filter(rol => {
-    const search = searchText.toLowerCase();
-    return (
-      rol.nombre.toLowerCase().includes(search) ||
-      (rol.grupo || '').toLowerCase().includes(search)
-    );
-  });
+  const handleSave = async (values: { nombre: string }) => {
+    try {
+      const rolData = { descripcion: values.nombre };
+      
+      if (editarRol) {
+        await axios.put(`/roles/${editarRol.id_rol}`, rolData);
+        message.success('Rol actualizado correctamente');
+      } else {
+        await axios.post('/roles', rolData);
+        message.success('Rol agregado correctamente');
+      }
+      fetchRoles();
+      cerrarModal();
+    } catch (error) {
+      message.error('Error al guardar el rol');
+      console.error('Error saving role:', error);
+    }
+  };
+
+  const filteredData = dataSource.filter(rol =>
+    rol.descripcion.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   const columns = [
     {
       title: 'Nombre del Rol',
-      dataIndex: 'nombre',
-      key: 'nombre',
-    },
-    {
-      title: 'Grupo',
-      dataIndex: 'grupo',
-      key: 'grupo',
+      dataIndex: 'descripcion',
+      key: 'descripcion',
     },
     {
       title: 'Acciones',
       key: 'acciones',
       align: 'right' as 'right',
-      render: (_: any, record: any) => (
+      render: (_: any, record: Rol) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <Button icon={<EditOutlined />} size="small" onClick={() => abrirEditar(record)} />
           <Popconfirm
             title="¿Estás seguro que quieres eliminar este rol?"
-            description={`Rol: ${record.nombre}`}
+            description={`Rol: ${record.descripcion}`}
             onConfirm={() => handleDelete(record)}
             okText="Sí, eliminar"
             cancelText="Cancelar"
@@ -139,7 +141,6 @@ const Roles_Admin = () => {
         </Button>
       </div>
 
-      {/* Buscador único */}
       <div
         style={{
           padding: 16,
@@ -152,7 +153,7 @@ const Roles_Admin = () => {
         }}
       >
         <Input
-          placeholder="Buscar rol por nombre o grupo"
+          placeholder="Buscar rol por nombre"
           allowClear
           value={searchText}
           onChange={e => setSearchText(e.target.value)}
@@ -166,7 +167,8 @@ const Roles_Admin = () => {
           dataSource={filteredData}
           columns={columns}
           pagination={{ pageSize: 5 }}
-          rowKey="key"
+          rowKey="id_rol"
+          loading={loading}
           scroll={{ y: 320 }}
           style={{ minWidth: 300 }}
         />
@@ -181,11 +183,14 @@ const Roles_Admin = () => {
         width="90%"
         style={{ maxWidth: 500 }}
       >
-        <Rol_Form
-          onClose={cerrarModal}
-          initialValues={editarRol || undefined}
-          onSave={handleSave}
-        />
+          <Rol_Form
+            onClose={cerrarModal}
+            initialValues={editarRol ? { 
+              key: editarRol.id_rol.toString(),
+              nombre: editarRol.descripcion 
+            } : undefined}
+            onSave={handleSave}
+          />
       </Modal>
     </div>
   );

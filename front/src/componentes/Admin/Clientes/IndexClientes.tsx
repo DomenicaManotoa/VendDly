@@ -19,11 +19,12 @@ import {
 import { 
   DeleteOutlined, 
   EditOutlined, 
-  FilePdfOutlined, 
+  FileExcelOutlined,
   SearchOutlined,
   PlusOutlined,
   UserOutlined
 } from "@ant-design/icons";
+
 
 const { Title } = Typography;
 
@@ -33,6 +34,8 @@ const Clientes = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [clientToEdit, setClientToEdit] = useState<Cliente | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
 
   // Detectar si es móvil
   useEffect(() => {
@@ -100,16 +103,121 @@ const Clientes = () => {
     
     fetchClientes();
   }, [fetchClientes]);
+  
+  // Función mejorada para manejar la exportación
+  const handleExportExcel = async () => {
+    if (exportingExcel) return; // Prevenir múltiples clics
+    
+    setExportingExcel(true);
+    
+    try {
+      const config = getAxiosConfig();
+      if (!config) {
+        setExportingExcel(false);
+        return;
+      }
 
-  const handleAdd = () => {
-    setClientToEdit(null);
+      console.log('Iniciando descarga de Excel...');
+
+      // Realizar la petición con axios
+      const response = await axios({
+        method: 'GET',
+        url: 'http://127.0.0.1:8000/clientes/exportar-excel',
+        headers: config.headers,
+        responseType: 'blob', // Importante: especificar blob para archivos
+      });
+
+      console.log('Respuesta recibida:', response);
+
+      // Verificar que la respuesta sea válida
+      if (!response.data || response.data.size === 0) {
+        throw new Error('El archivo recibido está vacío');
+      }
+
+      // Crear blob con el tipo correcto
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+
+      console.log('Blob creado:', blob.size, 'bytes');
+
+      // Crear URL del blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Crear elemento de descarga
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Generar nombre del archivo con fecha actual
+      const now = new Date();
+      const fecha = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const hora = now.toTimeString().slice(0, 8).replace(/:/g, '');
+      link.download = `clientes_${fecha}_${hora}.xlsx`;
+      
+      // Añadir al DOM, hacer clic y remover
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Liberar la URL del blob
+      window.URL.revokeObjectURL(url);
+      
+      message.success('¡Archivo Excel descargado exitosamente!');
+      console.log('Descarga completada');
+      
+    } catch (error: any) {
+      console.error('Error detallado al exportar Excel:', error);
+      
+      if (error.response) {
+        console.error('Error response:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        });
+        
+        if (error.response.status === 401) {
+          message.error('Token de autenticación inválido o expirado');
+          authService.logout();
+          window.location.href = '/login';
+        } else if (error.response.status === 403) {
+          message.error('No tienes permisos para exportar datos');
+        } else if (error.response.status === 404) {
+          message.error('No hay clientes para exportar');
+        } else if (error.response.status === 500) {
+          message.error('Error interno del servidor al generar el archivo');
+        } else {
+          message.error(`Error del servidor: ${error.response.status}`);
+        }
+      } else if (error.request) {
+        console.error('Error request:', error.request);
+        message.error('Error de conexión al servidor');
+      } else {
+        console.error('Error message:', error.message);
+        message.error(`Error inesperado: ${error.message}`);
+      }
+    } finally {
+      setExportingExcel(false);
+    }
   };
 
-  const handleEdit = (cliente: Cliente) => {
-    setClientToEdit(cliente);
-  };
+  
+// Modifica las funciones
+const handleAdd = () => {
+  setClientToEdit(null);
+  setIsFormVisible(true);
+};
 
-  const handleDelete = async (cod_cliente: number) => {
+const handleEdit = (cliente: Cliente) => {
+  setClientToEdit(cliente);
+  setIsFormVisible(true);
+};
+
+const handleCancel = () => {
+  setIsFormVisible(false);
+  setClientToEdit(null);
+};
+
+  const handleDelete = async (cod_cliente: string) => {
     try {
       const config = getAxiosConfig();
       if (!config) return;
@@ -175,10 +283,10 @@ const Clientes = () => {
   // Columnas para la tabla
   const columns: ColumnsType<Cliente> = [
     {
-      title: "Cédula Cliente",
+      title: "Código Cliente",
       dataIndex: 'cod_cliente',
       key: 'cod_cliente',
-      sorter: (a, b) => (a.cod_cliente ?? 0) - (b.cod_cliente ?? 0),
+      sorter: (a, b) => a.cod_cliente.localeCompare(b.cod_cliente), // Cambiar a comparación de strings
       responsive: ['md'],
     },
     {
@@ -352,12 +460,21 @@ const Clientes = () => {
         <Col xs={24} sm={12} md={16}>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             <Button 
-              icon={<FilePdfOutlined />} 
-              style={{ backgroundColor: '#dc3545', borderColor: '#dc3545' }}
-              type="primary"
+              icon={<FileExcelOutlined />} 
+              style={{ 
+                backgroundColor: exportingExcel ? '#52c41a' : '#389e0d', 
+                borderColor: exportingExcel ? '#52c41a' : '#389e0d',
+                color: 'white' 
+              }}
+              onClick={handleExportExcel}
+              loading={exportingExcel}
+              disabled={clientes.length === 0}
               size={isMobile ? 'small' : 'middle'}
             >
-              {isMobile ? 'PDF' : 'Exportar PDF'}
+              {exportingExcel 
+                ? (isMobile ? 'Generando...' : 'Generando Excel...') 
+                : (isMobile ? 'Excel' : 'Exportar Excel')
+              }
             </Button>
             <Button 
               type="primary" 
@@ -396,7 +513,7 @@ const Clientes = () => {
         <Table
           columns={columns}
           dataSource={filteredClientes}
-          rowKey="identificacion"
+          rowKey="cod_cliente"
           loading={loading}
           scroll={{ x: 1000 }}
           locale={{
@@ -413,11 +530,13 @@ const Clientes = () => {
         />
       )}
 
-      <FormClientes
-        cliente={clientToEdit}
-        onCancel={() => setClientToEdit(null)}
-        onSubmit={handleSubmit}
-      />
+
+        <FormClientes
+          cliente={clientToEdit}
+          visible={isFormVisible}
+          onCancel={handleCancel}
+          onSubmit={handleSubmit}
+        />
 
     </div>
   );

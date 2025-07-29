@@ -1,7 +1,9 @@
+import Catalogo from "componentes/Admin/Catalogo/Catalogo";
+
 const CatalogoVendedor = () => {
   return (
     <div>
-      <h1>Catalogo Vendedor</h1>
+      <Catalogo />
     </div>
   );
 };

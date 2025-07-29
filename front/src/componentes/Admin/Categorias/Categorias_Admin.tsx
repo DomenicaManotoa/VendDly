@@ -1,21 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Table, message, Popconfirm, Modal, Input } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import Categoria_Form from './Categorias_Form';
+import axios from '../../../utils/axiosConfig';
 
-const initialCategorias = [
-  { key: '1', nombre: 'Categoría 1' },
-  { key: '2', nombre: 'Categoría 2' },
-  { key: '3', nombre: 'Categoría 3' },
-];
+interface Categoria {
+  id_categoria: number;
+  descripcion: string;
+}
 
 const Categorias_Admin = () => {
   const [open, setOpen] = useState(false);
-  const [editarCategoria, setEditarCategoria] = useState<{ key: string; nombre: string } | null>(null);
-  const [dataSource, setDataSource] = useState(initialCategorias);
+  const [editarCategoria, setEditarCategoria] = useState<Categoria | null>(null);
+  const [dataSource, setDataSource] = useState<Categoria[]>([]);
   const [searchText, setSearchText] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const abrirEditar = (categoria: { key: string; nombre: string }) => {
+  useEffect(() => {
+    fetchCategorias();
+  }, []);
+
+  const fetchCategorias = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('/categorias');
+      setDataSource(response.data);
+    } catch (error) {
+      message.error('Error al cargar las categorías');
+      console.error('Error fetching categories:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const abrirEditar = (categoria: Categoria) => {
     setEditarCategoria(categoria);
     setOpen(true);
   };
@@ -25,44 +43,58 @@ const Categorias_Admin = () => {
     setEditarCategoria(null);
   };
 
-  const handleDelete = (record: { key: string }) => {
-    setDataSource(prev => prev.filter(item => item.key !== record.key));
-    message.success('Categoría eliminada correctamente');
+  const handleDelete = async (record: Categoria) => {
+    try {
+      await axios.delete(`/categorias/${record.id_categoria}`);
+      message.success('Categoría eliminada correctamente');
+      fetchCategorias();
+    } catch (error) {
+      message.error('Error al eliminar la categoría');
+      console.error('Error deleting category:', error);
+    }
   };
 
-  const handleSave = (values: { key?: string; nombre: string }) => {
-    if (values.key) {
-      setDataSource(prev =>
-        prev.map(item => (item.key === values.key ? { ...item, nombre: values.nombre } : item))
-      );
-      message.success('Categoría actualizada correctamente');
-    } else {
-      const newKey = (Math.max(0, ...dataSource.map(c => Number(c.key))) + 1).toString();
-      setDataSource(prev => [...prev, { key: newKey, nombre: values.nombre }]);
-      message.success('Categoría agregada correctamente');
+  const handleSave = async (values: { nombre: string }) => {
+    try {
+      if (editarCategoria) {
+        await axios.put(`/categorias/${editarCategoria.id_categoria}`, {
+          descripcion: values.nombre
+        });
+        message.success('Categoría actualizada correctamente');
+      } else {
+        await axios.post('/categorias', {
+          descripcion: values.nombre
+        });
+        message.success('Categoría agregada correctamente');
+      }
+      fetchCategorias();
+      cerrarModal();
+    } catch (error) {
+      message.error('Error al guardar la categoría');
+      console.error('Error saving category:', error);
     }
   };
 
   const filteredData = dataSource.filter(categoria =>
-    categoria.nombre.toLowerCase().includes(searchText.toLowerCase())
+    categoria.descripcion.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const columns = [
     {
       title: 'Nombre de Categoría',
-      dataIndex: 'nombre',
-      key: 'nombre',
+      dataIndex: 'descripcion',
+      key: 'descripcion',
     },
     {
       title: 'Acciones',
       key: 'acciones',
       align: 'right' as 'right',
-      render: (_: any, record: any) => (
+      render: (_: any, record: Categoria) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <Button icon={<EditOutlined />} size="small" onClick={() => abrirEditar(record)} />
           <Popconfirm
             title="¿Estás seguro que quieres eliminar esta categoría?"
-            description={`Categoría: ${record.nombre}`}
+            description={`Categoría: ${record.descripcion}`}
             onConfirm={() => handleDelete(record)}
             okText="Sí, eliminar"
             cancelText="Cancelar"
@@ -136,7 +168,8 @@ const Categorias_Admin = () => {
           dataSource={filteredData}
           columns={columns}
           pagination={{ pageSize: 5 }}
-          rowKey="key"
+          rowKey="id_categoria"
+          loading={loading}
           scroll={{ y: 320 }}
           style={{ minWidth: 300 }}
         />
@@ -153,7 +186,10 @@ const Categorias_Admin = () => {
       >
         <Categoria_Form
           onClose={cerrarModal}
-          initialValues={editarCategoria || undefined}
+          initialValues={editarCategoria ? { 
+            key: editarCategoria.id_categoria.toString(), 
+            nombre: editarCategoria.descripcion 
+          } : undefined}
           onSave={handleSave}
         />
       </Modal>

@@ -4,12 +4,51 @@ from dependencias.auth import get_db, get_current_user, require_role, require_ad
 from controllers import clientes_controller
 from models.models import Usuario
 import logging
+from fastapi.responses import StreamingResponse
+import io
+from datetime import datetime
+
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# IMPORTANTE: La ruta de exportar debe ir ANTES que la ruta con parámetro dinámico
+@router.get("/clientes/exportar-excel")
+def exportar_clientes_excel(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """
+    Exporta los clientes a un archivo Excel (requiere autenticación)
+    """
+    try:
+        logger.info(f"Usuario {current_user.identificacion} solicita exportar clientes a Excel")
+        
+        # Generar archivo Excel
+        excel_data = clientes_controller.export_clientes_to_excel(db)
+        
+        # Crear nombre del archivo con fecha
+        fecha_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"clientes_{fecha_actual}.xlsx"
+        
+        logger.info(f"Archivo Excel generado exitosamente: {filename}")
+        
+        # Crear el BytesIO stream
+        excel_stream = io.BytesIO(excel_data)
+        excel_stream.seek(0)
+        
+        return StreamingResponse(
+            excel_stream,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error al exportar clientes a Excel: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al generar archivo Excel: {str(e)}")
 
 @router.get("/clientes")
 def listar_clientes(
@@ -30,7 +69,7 @@ def listar_clientes(
 
 @router.get("/clientes/{cod_cliente}")
 def obtener_cliente(
-    cod_cliente: int,
+    cod_cliente: str,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
@@ -62,7 +101,7 @@ def crear_cliente(
 
 @router.put("/clientes/{cod_cliente}")
 def editar_cliente(
-    cod_cliente: int,
+    cod_cliente: str,
     cliente: dict = Body(...),
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin())
@@ -79,7 +118,7 @@ def editar_cliente(
 
 @router.delete("/clientes/{cod_cliente}")
 def eliminar_cliente(
-    cod_cliente: int,
+    cod_cliente: str,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin())
 ):
