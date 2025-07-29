@@ -8,6 +8,8 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   ShoppingOutlined,
+  TagsOutlined,
+  TrademarkOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -35,6 +37,8 @@ const SidebarBodega: React.FC = () => {
     { key: '/bodega/home', icon: <HomeOutlined />, label: 'Home Bodega' },
     { key: '/bodega/inventario', icon: <ShoppingOutlined />, label: 'Inventario Bodega' },
     { key: '/bodega/catalogo', icon: <AppstoreOutlined />, label: 'Catálogo Bodega' },
+    { key: '/bodega/categoria', icon: <TagsOutlined />, label: 'Categoría Bodega' },
+    { key: '/bodega/marca', icon: <TrademarkOutlined />, label: 'Marca Bodega' },
   ];
 
   return (

@@ -40,6 +40,8 @@ import Rutas from 'componentes/Admin/Rutas/Rutas';
 
 // ✅ IMPORTAR PROTECTEDROUTE - AGREGAR ESTA LÍNEA
 import { ProtectedRoute } from 'componentes/ProtectedRoute';
+import CategoriaBodeguero from "componentes/Bodeguero/Categoria Bodeguero/CategoriaBodeguero";
+import MarcaBodeguero from "componentes/Bodeguero/Marca Bodeguero/MarcaBodeguero";
 
 
 export default function App() {
@@ -77,6 +79,8 @@ export default function App() {
           <Route path="/bodega/home" element={<HomeBodeguero />} />
           <Route path ="/bodega/inventario" element={<InventarioBodeguero />} />
           <Route path ="/bodega/catalogo" element={<CatalogoBodeguero />} />
+          <Route path="/bodega/categoria" element={<CategoriaBodeguero />} />
+          <Route path="/bodega/marca" element={<MarcaBodeguero />} />
         </Route>
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarFacturador con ProtectedRoute */}
@@ -102,7 +106,7 @@ export default function App() {
           <Route path="/transportista/clientes" element={<ClientesTransportista />} />
           <Route path="/transportista/pedidos" element={<PedidosTransportista />} />
           <Route path="/transportista/rutas" element={<RutasTransportista />} />
-          
+
         </Route>
         
         {/* ✅ CAMBIO: Envolver LayoutConSidebarVendedor con ProtectedRoute */}
