@@ -1,84 +1,39 @@
 import { useState, useEffect } from 'react';
-import {
-  Button,
-  Table,
-  message,
-  Popconfirm,
-  Modal,
-  Input,
-  Form,
-} from 'antd';
-import {
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
+import { Button, Table, message, Popconfirm, Modal, Input } from 'antd';
+import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import Marca_Form from './Marcas_Form';
+import axios from '../../../utils/axiosConfig';
 
-const Marca_Form = ({
-  onClose,
-  initialValues,
-  onSave,
-}: {
-  onClose: () => void;
-  initialValues?: { key: string; nombre: string };
-  onSave: (values: { key?: string; nombre: string }) => void;
-}) => {
-  const [form] = Form.useForm();
-
-  useEffect(() => {
-    if (initialValues) {
-      form.setFieldsValue(initialValues);
-    } else {
-      form.resetFields();
-    }
-  }, [initialValues, form]);
-
-  const onFinish = (values: { nombre: string }) => {
-    if (!values.nombre.trim()) {
-      message.error('El nombre de la marca es obligatorio');
-      return;
-    }
-    onSave({ key: initialValues?.key, nombre: values.nombre.trim() });
-    onClose();
-  };
-
-  return (
-    <Form form={form} layout="vertical" onFinish={onFinish}>
-      <Form.Item
-        label="Nombre de la Marca"
-        name="nombre"
-        rules={[{ required: true, message: 'Por favor ingresa el nombre de la marca' }]}
-      >
-        <Input placeholder="Ejemplo: Marca XYZ" autoFocus />
-      </Form.Item>
-
-      <Form.Item style={{ textAlign: 'right' }}>
-        <Button onClick={onClose} style={{ marginRight: 8 }}>
-          Cancelar
-        </Button>
-        <Button type="primary" htmlType="submit">
-          Guardar
-        </Button>
-      </Form.Item>
-    </Form>
-  );
-};
-
-const initialMarcas = [
-  { key: '1', nombre: 'Marca A' },
-  { key: '2', nombre: 'Marca B' },
-  { key: '3', nombre: 'Marca C' },
-  { key: '4', nombre: 'Marca D' },
-];
+interface Marca {
+  id_marca: number;
+  descripcion: string;
+}
 
 const Marcas_Admin = () => {
   const [open, setOpen] = useState(false);
-  const [editarMarca, setEditarMarca] = useState<{ key: string; nombre: string } | null>(null);
-  const [dataSource, setDataSource] = useState(initialMarcas);
+  const [editarMarca, setEditarMarca] = useState<Marca | null>(null);
+  const [dataSource, setDataSource] = useState<Marca[]>([]);
   const [searchText, setSearchText] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const abrirEditar = (marca: { key: string; nombre: string }) => {
+  useEffect(() => {
+    fetchMarcas();
+  }, []);
+
+  const fetchMarcas = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('/marcas');
+      setDataSource(response.data);
+    } catch (error) {
+      message.error('Error al cargar las marcas');
+      console.error('Error fetching brands:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const abrirEditar = (marca: Marca) => {
     setEditarMarca(marca);
     setOpen(true);
   };
@@ -88,44 +43,58 @@ const Marcas_Admin = () => {
     setEditarMarca(null);
   };
 
-  const handleDelete = (record: { key: string }) => {
-    setDataSource(prev => prev.filter(item => item.key !== record.key));
-    message.success('Marca eliminada correctamente');
+  const handleDelete = async (record: Marca) => {
+    try {
+      await axios.delete(`/marcas/${record.id_marca}`);
+      message.success('Marca eliminada correctamente');
+      fetchMarcas();
+    } catch (error) {
+      message.error('Error al eliminar la marca');
+      console.error('Error deleting brand:', error);
+    }
   };
 
-  const handleSave = (values: { key?: string; nombre: string }) => {
-    if (values.key) {
-      setDataSource(prev =>
-        prev.map(item => (item.key === values.key ? { ...item, nombre: values.nombre } : item))
-      );
-      message.success('Marca actualizada correctamente');
-    } else {
-      const newKey = (Math.max(0, ...dataSource.map(m => Number(m.key))) + 1).toString();
-      setDataSource(prev => [...prev, { key: newKey, nombre: values.nombre }]);
-      message.success('Marca agregada correctamente');
+  const handleSave = async (values: { nombre: string }) => {
+    try {
+      if (editarMarca) {
+        await axios.put(`/marcas/${editarMarca.id_marca}`, {
+          descripcion: values.nombre
+        });
+        message.success('Marca actualizada correctamente');
+      } else {
+        await axios.post('/marcas', {
+          descripcion: values.nombre
+        });
+        message.success('Marca agregada correctamente');
+      }
+      fetchMarcas();
+      cerrarModal();
+    } catch (error) {
+      message.error('Error al guardar la marca');
+      console.error('Error saving brand:', error);
     }
   };
 
   const filteredData = dataSource.filter(marca =>
-    marca.nombre.toLowerCase().includes(searchText.toLowerCase())
+    marca.descripcion.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const columns = [
     {
       title: 'Nombre de Marca',
-      dataIndex: 'nombre',
-      key: 'nombre',
+      dataIndex: 'descripcion',
+      key: 'descripcion',
     },
     {
       title: 'Acciones',
       key: 'acciones',
       align: 'right' as 'right',
-      render: (_: any, record: any) => (
+      render: (_: any, record: Marca) => (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <Button icon={<EditOutlined />} size="small" onClick={() => abrirEditar(record)} />
           <Popconfirm
             title="¿Estás seguro que quieres eliminar esta marca?"
-            description={`Marca: ${record.nombre}`}
+            description={`Marca: ${record.descripcion}`}
             onConfirm={() => handleDelete(record)}
             okText="Sí, eliminar"
             cancelText="Cancelar"
@@ -199,7 +168,8 @@ const Marcas_Admin = () => {
           dataSource={filteredData}
           columns={columns}
           pagination={{ pageSize: 5 }}
-          rowKey="key"
+          rowKey="id_marca"
+          loading={loading}
           scroll={{ y: 320 }}
           style={{ minWidth: 300 }}
         />
@@ -216,7 +186,9 @@ const Marcas_Admin = () => {
       >
         <Marca_Form
           onClose={cerrarModal}
-          initialValues={editarMarca || undefined}
+          initialValues={editarMarca ? { 
+            nombre: editarMarca.descripcion 
+          } : undefined}
           onSave={handleSave}
         />
       </Modal>

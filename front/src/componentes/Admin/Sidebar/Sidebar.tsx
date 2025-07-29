@@ -1,7 +1,8 @@
 import type { MenuProps } from 'antd';
 import React, { useState } from 'react';
-import { Button, Menu, Layout, Modal } from 'antd';
+import { Button, Menu, Layout, Modal, Spin } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import { useLogout } from '../../../hooks/useLogout'; //  IMPORTAR EL HOOK
 import {
   ContainerOutlined,
   HomeOutlined,
@@ -16,6 +17,7 @@ import {
   TeamOutlined,
   TruckOutlined,
   UserSwitchOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -31,19 +33,17 @@ const mainItems: MenuItem[] = [
   { key: '/pedidos', icon: <SnippetsOutlined />, label: 'Pedidos' },
   { key: '/facturas', icon: <ContainerOutlined />, label: 'Facturas' },
   { key: '/entregas', icon: <TruckOutlined />, label: 'Entregas' },
-  { key: '/categorias', icon: <ShopOutlined />, label: 'Categorías' },      // Tienda, productos
-  { key: '/marcas', icon: <TagsOutlined />, label: 'Marcas' },              // Etiquetas o tags para marcas
+  { key: '/categorias', icon: <ShopOutlined />, label: 'Categorías' },
+  { key: '/marcas', icon: <TagsOutlined />, label: 'Marcas' },
   { key: '/roles', icon: <UserSwitchOutlined />, label: 'Roles' },
-];
-
-const logoutItem: MenuItem[] = [
-  { key: 'logout', icon: <LogoutOutlined />, label: 'Cerrar Sesión' },
 ];
 
 const SidebarCustom: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const navigate = useNavigate();
+  
+  //  USAR EL HOOK DE LOGOUT
+  const { showLogoutModal, isLoggingOut, handleLogout, showLogoutConfirmation, hideLogoutModal } = useLogout();
 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
@@ -51,12 +51,21 @@ const SidebarCustom: React.FC = () => {
 
   const handleMenuClick = (e: any) => {
     if (e.key === 'logout') {
-      // En vez de confirm directa, abrimos el modal
-      setShowLogoutModal(true);
+      showLogoutConfirmation(); //  USAR LA FUNCIÓN DEL HOOK
     } else if (e.key.startsWith('/')) {
       navigate(e.key);
     }
   };
+
+  // Crear el item de logout dinámicamente según el estado
+  const logoutItem: MenuItem[] = [
+    { 
+      key: 'logout', 
+      icon: isLoggingOut ? <LoadingOutlined spin /> : <LogoutOutlined />, 
+      label: isLoggingOut ? 'Cerrando Sesión...' : 'Cerrar Sesión',
+      disabled: isLoggingOut
+    },
+  ];
 
   return (
     <>
@@ -66,16 +75,39 @@ const SidebarCustom: React.FC = () => {
         onCollapse={setCollapsed}
         width={256}
         theme="light"
-        style={{ backgroundColor: '#ABD904', position: 'relative', display: 'flex', flexDirection: 'column' }}
+        style={{ 
+          backgroundColor: '#ABD904', 
+          position: 'relative', 
+          display: 'flex', 
+          flexDirection: 'column',
+          // Overlay para mostrar loading durante logout
+          ...(isLoggingOut && {
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(171, 217, 4, 0.7)',
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }
+          })
+        }}
       >
         <Button
           onClick={toggleCollapsed}
+          disabled={isLoggingOut}
           style={{
             margin: 16,
             backgroundColor: '#ABD904',
             borderColor: '#ABD904',
             color: '#000',
             fontWeight: 'bold',
+            opacity: isLoggingOut ? 0.5 : 1
           }}
           type="primary"
         >
@@ -88,7 +120,13 @@ const SidebarCustom: React.FC = () => {
           inlineCollapsed={collapsed}
           items={mainItems}
           onClick={handleMenuClick}
-          style={{ backgroundColor: '#ABD904', flexGrow: 1, borderRight: 'none' }}
+          style={{ 
+            backgroundColor: '#ABD904', 
+            flexGrow: 1, 
+            borderRight: 'none',
+            opacity: isLoggingOut ? 0.5 : 1
+          }}
+          disabled={isLoggingOut}
         />
 
         <Menu
@@ -97,27 +135,68 @@ const SidebarCustom: React.FC = () => {
           items={logoutItem}
           onClick={handleMenuClick}
           style={{
-            backgroundColor: '#ABD904',
+            backgroundColor: isLoggingOut ? '#90a832' : '#ABD904',
             borderTop: '1px solid rgba(0,0,0,0.1)',
             marginBottom: 16,
           }}
         />
+
+        {/* Indicador de loading superpuesto */}
+        {isLoggingOut && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(171, 217, 4, 0.8)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 20,
+            color: '#000',
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16 }}>
+              Cerrando Sesión...
+            </div>
+          </div>
+        )}
       </Sider>
 
+      {/*  MODAL MEJORADO */}
       <Modal
-        title="¿Cerrar sesión?"
+        title="🔐 ¿Cerrar sesión?"
         open={showLogoutModal}
-        onOk={() => {
-          setShowLogoutModal(false);
-          navigate('/');
-        }}
-        onCancel={() => setShowLogoutModal(false)}
-        okText="Sí"
-        cancelText="No"
+        onOk={handleLogout}
+        onCancel={hideLogoutModal}
+        okText={isLoggingOut ? "Cerrando..." : "Sí, cerrar sesión"}
+        cancelText="Cancelar"
         okType="danger"
         centered
+        confirmLoading={isLoggingOut}
+        closable={!isLoggingOut}
+        maskClosable={!isLoggingOut}
+        keyboard={!isLoggingOut}
+        okButtonProps={{
+          loading: isLoggingOut,
+          icon: isLoggingOut ? <LoadingOutlined /> : <LogoutOutlined />
+        }}
       >
-        <p>¿Estás seguro de que deseas cerrar sesión?</p>
+        <p>
+          {isLoggingOut 
+            ? "🔄 Cerrando tu sesión de forma segura..." 
+            : "¿Estás seguro de que deseas cerrar sesión? Serás redirigido a la página de inicio de sesión."
+          }
+        </p>
+        {isLoggingOut && (
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <Spin />
+          </div>
+        )}
       </Modal>
     </>
   );

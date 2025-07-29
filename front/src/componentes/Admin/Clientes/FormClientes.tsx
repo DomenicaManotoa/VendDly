@@ -3,43 +3,45 @@ import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { FormClientesProps } from "types/types";
 
-const FormClientes: React.FC<FormClientesProps> = ({ cliente, onCancel, onSubmit }) => {
+const FormClientes: React.FC<FormClientesProps> = ({ 
+  cliente, 
+  visible, 
+  onCancel, 
+  onSubmit 
+}) => {
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   useEffect(() => {
-    if (cliente !== undefined) {
-      setIsModalVisible(true);
+    if (visible) {
       if (cliente) {
+        // Edición de cliente existente
         const formData = {
           ...cliente,
           fecha_registro: cliente.fecha_registro ? dayjs(cliente.fecha_registro) : dayjs()
         };
         form.setFieldsValue(formData);
       } else {
+        // Nuevo cliente
         form.resetFields();
         form.setFieldsValue({
-          estado: 'Activo',
-          fecha_registro: dayjs()
+          tipo_cliente: 'Natural',
+          fecha_registro: dayjs(),
+          estado: 'Activo'
         });
       }
-    } else {
-      setIsModalVisible(false);
     }
-  }, [cliente, form]);
+  }, [cliente, visible, form]);
 
   const handleOk = () => {
     form.validateFields()
       .then(values => {
         const formattedValues = {
           ...values,
-          fecha_registro: values.fecha_registro
-            ? values.fecha_registro.format('YYYY-MM-DD')
-            : dayjs().format('YYYY-MM-DD')
+          fecha_registro: dayjs().format('YYYY-MM-DD')
         };
         onSubmit(formattedValues);
         form.resetFields();
-        setIsModalVisible(false);
       })
       .catch(info => {
         console.log('Validation failed:', info);
@@ -53,7 +55,7 @@ const FormClientes: React.FC<FormClientesProps> = ({ cliente, onCancel, onSubmit
   };
 
   const handleTipoClienteChange = (value: string) => {
-    if (value !== 'empresa') {
+    if (value !== 'Jurídico') {
       form.setFieldsValue({ razon_social: '' });
     }
   };
@@ -61,21 +63,29 @@ const FormClientes: React.FC<FormClientesProps> = ({ cliente, onCancel, onSubmit
   return (
     <Modal
       title={cliente ? 'Editar Cliente' : 'Agregar Cliente'}
-      open={isModalVisible}
+      open={visible}
       onOk={handleOk}
-      onCancel={handleCancel}
+      onCancel={onCancel}
       okText="Guardar"
       cancelText="Cancelar"
       width={600}
       destroyOnClose
     >
       <Form form={form} layout="vertical">
-        <Form.Item
-          name="cod_cliente"
-          label="Código de Cliente"
-          rules={[{ required: false, message: 'El código de cliente es opcional' }]}
+        <Form.Item 
+          name="cod_cliente" 
+          label="Código de Cliente" 
+          rules={[
+            { required: true, message: 'El código de cliente es requerido' },
+            { min: 3, message: 'El código debe tener al menos 3 caracteres' },
+            { max: 50, message: 'El código no puede exceder los 50 caracteres' }
+          ]}
         >
-          <Input disabled placeholder="Código autogenerado" />
+          <Input 
+            placeholder="Ingrese el código del cliente" 
+            maxLength={50}
+            disabled={!!cliente?.cod_cliente} // Solo deshabilitado en edición
+          />
         </Form.Item>
         <Form.Item 
           name="identificacion" 
@@ -101,6 +111,17 @@ const FormClientes: React.FC<FormClientesProps> = ({ cliente, onCancel, onSubmit
           ]}
         >
           <Input placeholder="Ingrese el nombre completo" maxLength={100} />
+        </Form.Item>
+
+        <Form.Item 
+          name="correo" 
+          label="Correo Electrónico"
+          rules={[
+            { required: true, message: 'El correo es requerido' },
+            { type: 'email', message: 'Ingrese un correo válido' }
+          ]}
+        >
+          <Input placeholder="Ingrese el correo electrónico" maxLength={100} />
         </Form.Item>
         
         <Form.Item 
@@ -131,8 +152,8 @@ const FormClientes: React.FC<FormClientesProps> = ({ cliente, onCancel, onSubmit
             placeholder="Seleccione el tipo de cliente"
             onChange={handleTipoClienteChange}
           >
-            <Select.Option value="individual">Natural</Select.Option>
-            <Select.Option value="empresa">Empresa</Select.Option>
+            <Select.Option value="Natural">Natural</Select.Option>
+            <Select.Option value="Jurídico">Jurídico</Select.Option>
           </Select>
         </Form.Item>
 
@@ -155,12 +176,10 @@ const FormClientes: React.FC<FormClientesProps> = ({ cliente, onCancel, onSubmit
         <Form.Item 
           name="fecha_registro" 
           label="Fecha de Registro"
+          hidden // Ocultamos el campo pero sigue enviando el valor
+          initialValue={dayjs()}
         >
-          <DatePicker 
-            style={{ width: '100%' }}
-            format="YYYY-MM-DD"
-            disabled={!!cliente}
-          />
+          <Input type="hidden" />
         </Form.Item>
       </Form>
     </Modal>

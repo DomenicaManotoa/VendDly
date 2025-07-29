@@ -1,284 +1,406 @@
-import { useState } from 'react';
-import {
-  Button,
-  Table,
-  Image,
-  message,
-  Popconfirm,
-  Modal,
-  Input,
-  Row,
-  Col,
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  Button, 
+  Table, 
+  Image, 
+  message, 
+  Popconfirm, 
+  Modal, 
+  Input, 
+  Space, 
+  Typography, 
+  Tag 
 } from 'antd';
 import {
   DeleteOutlined,
   EditOutlined,
-  FilePdfOutlined,
   PlusOutlined,
   SearchOutlined,
+  FileExcelOutlined
 } from '@ant-design/icons';
 import Inventario_Form from './Inventario_Form';
+import axios from "axios";
+import { authService } from "../../../auth/auth"; // Ajusta la ruta según tu estructura
+import { Producto, Marca, Categoria } from '../../../types/types';
 
-const marcas = [
-  { key: 'm1', nombre: 'Marca A' },
-  { key: 'm2', nombre: 'Marca B' },
-  { key: 'm3', nombre: 'Marca C' },
-];
+const { Column } = Table;
 
-const categorias = [
-  { key: 'c1', nombre: 'Categoría X' },
-  { key: 'c2', nombre: 'Categoría Y' },
-  { key: 'c3', nombre: 'Categoría Z' },
-];
-
-const initialData = [
-  {
-    key: '1',
-    nombre: 'Producto 1',
-    imagen:
-      'https://images.cdn1.buscalibre.com/fit-in/360x360/90/4e/904e5872343371ff8e1a1cad6a0abe18.jpg',
-    precio_minorista: 12.5,
-    precio_mayorista: 10.5,
-    stock: 20,
-    marca: 'Marca A',
-    categoria: 'Categoría X',
-  },
-  {
-    key: '2',
-    nombre: 'Producto 2',
-    imagen:
-      'https://images.cdn1.buscalibre.com/fit-in/360x360/e8/21/e8214454dbb970e28fea330dd88a5e20.jpg',
-    precio_minorista: 28.0,
-    precio_mayorista: 25.0,
-    stock: 5,
-    marca: 'Marca B',
-    categoria: 'Categoría Y',
-  },
-  {
-    key: '3',
-    nombre: 'Producto 3',
-    imagen:
-      'https://images.cdn1.buscalibre.com/fit-in/360x360/2c/0b/2c0b5c1e2e7c7b2e3e1e2e1e2e1e2e1e.jpg',
-    precio_minorista: 15.0,
-    precio_mayorista: 12.0,
-    stock: 12,
-    marca: 'Marca A',
-    categoria: 'Categoría Z',
-  },
-  {
-    key: '4',
-    nombre: 'Producto 4',
-    imagen:
-      'https://images.cdn1.buscalibre.com/fit-in/360x360/3a/7b/3a7b5c1e2e7c7b2e3e1e2e1e2e1e2e1e.jpg',
-    precio_minorista: 9.99,
-    precio_mayorista: 8.5,
-    stock: 30,
-    marca: 'Marca C',
-    categoria: 'Categoría X',
-  },
-  {
-    key: '5',
-    nombre: 'Producto 5',
-    imagen:
-      'https://images.cdn1.buscalibre.com/fit-in/360x360/4b/8c/4b8c5c1e2e7c7b2e3e1e2e1e2e1e2e1e.jpg',
-    precio_minorista: 22.0,
-    precio_mayorista: 19.5,
-    stock: 8,
-    marca: 'Marca B',
-    categoria: 'Categoría Y',
-  },
-];
-
-const Inventario_Index = () => {
+const Inventario_Index: React.FC = () => {
   const [open, setOpen] = useState(false);
-  const [editarProducto, setEditarProducto] = useState<any>(null);
-  const [dataSource, setDataSource] = useState(initialData);
-  const [searchText, setSearchText] = useState('');
+  const [editarProducto, setEditarProducto] = useState<Producto | null>(null);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [exportingExcel, setExportingExcel] = useState(false);
 
-  const abrirEditar = (producto: any) => {
+    const getAxiosConfig = useCallback(() => {
+    const token = authService.getToken();
+    
+    if (!token) {
+      console.error('No se encontró token de autenticación');
+      message.error('No hay token de autenticación. Por favor, inicia sesión.');
+      return null;
+    }
+
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    fetchMarcas();
+    fetchCategorias();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('/productos');
+      console.log('Productos cargados:', response.data);
+      setProductos(response.data || []);
+      
+      if (response.data?.length === 0) {
+        message.info('No se encontraron productos en la base de datos');
+      } else {
+        message.success(`Se cargaron ${response.data?.length || 0} productos correctamente`);
+      }
+    } catch (error: any) {
+      console.error('Error al obtener productos:', error);
+      if (error.response?.status === 401) {
+        message.error('Token de autenticación inválido o expirado');
+      } else if (error.response?.status === 403) {
+        message.error('No tienes permisos para ver los productos');
+      } else if (error.response?.status === 500) {
+        message.error('Error interno del servidor');
+      } else {
+        message.error('Error al cargar los productos');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMarcas = async () => {
+    try {
+      const response = await axios.get('/marcas');
+      console.log('Marcas obtenidas:', response.data);
+      setMarcas(response.data || []);
+    } catch (error: any) {
+      console.error('Error al obtener marcas:', error);
+      message.error('Error al obtener marcas');
+    }
+  };
+
+  const fetchCategorias = async () => {
+    try {
+      const response = await axios.get('/categorias');
+      console.log('Categorías obtenidas:', response.data);
+      setCategorias(response.data || []);
+    } catch (error: any) {
+      console.error('Error al obtener categorías:', error);
+      message.error('Error al obtener categorías');
+    }
+  };
+
+  const handleAdd = () => {
+    setEditarProducto(null);
+    setOpen(true);
+  };
+
+  const handleEdit = (producto: Producto) => {
+    console.log('Editando producto:', producto);
     setEditarProducto(producto);
     setOpen(true);
   };
+
+  const handleDelete = async (id_producto: number) => {
+    try {
+      console.log("Eliminando producto con ID:", id_producto);
+      await axios.delete(`/productos/${id_producto}`);
+      message.success('Producto eliminado correctamente');
+      fetchData(); // Recargar la lista
+    } catch (error: any) {
+      console.error('Error al eliminar producto:', error);
+      if (error.response?.status === 401) {
+        message.error('Token de autenticación inválido');
+      } else if (error.response?.status === 403) {
+        message.error('No tienes permisos para eliminar productos');
+      } else if (error.response?.status === 404) {
+        message.error('Producto no encontrado');
+      } else {
+        message.error('Error al eliminar producto');
+      }
+    }
+  };
+
+  const handleSubmit = async (producto: any) => {
+    try {
+      console.log('Enviando datos del producto:', producto);
+      
+      if (editarProducto) {
+        await axios.put(`/productos/${editarProducto.id_producto}`, producto);
+        message.success('Producto actualizado correctamente');
+      } else {
+        await axios.post('/productos', producto);
+        message.success('Producto agregado correctamente');
+      }
+      setOpen(false);
+      fetchData(); // Recargar la lista
+    } catch (error: any) {
+      console.error('Error al guardar producto:', error);
+      if (error.response?.status === 401) {
+        message.error('Token de autenticación inválido');
+      } else if (error.response?.status === 403) {
+        message.error('No tienes permisos para realizar esta acción');
+      } else {
+        message.error('Error al guardar producto');
+      }
+    }
+  };
+
+const handleExportExcel = async () => {
+  setExportingExcel(true);
+  try {
+    console.log('Iniciando exportación a Excel...');
+    const config = getAxiosConfig();
+    if (!config) {
+      setExportingExcel(false);
+      return;
+    }
+
+    const response = await axios({
+      method: 'GET',
+      url: 'http://127.0.0.1:8000/productos/exportar-excel',
+      headers: config.headers,
+      responseType: 'blob',
+    });
+
+    console.log('Respuesta recibida:', response);
+
+    if (!response.data || response.data.size === 0) {
+      throw new Error('El archivo recibido está vacío');
+    }
+
+    const blob = new Blob([response.data], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+
+    console.log('Blob creado:', blob.size, 'bytes');
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Generar nombre del archivo con fecha actual (formato consistente con clientes)
+    const now = new Date();
+    const fecha = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const hora = now.toTimeString().slice(0, 8).replace(/:/g, '');
+    link.download = `inventario_${fecha}_${hora}.xlsx`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    window.URL.revokeObjectURL(url);
+    
+    message.success('¡Archivo Excel descargado exitosamente!');
+    console.log('Descarga completada');
+    
+  } catch (error: any) {
+    console.error('Error detallado al exportar Excel:', error);
+    
+    if (error.response) {
+      console.error('Error response:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      });
+      
+      if (error.response.status === 401) {
+        message.error('Token de autenticación inválido o expirado');
+        authService.logout();
+        window.location.href = '/login';
+      } else if (error.response.status === 403) {
+        message.error('No tienes permisos para exportar datos');
+      } else if (error.response.status === 404) {
+        message.error('No hay productos para exportar');
+      } else if (error.response.status === 500) {
+        message.error('Error interno del servidor al generar el archivo');
+      } else {
+        message.error(`Error del servidor: ${error.response.status}`);
+      }
+    } else if (error.request) {
+      console.error('Error request:', error.request);
+      message.error('Error de conexión al servidor');
+    } else {
+      console.error('Error message:', error.message);
+      message.error(`Error inesperado: ${error.message}`);
+    }
+  } finally {
+    setExportingExcel(false);
+  }
+};
 
   const cerrarModal = () => {
     setOpen(false);
     setEditarProducto(null);
   };
 
-  const handleDelete = (record: any) => {
-    setDataSource(prev => prev.filter(item => item.key !== record.key));
-    message.success('Producto eliminado correctamente');
+  const getImageUrl = (imagePath: string | null) => {
+    if (!imagePath) return 'https://via.placeholder.com/60?text=Sin+Imagen';
+    
+    if (imagePath.startsWith('http')) return imagePath;
+    
+    const baseUrl = 'http://127.0.0.1:8000';
+    return imagePath.startsWith('/') ? `${baseUrl}${imagePath}` : `${baseUrl}/${imagePath}`;
   };
 
-  const filteredData = dataSource.filter(producto => {
-    const search = searchText.toLowerCase();
+  const filteredProductos = productos.filter(producto => {
+    const search = searchTerm.toLowerCase();
     return (
-      producto.nombre.toLowerCase().includes(search) ||
-      producto.marca.toLowerCase().includes(search) ||
-      producto.categoria.toLowerCase().includes(search) ||
-      producto.precio_minorista.toString().includes(search) ||
-      producto.precio_mayorista.toString().includes(search) ||
-      producto.stock.toString().includes(search)
+      producto.nombre?.toLowerCase().includes(search) ||
+      producto.marca?.descripcion?.toLowerCase().includes(search) ||
+      producto.categoria?.descripcion?.toLowerCase().includes(search) ||
+      producto.precio_minorista?.toString().includes(search) ||
+      producto.precio_mayorista?.toString().includes(search) ||
+      producto.stock?.toString().includes(search) ||
+      producto.estado?.toLowerCase().includes(search)
     );
   });
 
-  const columns = [
-    {
-      title: 'Imagen',
-      dataIndex: 'imagen',
-      key: 'imagen',
-      render: (img: string) => <Image width={60} src={img} alt="producto" />,
-    },
-    {
-      title: 'Nombre',
-      dataIndex: 'nombre',
-      key: 'nombre',
-    },
-    {
-      title: 'Marca',
-      dataIndex: 'marca',
-      key: 'marca',
-    },
-    {
-      title: 'Categoría',
-      dataIndex: 'categoria',
-      key: 'categoria',
-    },
-    {
-      title: 'Precio Minorista',
-      dataIndex: 'precio_minorista',
-      key: 'precio_minorista',
-      render: (precio: number) => `$${precio.toFixed(2)}`,
-    },
-    {
-      title: 'Precio Mayorista',
-      dataIndex: 'precio_mayorista',
-      key: 'precio_mayorista',
-      render: (precio: number) => `$${precio.toFixed(2)}`,
-    },
-    {
-      title: 'Stock',
-      dataIndex: 'stock',
-      key: 'stock',
-    },
-    {
-      title: 'Acciones',
-      key: 'acciones',
-      render: (_: any, record: any) => (
-        <span>
-          <Button
-            icon={<EditOutlined />}
-            style={{ marginRight: 8 }}
-            size="small"
-            onClick={() => abrirEditar(record)}
-          />
-          <Popconfirm
-            title="¿Estás seguro que quieres eliminar este producto?"
-            description={`Producto: ${record.nombre}`}
-            onConfirm={() => handleDelete(record)}
-            okText="Sí, eliminar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
-          >
-            <Button icon={<DeleteOutlined />} danger size="small" />
-          </Popconfirm>
-        </span>
-      ),
-    },
-  ];
+  console.log('Productos filtrados para renderizar:', filteredProductos);
 
   return (
-    <div style={{ padding: 16, background: '#fff', minHeight: '100vh' }}>
-      <h1
-        style={{
-          color: '#ABD904',
-          fontSize: 'clamp(2rem, 6vw, 3rem)',
-          margin: '48px 0 32px',
-          textAlign: 'center',
-        }}
-      >
-        Inventario
-      </h1>
+    <div style={{ padding: '20px' }}>
+      <Typography.Title level={1}>Inventario de Productos</Typography.Title>
 
-      <div
-        style={{
-          maxWidth: 800,
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: 16,
-        }}
-      >
-        <Button
-          type="primary"
-          icon={<FilePdfOutlined />}
-          style={{ background: '#F12525', borderColor: '#F12525' }}
-        >
-          Exportar PDF
-        </Button>
-
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          style={{ background: '#04A0D9', borderColor: '#04A0D9' }}
-          onClick={() => {
-            setEditarProducto(null);
-            setOpen(true);
-          }}
-        >
-          Agregar Producto
-        </Button>
-      </div>
-
-      {/* Filtro único */}
-      <div
-        style={{
-          maxWidth: 600,
-          margin: '24px auto 0',
-          padding: 16,
-          backgroundColor: '#fafafa',
-          borderRadius: 8,
-          border: '1px solid #e8e8e8',
-        }}
-      >
-        <Row gutter={[16, 16]}>
-          <Col span={20}>
-            <Input
-              placeholder="Buscar por nombre, marca, categoría, precio o stock"
-              value={searchText}
-              onChange={e => setSearchText(e.target.value)}
-              allowClear
-            />
-          </Col>
-          <Col span={4}>
-            <Button
-              icon={<SearchOutlined />}
-              style={{
-                width: '100%',
-                backgroundColor: '#28a745',
-                borderColor: '#28a745',
-                color: 'white',
-                fontWeight: 500,
-              }}
-              onClick={() =>
-                message.info('Los filtros se aplican automáticamente')
-              }
-            >
-              Buscar
-            </Button>
-          </Col>
-        </Row>
-      </div>
-
-      <div style={{ maxWidth: 900, margin: '40px auto 0' }}>
-        <Table
-          dataSource={filteredData}
-          columns={columns}
-          pagination={{ pageSize: 5 }}
-          rowKey="key"
-          scroll={{ y: 320 }}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <Input
+          placeholder="Buscar por nombre, marca, categoría, precio, stock o estado..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          prefix={<SearchOutlined />}
+          style={{ width: 400 }}
         />
+        <Space>
+          <Button 
+            icon={<FileExcelOutlined />} 
+            style={{ backgroundColor: 'green', color: 'white' }}
+            onClick={handleExportExcel}
+            loading={exportingExcel}
+            disabled={productos.length === 0}
+          >
+            {exportingExcel ? 'Exportando...' : 'Exportar Excel'}
+          </Button>
+          <Button type="primary" onClick={handleAdd}>
+            + Agregar Producto
+          </Button>
+        </Space>
       </div>
+
+      <Table 
+        dataSource={filteredProductos} 
+        rowKey="id_producto" 
+        loading={loading}
+        locale={{
+          emptyText: loading ? 'Cargando...' : 'No hay datos disponibles'
+        }}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} productos`
+        }}
+      >
+        <Column 
+          title="Imagen" 
+          dataIndex="imagen" 
+          render={(img: string | null) => (
+            <Image 
+              width={60} 
+              height={60}
+              src={getImageUrl(img)} 
+              alt="producto"
+              style={{ objectFit: 'cover', borderRadius: 4 }}
+              fallback="https://via.placeholder.com/60?text=Error"
+            />
+          )}
+        />
+        <Column title="Nombre" dataIndex="nombre" sorter />
+        <Column 
+          title="Marca" 
+          render={(record: Producto) => record.marca?.descripcion || 'N/A'} 
+        />
+        <Column 
+          title="Categoría" 
+          render={(record: Producto) => record.categoria?.descripcion || 'N/A'} 
+        />
+        <Column 
+          title="Estado" 
+          dataIndex="estado" 
+          render={(estado: string) => (
+            <Tag color={estado === 'activo' ? 'green' : 'red'}>
+              {estado === 'activo' ? 'Activo' : 'Inactivo'}
+            </Tag>
+          )}
+        />
+        <Column 
+          title="Stock" 
+          dataIndex="stock" 
+          sorter
+          render={(stock: number) => (
+            <span style={{ 
+              color: stock <= 10 ? 'red' : stock <= 20 ? 'orange' : 'green',
+              fontWeight: 'bold'
+            }}>
+              {stock}
+            </span>
+          )}
+        />
+        <Column 
+          title="Precio Minorista" 
+          dataIndex="precio_minorista" 
+          sorter
+          render={(precio: number) => `$${precio?.toFixed(2) || '0.00'}`}
+        />
+        <Column 
+          title="Precio Mayorista" 
+          dataIndex="precio_mayorista" 
+          sorter
+          render={(precio: number) => `$${precio?.toFixed(2) || '0.00'}`}
+        />
+        <Column
+          title="Acciones"
+          render={(_, record: Producto) => (
+            <Space>
+              <EditOutlined 
+                onClick={() => handleEdit(record)} 
+                style={{ color: '#1890ff', cursor: 'pointer', fontSize: '16px' }} 
+                title="Editar producto"
+              />
+              <Popconfirm
+                title="¿Estás seguro de eliminar este producto?"
+                description={`Producto: ${record.nombre}`}
+                onConfirm={() => handleDelete(record.id_producto)}
+                okText="Sí, eliminar"
+                cancelText="Cancelar"
+                okButtonProps={{ danger: true }}
+              >
+                <DeleteOutlined 
+                  style={{ color: '#ff4d4f', cursor: 'pointer', fontSize: '16px' }} 
+                  title="Eliminar producto"
+                />
+              </Popconfirm>
+            </Space>
+          )}
+        />
+      </Table>
 
       <Modal
         open={open}
@@ -293,6 +415,7 @@ const Inventario_Index = () => {
           initialValues={editarProducto}
           marcas={marcas}
           categorias={categorias}
+          onSuccess={fetchData}
         />
       </Modal>
     </div>

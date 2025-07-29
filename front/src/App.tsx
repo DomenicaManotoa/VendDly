@@ -37,14 +37,22 @@ import InventarioVendedor from 'componentes/Vendedor/Inventario Vendedor/Inventa
 import PedidosVendedor from 'componentes/Vendedor/Pedidos Vendedor/Pedidos_Vendedor';
 import RutasVendedor from 'componentes/Vendedor/Rutas Vendedor/Rutas_Vendedor';
 
+// ✅ IMPORTAR PROTECTEDROUTE - AGREGAR ESTA LÍNEA
+import { ProtectedRoute } from 'componentes/ProtectedRoute';
+
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} /> 
-        {/* Rutas que van dentro del menu */}
-        <Route element={<LayoutConSidebar />}>
+        
+        {/* ✅ CAMBIO: Envolver LayoutConSidebar con ProtectedRoute */}
+        <Route element={
+          <ProtectedRoute>
+            <LayoutConSidebar />
+          </ProtectedRoute>
+        }>
           <Route path="/home" element={<Home />} />
           <Route path="/catalogo" element={<Catalogo />} />
           <Route path="/clientes" element={<Clientes/>} />
@@ -57,13 +65,24 @@ export default function App() {
           <Route path="/marcas" element={<Marcas_Admin />} />
           <Route path="/roles" element={<Roles_Admin />} />
         </Route>
-        <Route element={<LayoutConSidebarBodega />}>
+
+        {/* ✅ CAMBIO: Envolver LayoutConSidebarBodega con ProtectedRoute */}
+        <Route element={
+          <ProtectedRoute>
+            <LayoutConSidebarBodega />
+          </ProtectedRoute>
+        }>
           <Route path="/bodega/home" element={<HomeBodeguero />} />
           <Route path ="/bodega/inventario" element={<InventarioBodeguero />} />
           <Route path ="/bodega/catalogo" element={<CatalogoBodeguero />} />
-
         </Route>
-        <Route element={<LayoutConSidebarFacturador />}>
+
+        {/* ✅ CAMBIO: Envolver LayoutConSidebarFacturador con ProtectedRoute */}
+        <Route element={
+          <ProtectedRoute>
+            <LayoutConSidebarFacturador />
+          </ProtectedRoute>
+        }>
           <Route path="/facturador/home" element={<HomeFacturador />} />
           <Route path="/facturador/clientes" element={<ClientesFacturador />} />
           <Route path="/facturador/vendedor" element={<VendedorFacturador />} />
@@ -71,14 +90,24 @@ export default function App() {
           <Route path="/facturador/facturar" element={<FacturarFacturador />} />
         </Route>
 
-        <Route element={<LayoutConSidebarTransportista />}>
+        {/* ✅ CAMBIO: Envolver LayoutConSidebarTransportista con ProtectedRoute */}
+        <Route element={
+          <ProtectedRoute>
+            <LayoutConSidebarTransportista />
+          </ProtectedRoute>
+        }>
           <Route path="/transportista/home" element={<HomeTransportista />} />
           <Route path="/transportista/clientes" element={<ClientesTransportista />} />
           <Route path="/transportista/pedidos" element={<PedidosTransportista />} />
           <Route path="/transportista/rutas" element={<RutasTransportista />} />
         </Route>
         
-        <Route element={<LayoutConSidebarVendedor />}>
+        {/* ✅ CAMBIO: Envolver LayoutConSidebarVendedor con ProtectedRoute */}
+        <Route element={
+          <ProtectedRoute>
+            <LayoutConSidebarVendedor />
+          </ProtectedRoute>
+        }>
           <Route path="/vendedor/home" element={<HomeVendedor />} />
           <Route path="/vendedor/inventario" element={<InventarioVendedor />} />
           <Route path="/vendedor/catalogo" element={<CatalogoVendedor />} />
