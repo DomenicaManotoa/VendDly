@@ -80,11 +80,18 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
 
         // Verificar rol si es requerido
         if (requiredRole && currentUser) {
-          const userRole = currentUser.rol?.descripcion || currentUser.rol;
-          if (userRole !== requiredRole) {
+          const userRole =
+            typeof currentUser.rol === "object"
+              ? currentUser.rol.descripcion
+              : currentUser.rol;
+
+          if (
+            typeof userRole === "string" &&
+            userRole.toLowerCase() !== requiredRole.toLowerCase()
+          ) {
             notification.error({
-              message: 'Permisos Insuficientes',
-              description: `No tienes permisos para acceder a esta sección. Se requiere rol: ${requiredRole}`,
+              message: 'Permisos insuficientes',
+              description: `No tienes acceso a esta sección. Se requiere rol: ${requiredRole}`,
               duration: 6,
               placement: 'topRight',
               style: {
@@ -92,31 +99,17 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
                 border: '1px solid #ffccc7'
               }
             });
-            
-            // Redirigir a la página de inicio según el rol del usuario
-            const roleRedirects: { [key: string]: string } = {
-              'admin': '/home',
-              'vendedor': '/vendedor/home',
-              'bodeguero': '/bodega/home',
-              'facturador': '/facturador/home',
-              'transportista': '/transportista/home'
-            };
-            
-            const redirectPath = roleRedirects[userRole.toLowerCase()] || '/home';
-            setTimeout(() => {
-              window.location.href = redirectPath;
-            }, 2000);
-            
+            setShouldRedirect(true);
             return;
           }
         }
 
         // Todo está bien, mostrar contenido
         setIsChecking(false);
-        
+
       } catch (error) {
         console.error('Error verificando autenticación:', error);
-        
+
         notification.error({
           message: 'Error de Verificación',
           description: 'Hubo un problema verificando tu sesión. Por favor, inicia sesión nuevamente.',
@@ -127,7 +120,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
             border: '1px solid #ffccc7'
           }
         });
-        
+
         authService.logout();
         setShouldRedirect(true);
       }

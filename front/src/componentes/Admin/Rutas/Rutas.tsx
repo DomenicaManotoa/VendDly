@@ -103,9 +103,9 @@ export default function Rutas() {
         </Form>
       </Modal>
       <div className="mt-8">
-  <h3 className="text-lg font-semibold mb-2">Clientes en el Mapa</h3>
-  <MapaClientes sectorSeleccionado={rutaSeleccionada} />
-</div>
+        <h3 className="text-lg font-semibold mb-2">Clientes en el Mapa</h3>
+        <MapaClientes sectorSeleccionado={rutaSeleccionada} />
+      </div>
     </div>
   );
 }

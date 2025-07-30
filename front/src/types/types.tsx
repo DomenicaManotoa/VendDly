@@ -21,7 +21,7 @@ export interface User {
   rucempresarial?: string;
   password?: string;
   estado?: 'activo' | 'inactivo';
-  rol?: string | number;
+  rol?: Rol | string;
   id_rol?: number;
   correo?: string; // Alias para email
   contrasena?: string; // Alias para password
