@@ -36,6 +36,7 @@ const mainItems: MenuItem[] = [
   { key: '/categorias', icon: <ShopOutlined />, label: 'Categorías' },
   { key: '/marcas', icon: <TagsOutlined />, label: 'Marcas' },
   { key: '/roles', icon: <UserSwitchOutlined />, label: 'Roles' },
+  { key: '/rutas', icon: <ReadOutlined />, label: 'Rutas' },
 ];
 
 const SidebarCustom: React.FC = () => {

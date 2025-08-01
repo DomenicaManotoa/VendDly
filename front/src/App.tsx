@@ -1,6 +1,6 @@
+import "leaflet/dist/leaflet.css";
 import { Login } from './Controllers/Login';
 import Home from 'componentes/Admin/Home/Home';
-import { FooterCustom } from 'componentes/Footer';
 import Pedidos from 'componentes/Admin/Pedidos/Index';
 import Catalogo from 'componentes/Admin/Catalogo/Catalogo';
 import Facturas from 'componentes/Admin/Facturas/Facturas';
@@ -36,6 +36,7 @@ import ClientesVendedor from 'componentes/Vendedor/Clientes Vendedor/Clientes_Ve
 import InventarioVendedor from 'componentes/Vendedor/Inventario Vendedor/Inventario_Vendedor';
 import PedidosVendedor from 'componentes/Vendedor/Pedidos Vendedor/Pedidos_Vendedor';
 import RutasVendedor from 'componentes/Vendedor/Rutas Vendedor/Rutas_Vendedor';
+import Rutas from 'componentes/Admin/Rutas/Rutas';
 
 // ✅ IMPORTAR PROTECTEDROUTE - AGREGAR ESTA LÍNEA
 import { ProtectedRoute } from 'componentes/ProtectedRoute';
@@ -64,17 +65,18 @@ export default function App() {
           <Route path="/categorias" element={<Categorias_Admin />} />
           <Route path="/marcas" element={<Marcas_Admin />} />
           <Route path="/roles" element={<Roles_Admin />} />
+          <Route path="/rutas" element={<Rutas />} />
         </Route>
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarBodega con ProtectedRoute */}
         <Route element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="Bodeguero">
             <LayoutConSidebarBodega />
           </ProtectedRoute>
         }>
           <Route path="/bodega/home" element={<HomeBodeguero />} />
-          <Route path ="/bodega/inventario" element={<InventarioBodeguero />} />
-          <Route path ="/bodega/catalogo" element={<CatalogoBodeguero />} />
+          <Route path="/bodega/inventario" element={<InventarioBodeguero />} />
+          <Route path="/bodega/catalogo" element={<CatalogoBodeguero />} />
         </Route>
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarFacturador con ProtectedRoute */}
@@ -100,6 +102,7 @@ export default function App() {
           <Route path="/transportista/clientes" element={<ClientesTransportista />} />
           <Route path="/transportista/pedidos" element={<PedidosTransportista />} />
           <Route path="/transportista/rutas" element={<RutasTransportista />} />
+          
         </Route>
         
         {/* ✅ CAMBIO: Envolver LayoutConSidebarVendedor con ProtectedRoute */}
