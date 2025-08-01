@@ -32,40 +32,28 @@ const clientes = [
   },
 ];
 
-// Puedes filtrar por sector si lo deseas
 const MapaClientes = ({ sectorSeleccionado }: Props) => {
   const clientesFiltrados = sectorSeleccionado
     ? clientes.filter(c => c.sector === sectorSeleccionado)
-    : clientes; // Mostrar todos si no hay filtro
+    : [];
 
-  const posicionInicial: [number, number] = clientesFiltrados.length > 0
-    ? [clientesFiltrados[0].latitud, clientesFiltrados[0].longitud]
-    : [-0.22985, -78.52495];
-
-  // Icono igual que en Rutas_Transportista
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl:
-      'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl:
-      'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl:
-      'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  });
+const posicionInicial: [number, number] = clientesFiltrados.length > 0
+  ? [clientesFiltrados[0].latitud, clientesFiltrados[0].longitud]
+  : [-0.22985, -78.52495];
 
   return (
-    <MapContainer center={posicionInicial} zoom={13} style={{ height: "400px", width: "100%", borderRadius: 8 }}>
+    <MapContainer center={posicionInicial} zoom={13} style={{ height: "400px", width: "100%" }}>
       <TileLayer
-        attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution="&copy; OpenStreetMap contributors"
       />
       {clientesFiltrados.map((cliente, idx) => (
-        <Marker key={idx} position={[cliente.latitud, cliente.longitud]}>
-          <Popup>
-            <b>{cliente.nombre}</b>
-            <br />
-            {cliente.direccion}
-          </Popup>
+        <Marker
+          key={idx}
+          position={[cliente.latitud, cliente.longitud]}
+          icon={L.icon({ iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png", iconSize: [30, 30] })}
+        >
+          <Popup>{cliente.nombre}</Popup>
         </Marker>
       ))}
     </MapContainer>
