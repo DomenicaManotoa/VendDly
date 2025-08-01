@@ -75,7 +75,10 @@ def login(db: Session, rucempresarial: str, correo: str, contrasena: str):
                 "correo": usuario.correo,
                 "rucempresarial": usuario.rucempresarial,
                 "estado": usuario.estado,
-                "rol": usuario.id_rol
+                "rol": {
+                    "id_rol": usuario.id_rol,
+                    "descripcion": usuario.rol.descripcion if usuario.rol else ""
+                }
             }
         }
         
