@@ -37,6 +37,8 @@ import InventarioVendedor from 'componentes/Vendedor/Inventario Vendedor/Inventa
 import PedidosVendedor from 'componentes/Vendedor/Pedidos Vendedor/Pedidos_Vendedor';
 import RutasVendedor from 'componentes/Vendedor/Rutas Vendedor/Rutas_Vendedor';
 import Rutas from 'componentes/Admin/Rutas/Rutas';
+import UbicacionClientePage from 'componentes/Admin/ubicacionCliente/UbicacionCliente';
+
 
 // ✅ IMPORTAR PROTECTEDROUTE - AGREGAR ESTA LÍNEA
 import { ProtectedRoute } from 'componentes/ProtectedRoute';
@@ -66,6 +68,7 @@ export default function App() {
           <Route path="/marcas" element={<Marcas_Admin />} />
           <Route path="/roles" element={<Roles_Admin />} />
           <Route path="/rutas" element={<Rutas />} />
+          <Route path="/ubicaciones_clientes" element={<UbicacionClientePage />} />
         </Route>
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarBodega con ProtectedRoute */}

@@ -1,7 +1,7 @@
 // Interfaz para el formulario de autenticación
 export interface AuthFormProps {
   isLogin?: boolean;
-  onSubmit: (values: LoginFormValues) => Promise<void>; // Cambiado de any a Promise<void>
+  onSubmit: (values: LoginFormValues) => Promise<void>;
   loading: boolean;
 }
 
@@ -23,8 +23,8 @@ export interface User {
   estado?: 'activo' | 'inactivo';
   rol?: string | number;
   id_rol?: number;
-  correo?: string; // Alias para email
-  contrasena?: string; // Alias para password
+  correo?: string;
+  contrasena?: string;
 }
 
 // Respuesta del servicio de login
@@ -99,8 +99,6 @@ export interface NotificationConfig {
   style?: React.CSSProperties;
 }
 
-
-
 // Definición de la interfaz Rol
 export interface Rol {
   id_rol: number;
@@ -117,7 +115,7 @@ export interface Usuario {
   estado: string;
   fecha_actualizacion?: string;
   id_rol: number;
-  rol?: Rol | string; // Puede ser un objeto Rol o string (descripción)
+  rol?: Rol | string;
 }
 
 export interface Props {
@@ -125,26 +123,28 @@ export interface Props {
   onCancel: () => void;
   onSubmit: (user: Usuario) => void;
   userToEdit?: Usuario | null;
-  roles: Rol[]; // Simplificado usando la interfaz Rol
+  roles: Rol[];
 }
 
+// INTERFAZ CLIENTE ACTUALIZADA con nuevo campo
 export interface Cliente {
-  cod_cliente: string;  // Cambiado de number a string
+  cod_cliente: string;
   identificacion: string;
   nombre: string;
   direccion: string;
   celular: string;
-  correo: string;  // Añadido
+  correo: string;
   tipo_cliente: string;
   razon_social: string;
   sector: string;
   fecha_registro?: string;
   fecha_actualizacion?: string;
+  id_ubicacion_principal?: number | null; // CAMPO CLAVE para ubicación principal
 }
 
 export interface FormClientesProps {
   cliente: Cliente | null;
-  visible: boolean; // Añade esta línea
+  visible: boolean;
   onCancel: () => void;
   onSubmit: (cliente: Usuario) => Promise<void>;
 }
@@ -171,7 +171,6 @@ export interface DetallePedido {
   subtotal: number;
 }
 
-// types.tsx (actualización)
 export interface Producto {
   id_producto: number;
   nombre: string;
@@ -195,4 +194,188 @@ export interface Marca {
 export interface Categoria {
   id_categoria: number;
   descripcion: string;
+}
+
+// INTERFAZ UBICACION CLIENTE ACTUALIZADA
+export interface UbicacionCliente {
+  id_ubicacion?: number;
+  cod_cliente: string;
+  latitud: number;
+  longitud: number;
+  direccion: string;
+  sector: string;
+  referencia?: string;
+  fecha_registro?: string;
+  cliente?: Cliente; // Relación con cliente
+  es_principal?: boolean; // NUEVO: Indica si es la ubicación principal del cliente
+}
+
+export interface FormUbicacionClienteProps {
+  ubicacion: UbicacionCliente | null;
+  visible: boolean;
+  onCancel: () => void;
+  onSubmit: (ubicacion: UbicacionCliente) => Promise<void>;
+  clientes: Cliente[];
+}
+
+export interface MapaUbicacionProps {
+  ubicaciones?: UbicacionCliente[];
+  onLocationSelect?: (lat: number, lng: number, address?: string) => void;
+  selectedLocation?: { lat: number; lng: number };
+  readonly?: boolean;
+}
+
+// Interface para rutas
+export interface Ruta {
+  id_ruta: number;
+  sector: string;
+  direccion: string;
+  tipo_ruta: string;
+  estado: string;
+  fecha_creacion: string;
+}
+
+// NUEVAS INTERFACES para el manejo de ubicaciones principales
+
+// Interface para estadísticas de ubicaciones
+export interface EstadisticasUbicaciones {
+  totalUbicaciones: number;
+  totalClientes: number;
+  clientesConUbicacionPrincipal: number;
+  clientesSinUbicacionPrincipal: number;
+  clientesSinUbicaciones: number;
+  clientesConMultiplesUbicaciones: number;
+  ubicacionesSinReferencia: number;
+  ubicacionesPrincipales: number;
+  porSector: Record<string, number>;
+  promedioUbicacionesPorCliente?: number;
+}
+
+// Interface para estadísticas de clientes
+export interface EstadisticasClientes {
+  totalClientes: number;
+  clientesConUbicacionPrincipal: number;
+  clientesSinUbicacionPrincipal: number;
+  clientesSinUbicaciones: number;
+  clientesConMultiplesUbicaciones: number;
+  totalUbicaciones: number;
+  promedioUbicacionesPorCliente: number;
+  porSector: Record<string, number>;
+  porTipoCliente: Record<string, number>;
+  sectoresConMasClientes: { sector: string; cantidad: number }[];
+}
+
+// Interface para verificación de integridad
+export interface VerificacionIntegridad {
+  clientesSinUbicacionPrincipal: string[];
+  clientesConUbicacionPrincipalInvalida: string[];
+  clientesSinUbicaciones: string[];
+  ubicacionesHuerfanas: number[];
+  resumen: string;
+}
+
+// Interface para resultado de reparación
+export interface ResultadoReparacion {
+  reparados: number;
+  errores: string[];
+  detalles: { codCliente: string; accion: string }[];
+}
+
+// Interface para cliente con ubicaciones detalladas
+export interface ClienteConUbicaciones extends Cliente {
+  ubicaciones: (UbicacionCliente & { es_principal?: boolean })[];
+  ubicacion_principal_info?: {
+    id_ubicacion: number;
+    direccion: string;
+    sector: string;
+    latitud: number;
+    longitud: number;
+  };
+}
+
+// Interface para resumen de ubicaciones por cliente
+export interface ResumenUbicacionesCliente {
+  cod_cliente: string;
+  nombre_cliente: string;
+  total_ubicaciones: number;
+  tiene_ubicacion_principal: boolean;
+  ubicacion_principal?: {
+    id: number;
+    direccion: string;
+    sector: string;
+  };
+  ubicaciones: {
+    id: number;
+    direccion: string;
+    sector: string;
+    es_principal: boolean;
+  }[];
+}
+
+// Interface para selector de ubicación principal
+export interface SelectorUbicacionPrincipalProps {
+  codCliente: string;
+  valorSeleccionado?: number;
+  onChange: (idUbicacion?: number) => void;
+  disabled?: boolean;
+}
+
+// Interface para props del dashboard de ubicaciones
+export interface DashboardUbicacionesProps {
+  onNavegateToUbicaciones?: () => void;
+  onNavegateToClientes?: () => void;
+}
+
+// Interface para problemas de integridad detectados
+export interface ProblemaIntegridad {
+  tipo: 'sin_ubicacion' | 'sin_principal' | 'principal_invalida' | 'ubicacion_huerfana';
+  codCliente?: string;
+  idUbicacion?: number;
+  descripcion: string;
+  accionSugerida: string;
+  gravedad: 'alta' | 'media' | 'baja';
+}
+
+// Interface para respuesta del backend al crear ubicación
+export interface RespuestaCreacionUbicacion {
+  ubicacion: UbicacionCliente;
+  ubicacion_principal_establecida: boolean;
+  mensaje?: string;
+}
+
+// Interface para respuesta del backend al eliminar ubicación
+export interface RespuestaEliminacionUbicacion {
+  mensaje: string;
+  nueva_ubicacion_principal?: number;
+  cliente_sin_ubicacion_principal?: boolean;
+}
+
+// Interface para configuración de mapa
+export interface ConfiguracionMapa {
+  centroInicial: [number, number];
+  zoomInicial: number;
+  mostrarControles: boolean;
+  permitirCrearUbicacion: boolean;
+  mostrarTodasLasUbicaciones: boolean;
+}
+
+// Interface para filtros de ubicaciones
+export interface FiltrosUbicaciones {
+  sector?: string;
+  cliente?: string;
+  soloSinUbicacionPrincipal?: boolean;
+  soloConMultiplesUbicaciones?: boolean;
+  fechaDesde?: string;
+  fechaHasta?: string;
+}
+
+// Tipos de exportación
+export type TipoExportacion = 'excel' | 'pdf' | 'csv' | 'json';
+
+// Interface para opciones de exportación
+export interface OpcionesExportacion {
+  tipo: TipoExportacion;
+  incluirUbicaciones: boolean;
+  incluirEstadisticas: boolean;
+  filtros?: FiltrosUbicaciones;
 }
