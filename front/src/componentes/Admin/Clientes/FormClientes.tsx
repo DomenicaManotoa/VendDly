@@ -84,7 +84,7 @@ const FormClientes: React.FC<FormClientesProps> = ({
           <Input 
             placeholder="Ingrese el código del cliente" 
             maxLength={50}
-            disabled={!!cliente?.cod_cliente} // Solo deshabilitado en edición
+            disabled={!!cliente?.cod_cliente}  
           />
         </Form.Item>
         <Form.Item 

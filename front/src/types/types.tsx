@@ -99,8 +99,6 @@ export interface NotificationConfig {
   style?: React.CSSProperties;
 }
 
-
-
 // Definición de la interfaz Rol
 export interface Rol {
   id_rol: number;
@@ -149,21 +147,40 @@ export interface FormClientesProps {
   onSubmit: (cliente: Usuario) => Promise<void>;
 }
 
-export interface Pedidos{
+export interface Pedido {
   id_pedido: number;
   estado: string;
   numero_pedido: string;
-  fecha_pedido: Date;
+  fecha_pedido: string;
   subtotal: number;
   iva: number;
   total: number;
-  cod_cliente: number;
+  cod_cliente: string;
+  id_ruta_venta: number;
+  id_ruta_entrega: number;
+  estado_entrega: string;
+  detalles?: DetallePedido[];
+}
+
+export interface EstadoPedido {
+  id_estado_pedido: number;
+  id_pedido: number;
+  fecha_actualizada: string;
+  descripcion: string;
+}
+
+export interface FormCrearPedidoProps {
+  visible: boolean;
+  onCancel: () => void;
+  onSubmit: () => void;
+  clientes: Cliente[];
+  pedidoEditar?: Pedido | null;
 }
 
 export interface DetallePedido {
   id_detalle_pedido: number;
   id_pedido: number;
-  id_producto: string;
+  id_producto: number;
   cantidad: number;
   precio_unitario: number;
   descuento: number;
