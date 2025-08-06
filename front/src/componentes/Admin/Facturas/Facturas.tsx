@@ -112,28 +112,64 @@ const Facturas: React.FC = () => {
     }
   };
 
+  const crearDetallesFactura = async (facturaId: number, detalles: any[]) => {
+    try {
+      // Crear cada detalle de factura individualmente
+      for (const detalle of detalles) {
+        const detalleFacturaData = {
+          id_factura: facturaId,
+          id_producto: detalle.id_producto,
+          cantidad: detalle.cantidad,
+          precio_unitario: detalle.precio_unitario,
+          iva_producto: detalle.precio_unitario * 0.12, // IVA del 12%
+          subtotal_lineal: detalle.subtotal_lineal
+        };
+
+        await axios.post("http://127.0.0.1:8000/detalles_factura", detalleFacturaData);
+      }
+    } catch (error) {
+      console.error('Error al crear detalles de factura:', error);
+      throw error;
+    }
+  };
+
   const facturarPedido = async (pedido: PedidoConFactura) => {
     try {
-      const response = await axios.post("http://127.0.0.1:8000/facturas", {
+      // Paso 1: Crear la factura principal
+      const facturaData = {
         cod_cliente: pedido.cod_cliente,
         fecha_emision: dayjs().format('YYYY-MM-DD'),
         estado: 'emitida',
         subtotal: pedido.subtotal,
         iva: pedido.iva,
-        total: pedido.total,
-        detalles: pedido.detalles?.map(detalle => ({
-          id_producto: detalle.id_producto,
-          cantidad: detalle.cantidad,
-          precio_unitario: detalle.precio_unitario,
-          iva_producto: detalle.precio_unitario * 0.12, // Asumiendo IVA del 12%
-          subtotal_lineal: detalle.subtotal_lineal
-        }))
-      });
+        total: pedido.total
+      };
+
+      const facturaResponse = await axios.post("http://127.0.0.1:8000/facturas", facturaData);
+      const nuevaFactura = facturaResponse.data;
+
+      // Paso 2: Crear los detalles de la factura si existen detalles del pedido
+      if (pedido.detalles && pedido.detalles.length > 0) {
+        await crearDetallesFactura(nuevaFactura.id_factura, pedido.detalles);
+      }
+
+      message.success(`Factura #${nuevaFactura.numero_factura} creada exitosamente para el pedido #${pedido.numero_pedido}`);
       
-      message.success(`Factura #${response.data.numero_factura} creada para el pedido #${pedido.numero_pedido}`);
+      // Recargar los datos para reflejar los cambios
       await cargarDatos();
-    } catch (error) {
-      message.error('Error al crear la factura');
+      
+      return nuevaFactura;
+    } catch (error: any) {
+      console.error('Error al crear factura:', error);
+      
+      // Mostrar mensaje de error más específico
+      if (error.response?.data?.detail) {
+        message.error(`Error al crear factura: ${error.response.data.detail}`);
+      } else {
+        message.error('Error al crear la factura. Por favor intente nuevamente.');
+      }
+      
+      throw error;
     }
   };
 
@@ -143,20 +179,59 @@ const Facturas: React.FC = () => {
       return;
     }
 
-    try {
-      const pedidosSeleccionados = pedidos.filter(p => 
-        selectedRowKeys.includes(p.id_pedido.toString())
-      );
+    const pedidosSeleccionados = pedidos.filter(p => 
+      selectedRowKeys.includes(p.id_pedido.toString()) && !p.factura
+    );
 
-      await Promise.all(
-        pedidosSeleccionados.map(pedido => facturarPedido(pedido))
-      );
-
-      message.success(`${pedidosSeleccionados.length} facturas creadas exitosamente`);
-      setSelectedRowKeys([]);
-    } catch (error) {
-      message.error('Error al facturar los pedidos seleccionados');
+    if (pedidosSeleccionados.length === 0) {
+      message.warning('No hay pedidos válidos para facturar (sin factura previa)');
+      return;
     }
+
+    // Mostrar modal de confirmación
+    Modal.confirm({
+      title: 'Confirmar Facturación',
+      content: `¿Está seguro de que desea crear facturas para ${pedidosSeleccionados.length} pedido(s) seleccionado(s)?`,
+      okText: 'Sí, Facturar',
+      cancelText: 'Cancelar',
+      onOk: async () => {
+        const loadingMessage = message.loading('Creando facturas...', 0);
+        
+        try {
+          let facturasCreadas = 0;
+          let errores = 0;
+
+          // Procesar cada pedido individualmente
+          for (const pedido of pedidosSeleccionados) {
+            try {
+              await facturarPedido(pedido);
+              facturasCreadas++;
+            } catch (error) {
+              errores++;
+              console.error(`Error al facturar pedido ${pedido.numero_pedido}:`, error);
+            }
+          }
+
+          loadingMessage();
+
+          // Mostrar resultado
+          if (facturasCreadas > 0) {
+            message.success(`${facturasCreadas} factura(s) creada(s) exitosamente${errores > 0 ? ` (${errores} errores)` : ''}`);
+          }
+          
+          if (errores > 0 && facturasCreadas === 0) {
+            message.error(`Error al crear las facturas. ${errores} pedido(s) no pudieron ser facturados.`);
+          }
+
+          // Limpiar selección
+          setSelectedRowKeys([]);
+          
+        } catch (error) {
+          loadingMessage();
+          message.error('Error general al procesar las facturas');
+        }
+      }
+    });
   };
 
   const imprimirFactura = async (item: PedidoConFactura | Factura) => {
