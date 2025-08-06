@@ -24,6 +24,24 @@ def listar_ubicaciones(
         logger.error(f"Error al listar ubicaciones: {e}")
         raise HTTPException(status_code=500, detail="Error interno del servidor")
 
+@router.get("/ubicaciones_cliente/cliente/{cod_cliente}")
+def obtener_ubicaciones_cliente(
+    cod_cliente: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """
+    Obtiene todas las ubicaciones de un cliente específico
+    """
+    try:
+        logger.info(f"Usuario {current_user.identificacion} solicita ubicaciones del cliente: {cod_cliente}")
+        ubicaciones = ubicacion_cliente_controller.get_ubicaciones_by_cliente(db, cod_cliente)
+        logger.info(f"Se encontraron {len(ubicaciones)} ubicaciones para el cliente {cod_cliente}")
+        return ubicaciones
+    except Exception as e:
+        logger.error(f"Error al obtener ubicaciones del cliente {cod_cliente}: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
+
 @router.get("/ubicaciones_cliente/{id_ubicacion}")
 def obtener_ubicacion(
     id_ubicacion: int,
@@ -43,12 +61,28 @@ def crear_ubicacion(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
+    """
+    Crea una nueva ubicación y automáticamente la establece como principal
+    si el cliente no tiene ubicación principal
+    """
     try:
         logger.info(f"Usuario {current_user.identificacion} crea nueva ubicación de cliente")
-        return ubicacion_cliente_controller.create_ubicacion(db, ubicacion)
+        
+        # Validar campos requeridos
+        campos_requeridos = ['cod_cliente', 'latitud', 'longitud', 'direccion', 'sector']
+        for campo in campos_requeridos:
+            if campo not in ubicacion or ubicacion[campo] is None:
+                raise HTTPException(status_code=400, detail=f"El campo {campo} es requerido")
+        
+        resultado = ubicacion_cliente_controller.create_ubicacion(db, ubicacion)
+        logger.info(f"Ubicación creada exitosamente con ID: {resultado.id_ubicacion}")
+        return resultado
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error al crear ubicación: {e}")
-        raise
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @router.put("/ubicaciones_cliente/{id_ubicacion}")
 def editar_ubicacion(
@@ -62,6 +96,23 @@ def editar_ubicacion(
         return ubicacion_cliente_controller.update_ubicacion(db, id_ubicacion, ubicacion)
     except Exception as e:
         logger.error(f"Error al editar ubicación {id_ubicacion}: {e}")
+        raise
+
+@router.put("/ubicaciones_cliente/cliente/{cod_cliente}/principal/{id_ubicacion}")
+def establecer_ubicacion_principal(
+    cod_cliente: str,
+    id_ubicacion: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """
+    Establece una ubicación específica como principal para un cliente
+    """
+    try:
+        logger.info(f"Usuario {current_user.identificacion} establece ubicación {id_ubicacion} como principal para cliente {cod_cliente}")
+        return ubicacion_cliente_controller.set_ubicacion_principal(db, cod_cliente, id_ubicacion)
+    except Exception as e:
+        logger.error(f"Error al establecer ubicación principal: {e}")
         raise
 
 @router.delete("/ubicaciones_cliente/{id_ubicacion}")

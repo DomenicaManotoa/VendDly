@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Button, Modal, Form, Input, Select, Table, Tag, message } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import MapaClientes from "./MapaClientes";
-
 const { Option } = Select;
 
 export default function Rutas() {
@@ -91,7 +90,21 @@ export default function Rutas() {
         </Button>
       </div>
 
-      <Table dataSource={rutas} columns={columns} rowKey="id_ruta" />
+        <Table 
+          dataSource={rutas} 
+          columns={columns} 
+          rowKey="id_ruta"
+          loading={!rutas.length}
+          pagination={{ 
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total, range) => 
+              `${range[0]}-${range[1]} de ${total} rutas`
+          }}
+          locale={{
+            emptyText: 'No hay rutas registradas. Crea tu primera ruta usando el botón "Crear Ruta".'
+          }}
+        />
 
       <Modal
         title="Crear Nueva Ruta"

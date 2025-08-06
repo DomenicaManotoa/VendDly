@@ -1,7 +1,7 @@
 import axios from "axios";
 import { authService } from "auth/auth";
 import FormClientes from "./FormClientes";
-import { Cliente, Usuario } from "types/types";
+import { Cliente, Usuario, UbicacionCliente } from "types/types";
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useState, useCallback } from "react";
 import { 
@@ -14,7 +14,9 @@ import {
   Typography, 
   Card,
   Row,
-  Col
+  Col,
+  Tag,
+  Tooltip
 } from "antd";
 import { 
   DeleteOutlined, 
@@ -22,14 +24,16 @@ import {
   FileExcelOutlined,
   SearchOutlined,
   PlusOutlined,
-  UserOutlined
+  UserOutlined,
+  EnvironmentOutlined
 } from "@ant-design/icons";
-
+import { ubicacionClienteService } from "../../Admin/ubicacionCliente/ubicacionClienteService";
 
 const { Title } = Typography;
 
 const Clientes = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [ubicaciones, setUbicaciones] = useState<UbicacionCliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [clientToEdit, setClientToEdit] = useState<Cliente | null>(null);
@@ -93,6 +97,16 @@ const Clientes = () => {
     }
   }, [getAxiosConfig]);
 
+  // Función para obtener ubicaciones
+  const fetchUbicaciones = useCallback(async () => {
+    try {
+      const ubicacionesData = await ubicacionClienteService.getUbicaciones();
+      setUbicaciones(ubicacionesData);
+    } catch (error) {
+      console.error('Error al cargar ubicaciones:', error);
+    }
+  }, []);
+
   useEffect(() => {
     // Verificar autenticación
     if (!authService.isAuthenticated()) {
@@ -102,7 +116,19 @@ const Clientes = () => {
     }
     
     fetchClientes();
-  }, [fetchClientes]);
+    fetchUbicaciones();
+  }, [fetchClientes, fetchUbicaciones]);
+
+  // Función para obtener información de ubicación principal
+  const getUbicacionPrincipal = (cliente: Cliente): UbicacionCliente | undefined => {
+    if (!cliente.id_ubicacion_principal) return undefined;
+    return ubicaciones.find(u => u.id_ubicacion === cliente.id_ubicacion_principal);
+  };
+
+  // Función para contar ubicaciones de un cliente
+  const contarUbicacionesCliente = (codCliente: string): number => {
+    return ubicaciones.filter(u => u.cod_cliente === codCliente).length;
+  };
   
   // Función mejorada para manejar la exportación
   const handleExportExcel = async () => {
@@ -200,31 +226,41 @@ const Clientes = () => {
     }
   };
 
-  
-// Modifica las funciones
-const handleAdd = () => {
-  setClientToEdit(null);
-  setIsFormVisible(true);
-};
+  // Modifica las funciones
+  const handleAdd = () => {
+    setClientToEdit(null);
+    setIsFormVisible(true);
+  };
 
-const handleEdit = (cliente: Cliente) => {
-  setClientToEdit(cliente);
-  setIsFormVisible(true);
-};
+  const handleEdit = (cliente: Cliente) => {
+    setClientToEdit(cliente);
+    setIsFormVisible(true);
+  };
 
-const handleCancel = () => {
-  setIsFormVisible(false);
-  setClientToEdit(null);
-};
+  const handleCancel = () => {
+    setIsFormVisible(false);
+    setClientToEdit(null);
+  };
 
   const handleDelete = async (cod_cliente: string) => {
     try {
       const config = getAxiosConfig();
       if (!config) return;
 
+      // Verificar si el cliente tiene ubicaciones antes de eliminar
+      const ubicacionesCliente = contarUbicacionesCliente(cod_cliente);
+      
+      if (ubicacionesCliente > 0) {
+        message.warning(
+          `No se puede eliminar el cliente. Tiene ${ubicacionesCliente} ubicaciones asociadas. Elimine primero las ubicaciones.`
+        );
+        return;
+      }
+
       await axios.delete(`http://127.0.0.1:8000/clientes/${cod_cliente}`, config);
       message.success('Cliente eliminado correctamente');
       fetchClientes();
+      fetchUbicaciones(); // Actualizar ubicaciones también
     } catch (error: any) {
       console.error('Error al eliminar cliente:', error);
       
@@ -234,6 +270,9 @@ const handleCancel = () => {
         message.error('No tienes permisos para eliminar clientes');
       } else if (error.response?.status === 404) {
         message.error('Cliente no encontrado');
+      } else if (error.response?.status === 400) {
+        // El backend ya maneja este caso, pero lo incluimos por si acaso
+        message.error(error.response.data?.detail || 'Error al eliminar cliente');
       } else {
         message.error('Error al eliminar cliente');
       }
@@ -253,7 +292,10 @@ const handleCancel = () => {
         message.success('Cliente agregado correctamente');
       }
       
-      fetchClientes();
+      setIsFormVisible(false);
+      setClientToEdit(null);
+      await fetchClientes(); // Recargar clientes
+      await fetchUbicaciones(); // Recargar ubicaciones para mantener la sincronización
     } catch (error: any) {
       console.error('Error al guardar cliente:', error);
       
@@ -263,6 +305,8 @@ const handleCancel = () => {
         message.error('No tienes permisos para realizar esta acción');
       } else if (error.response?.status === 409) {
         message.error('Ya existe un cliente con esta identificación');
+      } else if (error.response?.status === 400) {
+        message.error(error.response.data?.detail || 'Error en los datos del cliente');
       } else {
         message.error('Error al guardar cliente');
       }
@@ -270,15 +314,14 @@ const handleCancel = () => {
   };
 
   const filteredClientes = clientes
-  .filter(cliente =>
-    cliente.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.identificacion?.includes(searchTerm) ||
-    cliente.razon_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.sector?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.direccion?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-  .sort((a, b) => a.sector.localeCompare(b.sector));
-
+    .filter(cliente =>
+      cliente.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.identificacion?.includes(searchTerm) ||
+      cliente.razon_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.sector?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.direccion?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => a.sector.localeCompare(b.sector));
 
   // Columnas para la tabla
   const columns: ColumnsType<Cliente> = [
@@ -286,11 +329,11 @@ const handleCancel = () => {
       title: "Código Cliente",
       dataIndex: 'cod_cliente',
       key: 'cod_cliente',
-      sorter: (a, b) => a.cod_cliente.localeCompare(b.cod_cliente), // Cambiar a comparación de strings
+      sorter: (a, b) => a.cod_cliente.localeCompare(b.cod_cliente),
       responsive: ['md'],
     },
     {
-      title: 'Identificación',
+      title: 'Identificación del vendedor',
       dataIndex: 'identificacion',
       key: 'identificacion',
       sorter: (a, b) => a.identificacion.localeCompare(b.identificacion),
@@ -347,6 +390,76 @@ const handleCancel = () => {
       responsive: ['xl'],
     },
     {
+      title: 'Ubicación Principal',
+      key: 'ubicacion_principal',
+      responsive: ['lg'],
+      render: (_, record: Cliente) => {
+        const ubicacionPrincipal = getUbicacionPrincipal(record);
+        const totalUbicaciones = contarUbicacionesCliente(record.cod_cliente);
+        
+        if (!ubicacionPrincipal) {
+          return (
+            <div>
+              <Tag color="orange" icon={<EnvironmentOutlined />}>
+                Sin ubicación principal
+              </Tag>
+              {totalUbicaciones > 0 && (
+                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                  {totalUbicaciones} ubicación(es) disponible(s)
+                </div>
+              )}
+            </div>
+          );
+        }
+        
+        return (
+          <div>
+            <Tooltip title={`${ubicacionPrincipal.direccion} - ${ubicacionPrincipal.sector}`}>
+              <Tag color="green" icon={<EnvironmentOutlined />}>
+                {ubicacionPrincipal.sector}
+              </Tag>
+            </Tooltip>
+            {totalUbicaciones > 1 && (
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                +{totalUbicaciones - 1} ubicación(es) adicional(es)
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      title: 'Estado Ubicaciones',
+      key: 'estado_ubicaciones',
+      responsive: ['xl'],
+      render: (_, record: Cliente) => {
+        const totalUbicaciones = contarUbicacionesCliente(record.cod_cliente);
+        const tieneUbicacionPrincipal = !!record.id_ubicacion_principal;
+        
+        if (totalUbicaciones === 0) {
+          return (
+            <Tag color="red">
+              Sin ubicaciones
+            </Tag>
+          );
+        }
+        
+        if (!tieneUbicacionPrincipal) {
+          return (
+            <Tag color="orange">
+              Sin ubicación principal
+            </Tag>
+          );
+        }
+        
+        return (
+          <Tag color="green">
+            Configurado ({totalUbicaciones})
+          </Tag>
+        );
+      }
+    },
+    {
       title: 'Fecha Registro',
       dataIndex: 'fecha_registro',
       key: 'fecha_registro',
@@ -358,93 +471,178 @@ const handleCancel = () => {
       key: 'actions',
       fixed: 'right',
       width: 100,
-      render: (_, record: Cliente) => (
-        <Space size="small">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            title="Editar cliente"
-            size="small"
-          />
-          <Popconfirm
-            title="¿Eliminar cliente?"
-            description="Esta acción no se puede deshacer"
-            onConfirm={() => handleDelete(record.cod_cliente)}
-            okText="Sí, eliminar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
-          >
+      render: (_, record: Cliente) => {
+        const totalUbicaciones = contarUbicacionesCliente(record.cod_cliente);
+        
+        return (
+          <Space size="small">
             <Button
               type="text"
-              icon={<DeleteOutlined />}
-              danger
-              title="Eliminar cliente"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              title="Editar cliente"
               size="small"
             />
-          </Popconfirm>
-        </Space>
-      ),
+            <Popconfirm
+              title="¿Eliminar cliente?"
+              description={
+                totalUbicaciones > 0 
+                  ? `Este cliente tiene ${totalUbicaciones} ubicación(es) asociada(s). Debe eliminar primero las ubicaciones.`
+                  : "Esta acción no se puede deshacer"
+              }
+              onConfirm={() => handleDelete(record.cod_cliente)}
+              okText="Sí, eliminar"
+              cancelText="Cancelar"
+              okButtonProps={{ 
+                danger: true,
+                disabled: totalUbicaciones > 0
+              }}
+              disabled={totalUbicaciones > 0}
+            >
+              <Button
+                type="text"
+                icon={<DeleteOutlined />}
+                danger
+                title={
+                  totalUbicaciones > 0 
+                    ? "No se puede eliminar: tiene ubicaciones asociadas"
+                    : "Eliminar cliente"
+                }
+                size="small"
+                disabled={totalUbicaciones > 0}
+              />
+            </Popconfirm>
+          </Space>
+        );
+      },
     },
   ];
 
   // Renderizado para móviles (cards)
   const renderMobileCards = () => (
     <Row gutter={[16, 16]}>
-      {filteredClientes.map((cliente) => (
-        <Col xs={24} sm={12} key={cliente.cod_cliente}>
-          <Card
-            size="small"
-            title={
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <UserOutlined style={{ marginRight: 8 }} />
-                {cliente.nombre}
-              </div>
-            }
-            extra={
-              <Space>
-                <Button
-                  type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => handleEdit(cliente)}
-                  size="small"
-                />
-                <Popconfirm
-                  title="¿Eliminar cliente?"
-                  description="Esta acción no se puede deshacer"
-                  onConfirm={() => handleDelete(cliente.cod_cliente)}
-                  okText="Sí"
-                  cancelText="No"
-                >
+      {filteredClientes.map((cliente) => {
+        const ubicacionPrincipal = getUbicacionPrincipal(cliente);
+        const totalUbicaciones = contarUbicacionesCliente(cliente.cod_cliente);
+        
+        return (
+          <Col xs={24} sm={12} key={cliente.cod_cliente}>
+            <Card
+              size="small"
+              title={
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <UserOutlined style={{ marginRight: 8 }} />
+                  {cliente.nombre}
+                </div>
+              }
+              extra={
+                <Space>
                   <Button
                     type="text"
-                    icon={<DeleteOutlined />}
-                    danger
+                    icon={<EditOutlined />}
+                    onClick={() => handleEdit(cliente)}
                     size="small"
                   />
-                </Popconfirm>
-              </Space>
-            }
-          >
-            <div style={{ fontSize: '12px', lineHeight: '1.5' }}>
-              <div><strong>ID:</strong> {cliente.identificacion}</div>
-              <div><strong>Celular:</strong> {cliente.celular || 'N/A'}</div>
-              <div><strong>Tipo:</strong> {cliente.tipo_cliente || 'N/A'}</div>
-              {cliente.direccion && (
-                <div><strong>Dirección:</strong> {cliente.direccion}</div>
-              )}
-            </div>
-          </Card>
-        </Col>
-      ))}
+                  <Popconfirm
+                    title="¿Eliminar cliente?"
+                    description={
+                      totalUbicaciones > 0 
+                        ? `Este cliente tiene ${totalUbicaciones} ubicación(es). Elimine primero las ubicaciones.`
+                        : "Esta acción no se puede deshacer"
+                    }
+                    onConfirm={() => handleDelete(cliente.cod_cliente)}
+                    okText="Sí"
+                    cancelText="No"
+                    disabled={totalUbicaciones > 0}
+                  >
+                    <Button
+                      type="text"
+                      icon={<DeleteOutlined />}
+                      danger
+                      size="small"
+                      disabled={totalUbicaciones > 0}
+                    />
+                  </Popconfirm>
+                </Space>
+              }
+            >
+              <div style={{ fontSize: '12px', lineHeight: '1.5' }}>
+                <div><strong>ID:</strong> {cliente.identificacion}</div>
+                <div><strong>Celular:</strong> {cliente.celular || 'N/A'}</div>
+                <div><strong>Tipo:</strong> {cliente.tipo_cliente || 'N/A'}</div>
+                {cliente.direccion && (
+                  <div><strong>Dirección:</strong> {cliente.direccion}</div>
+                )}
+                <div style={{ marginTop: '8px' }}>
+                  <strong>Ubicación Principal:</strong> {' '}
+                  {ubicacionPrincipal ? (
+                    <Tag color="green">
+                      <EnvironmentOutlined /> {ubicacionPrincipal.sector}
+                    </Tag>
+                  ) : (
+                    <Tag color="orange">
+                      <EnvironmentOutlined /> Sin ubicación principal
+                    </Tag>
+                  )}
+                </div>
+                {totalUbicaciones > 0 && (
+                  <div style={{ marginTop: '4px' }}>
+                    <strong>Total ubicaciones:</strong> {totalUbicaciones}
+                  </div>
+                )}
+              </div>
+            </Card>
+          </Col>
+        );
+      })}
     </Row>
   );
+
+  // Estadísticas mejoradas
+  const clientesConUbicacionPrincipal = clientes.filter(c => c.id_ubicacion_principal).length;
+  const clientesSinUbicaciones = clientes.filter(c => contarUbicacionesCliente(c.cod_cliente) === 0).length;
 
   return (
     <div style={{ padding: isMobile ? '12px' : '24px' }}>
       <Title level={2} style={{ marginBottom: '24px' }}>
         Gestión de Clientes
       </Title>
+
+      {/* Estadísticas rápidas */}
+      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{clientes.length}</div>
+              <div className="text-gray-500">Total Clientes</div>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{clientesConUbicacionPrincipal}</div>
+              <div className="text-gray-500">Con Ubicación Principal</div>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">{clientesSinUbicaciones}</div>
+              <div className="text-gray-500">Sin Ubicaciones</div>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{ubicaciones.length}</div>
+              <div className="text-gray-500">Total Ubicaciones</div>
+            </div>
+          </Card>
+        </Col>
+      </Row>
 
       {/* Barra de búsqueda y acciones */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
@@ -515,7 +713,7 @@ const handleCancel = () => {
           dataSource={filteredClientes}
           rowKey="cod_cliente"
           loading={loading}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1600 }}
           locale={{
             emptyText: 'No hay clientes disponibles'
           }}
@@ -527,16 +725,21 @@ const handleCancel = () => {
               `${range[0]}-${range[1]} de ${total} clientes`,
             responsive: true,
           }}
+          rowClassName={(record) => {
+            const totalUbicaciones = contarUbicacionesCliente(record.cod_cliente);
+            if (totalUbicaciones === 0) return 'bg-red-50';
+            if (!record.id_ubicacion_principal) return 'bg-orange-50';
+            return '';
+          }}
         />
       )}
 
-
-        <FormClientes
-          cliente={clientToEdit}
-          visible={isFormVisible}
-          onCancel={handleCancel}
-          onSubmit={handleSubmit}
-        />
+      <FormClientes
+        cliente={clientToEdit}
+        visible={isFormVisible}
+        onCancel={handleCancel}
+        onSubmit={handleSubmit}
+      />
 
     </div>
   );

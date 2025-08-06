@@ -50,6 +50,23 @@ def exportar_clientes_excel(
         logger.error(f"Error al exportar clientes a Excel: {e}")
         raise HTTPException(status_code=500, detail=f"Error al generar archivo Excel: {str(e)}")
 
+@router.get("/clientes/con-ubicaciones")
+def listar_clientes_con_ubicaciones(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """
+    Lista todos los clientes con información detallada de sus ubicaciones (requiere autenticación)
+    """
+    try:
+        logger.info(f"Usuario {current_user.identificacion} solicita lista de clientes con ubicaciones")
+        clientes = clientes_controller.get_clientes_con_ubicaciones(db)
+        logger.info(f"Se encontraron {len(clientes)} clientes con información de ubicaciones")
+        return clientes
+    except Exception as e:
+        logger.error(f"Error al listar clientes con ubicaciones: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
+
 @router.get("/clientes")
 def listar_clientes(
     db: Session = Depends(get_db),
@@ -74,7 +91,7 @@ def obtener_cliente(
     current_user: Usuario = Depends(get_current_user)
 ):
     """
-    Obtiene un cliente específico (requiere autenticación)
+    Obtiene un cliente específico con información de ubicaciones (requiere autenticación)
     """
     try:
         logger.info(f"Usuario {current_user.identificacion} solicita cliente ID: {cod_cliente}")
@@ -94,10 +111,19 @@ def crear_cliente(
     """
     try:
         logger.info(f"Usuario {current_user.identificacion} crea nuevo cliente")
+        
+        # Validar datos requeridos
+        campos_requeridos = ['cod_cliente', 'identificacion', 'nombre', 'direccion', 'celular', 'correo', 'tipo_cliente', 'sector']
+        for campo in campos_requeridos:
+            if not cliente.get(campo):
+                raise HTTPException(status_code=400, detail=f"El campo {campo} es requerido")
+        
         return clientes_controller.create_cliente(db, cliente)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error al crear cliente: {e}")
-        raise
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @router.put("/clientes/{cod_cliente}")
 def editar_cliente(
@@ -111,10 +137,17 @@ def editar_cliente(
     """
     try:
         logger.info(f"Usuario {current_user.identificacion} edita cliente ID: {cod_cliente}")
+        
+        # Validar que no se intente cambiar el código del cliente
+        if 'cod_cliente' in cliente and cliente['cod_cliente'] != cod_cliente:
+            raise HTTPException(status_code=400, detail="No se puede modificar el código del cliente")
+        
         return clientes_controller.update_cliente(db, cod_cliente, cliente)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error al editar cliente {cod_cliente}: {e}")
-        raise
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @router.delete("/clientes/{cod_cliente}")
 def eliminar_cliente(
@@ -128,6 +161,8 @@ def eliminar_cliente(
     try:
         logger.info(f"Usuario {current_user.identificacion} elimina cliente ID: {cod_cliente}")
         return clientes_controller.delete_cliente(db, cod_cliente)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error al eliminar cliente {cod_cliente}: {e}")
-        raise
+        raise HTTPException(status_code=500, detail="Error interno del servidor")

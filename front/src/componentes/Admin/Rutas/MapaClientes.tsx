@@ -1,5 +1,6 @@
 import { MapContainer, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
+import { UbicacionCliente } from "../../../types/types";
 
 type Props = {
   rutas: {
