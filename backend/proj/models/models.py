@@ -180,7 +180,6 @@ class Pedido(Base):
     __tablename__ = 'pedido'
     
     id_pedido = Column(Integer, primary_key=True, autoincrement=True)
-    estado = Column(String(50))
     numero_pedido = Column(String)
     fecha_pedido = Column(Date)
     subtotal = Column(Float)
@@ -190,7 +189,6 @@ class Pedido(Base):
     id_ubicacion_entrega = Column(Integer, ForeignKey('ubicacion_cliente.id_ubicacion'))
     id_ruta_venta = Column(Integer, ForeignKey('ruta.id_ruta'))  # Ruta donde se generó el pedido
     id_ruta_entrega = Column(Integer, ForeignKey('ruta.id_ruta'))  # Ruta para la entrega
-    estado_entrega = Column(String(50), server_default='Pendiente')
     
     # Relaciones
     cliente = relationship("Cliente", back_populates="pedidos")
