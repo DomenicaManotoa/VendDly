@@ -105,11 +105,27 @@ export const Login = () => {
         });
 
         message.success(`Bienvenido, ${result.usuario}!`, 3);
-        
+
+        // Obtener el usuario actual para verificar el rol
+        const user = authService.getCurrentUser();
+        let isBodeguero = false;
+        if (user?.rol) {
+          if (typeof user.rol === "object" && user.rol.descripcion?.toLowerCase() === "bodeguero") {
+            isBodeguero = true;
+          }
+          if (typeof user.rol === "string" && user.rol.toLowerCase() === "bodeguero") {
+            isBodeguero = true;
+          }
+        }
+
         setTimeout(() => {
-          navigate('/home', { replace: true });
+          if (isBodeguero) {
+            navigate('/bodega/home', { replace: true });
+          } else {
+            navigate('/home', { replace: true });
+          }
         }, 1000);
-        
+
       } else {
         // Login falló
         if (formRef.current?.incrementFailedAttempts) {

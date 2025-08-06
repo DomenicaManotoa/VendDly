@@ -1,7 +1,7 @@
 // Interfaz para el formulario de autenticación
 export interface AuthFormProps {
   isLogin?: boolean;
-  onSubmit: (values: LoginFormValues) => Promise<void>; // Cambiado de any a Promise<void>
+  onSubmit: (values: LoginFormValues) => Promise<void>;
   loading: boolean;
 }
 
@@ -23,8 +23,8 @@ export interface User {
   estado?: 'activo' | 'inactivo';
   rol?: string | number;
   id_rol?: number;
-  correo?: string; // Alias para email
-  contrasena?: string; // Alias para password
+  correo?: string;
+  contrasena?: string;
 }
 
 // Respuesta del servicio de login
@@ -115,7 +115,7 @@ export interface Usuario {
   estado: string;
   fecha_actualizacion?: string;
   id_rol: number;
-  rol?: Rol | string; // Puede ser un objeto Rol o string (descripción)
+  rol?: Rol | string;
 }
 
 export interface Props {
@@ -123,58 +123,44 @@ export interface Props {
   onCancel: () => void;
   onSubmit: (user: Usuario) => void;
   userToEdit?: Usuario | null;
-  roles: Rol[]; // Simplificado usando la interfaz Rol
+  roles: Rol[];
 }
 
+// INTERFAZ CLIENTE
 export interface Cliente {
-  cod_cliente: string;  // Cambiado de number a string
+  cod_cliente: string;
   identificacion: string;
   nombre: string;
   direccion: string;
   celular: string;
-  correo: string;  // Añadido
+  correo: string;
   tipo_cliente: string;
   razon_social: string;
   sector: string;
   fecha_registro?: string;
-  fecha_actualizacion?: string;
+  id_ubicacion_principal?: number | null;
 }
 
 export interface FormClientesProps {
   cliente: Cliente | null;
-  visible: boolean; // Añade esta línea
+  visible: boolean;
   onCancel: () => void;
   onSubmit: (cliente: Usuario) => Promise<void>;
 }
 
+// INTERFACES DE PEDIDOS (SIMPLIFICADAS)
 export interface Pedido {
   id_pedido: number;
-  estado: string;
   numero_pedido: string;
   fecha_pedido: string;
   subtotal: number;
   iva: number;
   total: number;
   cod_cliente: string;
-  id_ruta_venta: number;
-  id_ruta_entrega: number;
-  estado_entrega: string;
+  id_ubicacion_entrega?: number | null;
+  id_ruta_venta?: number | null;
+  id_ruta_entrega?: number | null;
   detalles?: DetallePedido[];
-}
-
-export interface EstadoPedido {
-  id_estado_pedido: number;
-  id_pedido: number;
-  fecha_actualizada: string;
-  descripcion: string;
-}
-
-export interface FormCrearPedidoProps {
-  visible: boolean;
-  onCancel: () => void;
-  onSubmit: () => void;
-  clientes: Cliente[];
-  pedidoEditar?: Pedido | null;
 }
 
 export interface DetallePedido {
@@ -188,7 +174,57 @@ export interface DetallePedido {
   subtotal: number;
 }
 
-// types.tsx (actualización)
+// INTERFAZ PARA PROPS DEL FORMULARIO DE PEDIDOS
+export interface FormCrearPedidoProps {
+  onCancel: () => void;
+  onSubmit: () => void;
+  clientes: Cliente[];
+  pedidoEditar?: Pedido | null;
+}
+
+// INTERFAZ PARA CREAR PEDIDO (datos que se envían al backend)
+export interface CrearPedidoRequest {
+  numero_pedido?: string;
+  fecha_pedido: string;
+  cod_cliente: string;
+  subtotal: number;
+  iva: number;
+  total: number;
+  id_ubicacion_entrega?: number | null;
+  id_ruta_venta?: number | null;
+  id_ruta_entrega?: number | null;
+  detalle_pedido: {
+    id_producto: number;
+    cantidad: number;
+    precio_unitario: number;
+    descuento: number;
+    subtotal_lineal: number;
+    subtotal: number;
+  }[];
+}
+
+// INTERFAZ PARA ACTUALIZAR PEDIDO
+export interface ActualizarPedidoRequest {
+  numero_pedido?: string;
+  fecha_pedido?: string;
+  cod_cliente?: string;
+  subtotal?: number;
+  iva?: number;
+  total?: number;
+  id_ubicacion_entrega?: number | null;
+  id_ruta_venta?: number | null;
+  id_ruta_entrega?: number | null;
+  detalles: {
+    id_producto: number;
+    cantidad: number;
+    precio_unitario: number;
+    descuento: number;
+    subtotal_lineal: number;
+    subtotal: number;
+  }[];
+}
+
+// Interfaz para productos
 export interface Producto {
   id_producto: number;
   nombre: string;
@@ -211,5 +247,143 @@ export interface Marca {
 
 export interface Categoria {
   id_categoria: number;
+  descripcion: string;
+}
+
+// INTERFAZ UBICACION CLIENTE
+export interface UbicacionCliente {
+  id_ubicacion?: number;
+  cod_cliente: string;
+  latitud: number;
+  longitud: number;
+  direccion: string;
+  sector: string;
+  referencia?: string;
+  fecha_registro?: string;
+  cliente?: Cliente;
+  es_principal?: boolean;
+}
+
+export interface FormUbicacionClienteProps {
+  ubicacion: UbicacionCliente | null;
+  visible: boolean;
+  onCancel: () => void;
+  onSubmit: (ubicacion: UbicacionCliente) => Promise<void>;
+  clientes: Cliente[];
+}
+
+export interface MapaUbicacionProps {
+  ubicaciones?: UbicacionCliente[];
+  onLocationSelect?: (lat: number, lng: number, address?: string) => void;
+  selectedLocation?: { lat: number; lng: number };
+  readonly?: boolean;
+}
+
+// Interface para rutas
+export interface Ruta {
+  id_ruta: number;
+  sector: string;
+  direccion: string;
+  tipo_ruta: string;
+  estado: string;
+  fecha_creacion: string;
+}
+
+// Interface para estadísticas de ubicaciones
+export interface EstadisticasUbicaciones {
+  totalUbicaciones: number;
+  totalClientes: number;
+  clientesConUbicacionPrincipal: number;
+  clientesSinUbicacionPrincipal: number;
+  clientesSinUbicaciones: number;
+  clientesConMultiplesUbicaciones: number;
+  ubicacionesSinReferencia: number;
+  ubicacionesPrincipales: number;
+  porSector: Record<string, number>;
+  promedioUbicacionesPorCliente?: number;
+}
+
+// Interface para estadísticas de clientes
+export interface EstadisticasClientes {
+  totalClientes: number;
+  clientesConUbicacionPrincipal: number;
+  clientesSinUbicacionPrincipal: number;
+  clientesSinUbicaciones: number;
+  clientesConMultiplesUbicaciones: number;
+  totalUbicaciones: number;
+  promedioUbicacionesPorCliente: number;
+  porSector: Record<string, number>;
+  porTipoCliente: Record<string, number>;
+  sectoresConMasClientes: { sector: string; cantidad: number }[];
+}
+
+// Interface para cliente con ubicaciones detalladas
+export interface ClienteConUbicaciones extends Cliente {
+  ubicaciones: (UbicacionCliente & { es_principal?: boolean })[];
+  ubicacion_principal_info?: {
+    id_ubicacion: number;
+    direccion: string;
+    sector: string;
+    latitud: number;
+    longitud: number;
+  };
+}
+
+// Interface para selector de ubicación principal
+export interface SelectorUbicacionPrincipalProps {
+  codCliente: string;
+  valorSeleccionado?: number;
+  onChange: (idUbicacion?: number) => void;
+  disabled?: boolean;
+}
+
+// Interface para configuración de mapa
+export interface ConfiguracionMapa {
+  centroInicial: [number, number];
+  zoomInicial: number;
+  mostrarControles: boolean;
+  permitirCrearUbicacion: boolean;
+  mostrarTodasLasUbicaciones: boolean;
+}
+
+// Interface para filtros de ubicaciones
+export interface FiltrosUbicaciones {
+  sector?: string;
+  cliente?: string;
+  soloSinUbicacionPrincipal?: boolean;
+  soloConMultiplesUbicaciones?: boolean;
+  fechaDesde?: string;
+  fechaHasta?: string;
+}
+
+// Interface para facturas
+export interface Factura {
+  id_factura: number;
+  cod_cliente: string;
+  numero_factura: number;
+  fecha_emision: string;
+  estado: string;
+  subtotal: number;
+  iva: number;
+  total: number;
+  cliente?: {
+    nombre: string;
+    razon_social: string;
+  };
+}
+
+// Interface para pedidos con factura
+export interface PedidoConFactura extends Pedido {
+  factura?: Factura;
+  cliente?: {
+    nombre: string;
+    razon_social: string;
+  };
+}
+
+// Interface para Estado de pedido
+export interface EstadoPedido {
+  id_estado_pedido: number;
+  fecha_actualizada: string;
   descripcion: string;
 }

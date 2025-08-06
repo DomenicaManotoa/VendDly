@@ -2,7 +2,7 @@ import type { MenuProps } from 'antd';
 import React, { useState } from 'react';
 import { Button, Menu, Layout, Modal, Spin } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { useLogout } from '../../../hooks/useLogout'; //  IMPORTAR EL HOOK
+import { useLogout } from '../../../hooks/useLogout';
 import {
   ContainerOutlined,
   HomeOutlined,
@@ -18,6 +18,7 @@ import {
   TruckOutlined,
   UserSwitchOutlined,
   LoadingOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -30,13 +31,22 @@ const mainItems: MenuItem[] = [
   { key: '/inventario', icon: <ShopOutlined />, label: 'Inventario' },
   { key: '/clientes', icon: <TeamOutlined />, label: 'Clientes' },
   { key: '/empleados', icon: <IdcardOutlined />, label: 'Empleados' },
-  { key: '/pedidos', icon: <SnippetsOutlined />, label: 'Pedidos' },
   { key: '/facturas', icon: <ContainerOutlined />, label: 'Facturas' },
+  {
+    key: 'pedidos',
+    icon: <SnippetsOutlined />,
+    label: 'Pedidos',
+    children: [
+      { key: '/pedidos', label: 'Crear Pedidos' },
+      { key: '/pedidos/estadopedidos', label: 'Estado de Pedidos' },
+    ]
+  },
   { key: '/entregas', icon: <TruckOutlined />, label: 'Entregas' },
   { key: '/categorias', icon: <ShopOutlined />, label: 'Categorías' },
   { key: '/marcas', icon: <TagsOutlined />, label: 'Marcas' },
   { key: '/roles', icon: <UserSwitchOutlined />, label: 'Roles' },
   { key: '/rutas', icon: <ReadOutlined />, label: 'Rutas' },
+  { key: '/ubicaciones_clientes', icon: <EnvironmentOutlined />, label: 'Ubicaciones Clientes' },
 ];
 
 const SidebarCustom: React.FC = () => {
