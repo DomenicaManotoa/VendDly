@@ -10,7 +10,7 @@ import {
   MenuUnfoldOutlined,
   ShoppingOutlined,
   TagsOutlined,
-  TrademarkOutlined,,
+  TrademarkOutlined,
 } from '@ant-design/icons';
 import { useLogout } from '../../../hooks/useLogout'; // Importa el hook
 

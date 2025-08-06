@@ -1,45 +1,40 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
 
 type Props = {
-  sectorSeleccionado: string | null;
+  rutas: {
+    latitud: number;
+    longitud: number;
+    nombre?: string;
+    direccion?: string;
+    sector?: string;
+    tipo_ruta?: string;
+    [key: string]: any;
+  }[];
 };
 
-const clientes = [
-  {
-    cod_cliente: "CL001",
-    nombre: "Tienda Juan",
-    direccion: "Calle A y B",
-    latitud: -0.22985,
-    longitud: -78.52495,
-    sector: "Centro",
-  },
-  {
-    cod_cliente: "CL002",
-    nombre: "Tienda María",
-    direccion: "Calle C y D",
-    latitud: -0.2291,
-    longitud: -78.5268,
-    sector: "Centro",
-  },
-  {
-    cod_cliente: "CL003",
-    nombre: "Tienda Pedro",
-    direccion: "Calle E y F",
-    latitud: -0.2285,
-    longitud: -78.5252,
-    sector: "Centro",
-  },
-];
+// Íconos llamativos por tipo
+const iconoRuta = (tipo: string = "") =>
+  L.icon({
+    iconUrl:
+      tipo === "venta"
+        ? "https://cdn-icons-png.flaticon.com/512/3144/3144456.png" // carrito rojo
+        : "https://cdn-icons-png.flaticon.com/512/10435/10435117.png", // paquete azul
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40]
+  });
 
-const MapaClientes = ({ sectorSeleccionado }: Props) => {
-  const clientesFiltrados = sectorSeleccionado
-    ? clientes.filter(c => c.sector === sectorSeleccionado)
-    : [];
 
-const posicionInicial: [number, number] = clientesFiltrados.length > 0
-  ? [clientesFiltrados[0].latitud, clientesFiltrados[0].longitud]
-  : [-0.22985, -78.52495];
+const MapaClientes = ({ rutas }: Props) => {
+  const rutasValidas = rutas.filter(
+    (r) => typeof r.latitud === "number" && typeof r.longitud === "number"
+  );
+
+  const posicionInicial: [number, number] =
+    rutasValidas.length > 0
+      ? [rutasValidas[0].latitud, rutasValidas[0].longitud]
+      : [-0.22985, -78.52495]; // Centro de Quito
 
   return (
     <MapContainer center={posicionInicial} zoom={13} style={{ height: "400px", width: "100%" }}>
@@ -47,13 +42,19 @@ const posicionInicial: [number, number] = clientesFiltrados.length > 0
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="&copy; OpenStreetMap contributors"
       />
-      {clientesFiltrados.map((cliente, idx) => (
+      {rutasValidas.map((ruta, idx) => (
         <Marker
           key={idx}
-          position={[cliente.latitud, cliente.longitud]}
-          icon={L.icon({ iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png", iconSize: [30, 30] })}
+          position={[ruta.latitud, ruta.longitud]}
+          icon={iconoRuta(ruta.tipo_ruta?.toLowerCase())}
         >
-          <Popup>{cliente.nombre}</Popup>
+          <Popup>
+            <div>
+              <strong>{ruta.sector} - {ruta.tipo_ruta}</strong><br />
+              <span>{ruta.direccion}</span>
+            </div>
+          </Popup>
+          <Tooltip>{ruta.nombre ?? ruta.sector}</Tooltip>
         </Marker>
       ))}
     </MapContainer>
