@@ -1,8 +1,28 @@
-import { useState, useEffect } from 'react';
-import { Button, Table, message, Popconfirm, Modal, Input } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  Button, 
+  Table, 
+  message, 
+  Popconfirm, 
+  Modal, 
+  Input, 
+  Typography, 
+  Card, 
+  Row, 
+  Col,
+  Space 
+} from 'antd';
+import { 
+  EditOutlined, 
+  DeleteOutlined, 
+  PlusOutlined, 
+  SearchOutlined 
+} from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
 import Rol_Form from './Roles_Form';
 import axios from '../../../utils/axiosConfig';
+
+const { Title } = Typography;
 
 interface Rol {
   id_rol: number;
@@ -15,12 +35,21 @@ const Roles_Admin = () => {
   const [dataSource, setDataSource] = useState<Rol[]>([]);
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
+  // Detectar si es móvil
   useEffect(() => {
-    fetchRoles();
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const fetchRoles = async () => {
+  const fetchRoles = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get('/roles');
@@ -31,7 +60,11 @@ const Roles_Admin = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
 
   const abrirEditar = (rol: Rol) => {
     setEditarRol(rol);
@@ -77,102 +110,174 @@ const Roles_Admin = () => {
     rol.descripcion.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const columns = [
+  const columns: ColumnsType<Rol> = [
     {
       title: 'Nombre del Rol',
       dataIndex: 'descripcion',
       key: 'descripcion',
+      sorter: (a, b) => a.descripcion.localeCompare(b.descripcion),
+      ellipsis: true,
+      render: (text: string, record: Rol) => (
+        <div>
+          <div>{text}</div>
+          {isMobile && (
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              ID: {record.id_rol}
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       title: 'Acciones',
       key: 'acciones',
-      align: 'right' as 'right',
+      fixed: 'right' as const,
+      width: 100,
       render: (_: any, record: Rol) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button icon={<EditOutlined />} size="small" onClick={() => abrirEditar(record)} />
+        <Space size="small">
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => abrirEditar(record)}
+            title="Editar rol"
+            size="small"
+          />
           <Popconfirm
-            title="¿Estás seguro que quieres eliminar este rol?"
-            description={`Rol: ${record.descripcion}`}
+            title="¿Eliminar rol?"
+            description="Esta acción no se puede deshacer"
             onConfirm={() => handleDelete(record)}
             okText="Sí, eliminar"
             cancelText="Cancelar"
             okButtonProps={{ danger: true }}
           >
-            <Button icon={<DeleteOutlined />} danger size="small" />
+            <Button
+              type="text"
+              icon={<DeleteOutlined />}
+              danger
+              title="Eliminar rol"
+              size="small"
+            />
           </Popconfirm>
-        </div>
+        </Space>
       ),
     },
   ];
 
+  const renderMobileCards = () => (
+    <Row gutter={[16, 16]}>
+      {filteredData.map((rol) => (
+        <Col xs={24} sm={12} key={rol.id_rol}>
+          <Card
+            size="small"
+            title={rol.descripcion}
+            extra={
+              <Space>
+                <Button
+                  type="text"
+                  icon={<EditOutlined />}
+                  onClick={() => abrirEditar(rol)}
+                  size="small"
+                />
+                <Popconfirm
+                  title="¿Eliminar rol?"
+                  description="Esta acción no se puede deshacer"
+                  onConfirm={() => handleDelete(rol)}
+                  okText="Sí"
+                  cancelText="No"
+                >
+                  <Button
+                    type="text"
+                    icon={<DeleteOutlined />}
+                    danger
+                    size="small"
+                  />
+                </Popconfirm>
+              </Space>
+            }
+          >
+            <div style={{ fontSize: '12px', lineHeight: '1.5' }}>
+              <div><strong>ID:</strong> {rol.id_rol}</div>
+            </div>
+          </Card>
+        </Col>
+      ))}
+    </Row>
+  );
+
   return (
-    <div style={{ padding: 16, background: '#fff', minHeight: '100vh', maxWidth: 900, margin: '0 auto' }}>
-      <h1
-        style={{
-          color: '#ABD904',
-          fontSize: 'clamp(2rem, 6vw, 3rem)',
-          margin: '48px 0 32px',
-          textAlign: 'center',
-        }}
-      >
-        Roles
-      </h1>
+    <div style={{ padding: isMobile ? '12px' : '24px' }}>
+      <Title level={2} style={{ marginBottom: '24px' }}>
+        Gestión de Roles
+      </Title>
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: 16,
-          flexWrap: 'wrap',
-          marginBottom: 24,
-          alignItems: 'center',
-        }}
-      >
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          style={{ background: '#04A0D9', borderColor: '#04A0D9' }}
-          onClick={() => {
-            setEditarRol(null);
-            setOpen(true);
-          }}
-        >
-          Agregar Rol
-        </Button>
-      </div>
+      {/* Barra de búsqueda y acciones */}
+      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={24} sm={12} md={8}>
+          <Input
+            placeholder="Buscar roles..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+        </Col>
+        <Col xs={24} sm={12} md={16}>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditarRol(null);
+                setOpen(true);
+              }}
+              size={isMobile ? 'small' : 'middle'}
+            >
+              {isMobile ? 'Agregar' : 'Agregar Rol'}
+            </Button>
+          </div>
+        </Col>
+      </Row>
 
-      <div
-        style={{
-          padding: 16,
-          backgroundColor: '#fafafa',
-          borderRadius: 8,
-          border: '1px solid #e8e8e8',
-          width: '100%',
-          boxSizing: 'border-box',
-          marginBottom: 24,
-        }}
-      >
-        <Input
-          placeholder="Buscar rol por nombre"
-          allowClear
-          value={searchText}
-          onChange={e => setSearchText(e.target.value)}
-          prefix={<SearchOutlined />}
-          style={{ width: '100%', fontSize: '1rem', maxWidth: '100%' }}
-        />
-      </div>
-
-      <div style={{ width: '100%', overflowX: 'auto' }}>
+      {isMobile ? (
+        // Vista móvil con cards
+        <>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '50px' }}>
+              Cargando roles...
+            </div>
+          ) : filteredData.length > 0 ? (
+            renderMobileCards()
+          ) : (
+            <Card>
+              <div style={{ textAlign: 'center', padding: '50px' }}>
+                <div style={{ marginTop: '16px' }}>
+                  No se encontraron roles
+                </div>
+              </div>
+            </Card>
+          )}
+        </>
+      ) : (
+        // Vista desktop con tabla
         <Table
-          dataSource={filteredData}
           columns={columns}
-          pagination={{ pageSize: 5 }}
+          dataSource={filteredData}
           rowKey="id_rol"
           loading={loading}
-          scroll={{ y: 320 }}
-          style={{ minWidth: 300 }}
+          scroll={{ x: 500 }}
+          locale={{
+            emptyText: 'No hay roles disponibles'
+          }}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) => 
+              `${range[0]}-${range[1]} de ${total} roles`,
+            responsive: true,
+          }}
         />
-      </div>
+      )}
 
       <Modal
         open={open}
@@ -183,14 +288,14 @@ const Roles_Admin = () => {
         width="90%"
         style={{ maxWidth: 500 }}
       >
-          <Rol_Form
-            onClose={cerrarModal}
-            initialValues={editarRol ? { 
-              key: editarRol.id_rol.toString(),
-              nombre: editarRol.descripcion 
-            } : undefined}
-            onSave={handleSave}
-          />
+        <Rol_Form
+          onClose={cerrarModal}
+          initialValues={editarRol ? { 
+            key: editarRol.id_rol.toString(),
+            nombre: editarRol.descripcion 
+          } : undefined}
+          onSave={handleSave}
+        />
       </Modal>
     </div>
   );

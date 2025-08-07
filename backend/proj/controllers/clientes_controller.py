@@ -1,6 +1,6 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
-from models.models import Cliente
+from sqlalchemy.orm import Session, joinedload
+from models.models import Cliente, UbicacionCliente
 import pandas as pd
 import io
 from openpyxl import Workbook
@@ -10,46 +10,186 @@ from datetime import datetime
 
 
 def get_clientes(db: Session):
-    return db.query(Cliente).all()
+    """
+    Obtiene todos los clientes con información de su ubicación principal
+    """
+    return db.query(Cliente).options(
+        joinedload(Cliente.ubicaciones)
+    ).all()
 
 def get_cliente(db: Session, cod_cliente: str):
-    cliente = db.query(Cliente).filter(Cliente.cod_cliente == cod_cliente).first()
+    """
+    Obtiene un cliente específico con información de su ubicación principal
+    """
+    cliente = db.query(Cliente).options(
+        joinedload(Cliente.ubicaciones)
+    ).filter(Cliente.cod_cliente == cod_cliente).first()
+    
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return cliente
 
 def create_cliente(db: Session, cliente_data: dict):
-    nuevo_cliente = Cliente(**cliente_data)
-    db.add(nuevo_cliente)
-    db.commit()
-    db.refresh(nuevo_cliente)
-    return nuevo_cliente
+    """
+    Crea un nuevo cliente con validación de ubicación principal
+    """
+    try:
+        # Validar ubicación principal si se proporciona
+        if cliente_data.get('id_ubicacion_principal'):
+            ubicacion = db.query(UbicacionCliente).filter(
+                UbicacionCliente.id_ubicacion == cliente_data['id_ubicacion_principal']
+            ).first()
+            
+            if not ubicacion:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="La ubicación principal especificada no existe"
+                )
+            
+            # Verificar que la ubicación pertenezca al cliente
+            if ubicacion.cod_cliente != cliente_data.get('cod_cliente'):
+                raise HTTPException(
+                    status_code=400, 
+                    detail="La ubicación principal debe pertenecer al cliente"
+                )
+        
+        nuevo_cliente = Cliente(**cliente_data)
+        db.add(nuevo_cliente)
+        db.commit()
+        db.refresh(nuevo_cliente)
+        return nuevo_cliente
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al crear cliente: {str(e)}")
 
 def update_cliente(db: Session, cod_cliente: str, cliente_data: dict):
-    cliente = db.query(Cliente).filter(Cliente.cod_cliente == cod_cliente).first()
-    if not cliente:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    for key, value in cliente_data.items():
-        setattr(cliente, key, value)
-    db.commit()
-    db.refresh(cliente)
-    return cliente
+    """
+    Actualiza un cliente con validación de ubicación principal
+    """
+    try:
+        cliente = db.query(Cliente).filter(Cliente.cod_cliente == cod_cliente).first()
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        
+        # Validar ubicación principal si se proporciona
+        if cliente_data.get('id_ubicacion_principal'):
+            ubicacion = db.query(UbicacionCliente).filter(
+                UbicacionCliente.id_ubicacion == cliente_data['id_ubicacion_principal']
+            ).first()
+            
+            if not ubicacion:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="La ubicación principal especificada no existe"
+                )
+            
+            # Verificar que la ubicación pertenezca al cliente
+            if ubicacion.cod_cliente != cod_cliente:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="La ubicación principal debe pertenecer al cliente"
+                )
+        
+        # Actualizar campos
+        for key, value in cliente_data.items():
+            setattr(cliente, key, value)
+        
+        db.commit()
+        db.refresh(cliente)
+        return cliente
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar cliente: {str(e)}")
 
 def delete_cliente(db: Session, cod_cliente: str):
-    cliente = db.query(Cliente).filter(Cliente.cod_cliente == cod_cliente).first()
-    if not cliente:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    db.delete(cliente)
-    db.commit()
-    return {"mensaje": "Cliente eliminado"}
+    """
+    Elimina un cliente y maneja las relaciones con ubicaciones
+    """
+    try:
+        cliente = db.query(Cliente).filter(Cliente.cod_cliente == cod_cliente).first()
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente no encontrado")
+        
+        # Verificar si tiene ubicaciones asociadas
+        ubicaciones_count = db.query(UbicacionCliente).filter(
+            UbicacionCliente.cod_cliente == cod_cliente
+        ).count()
+        
+        if ubicaciones_count > 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"No se puede eliminar el cliente. Tiene {ubicaciones_count} ubicaciones asociadas. Elimine primero las ubicaciones."
+            )
+        
+        db.delete(cliente)
+        db.commit()
+        return {"mensaje": "Cliente eliminado correctamente"}
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al eliminar cliente: {str(e)}")
 
+def get_clientes_con_ubicaciones(db: Session):
+    """
+    Obtiene todos los clientes con información detallada de sus ubicaciones
+    """
+    clientes = db.query(Cliente).options(
+        joinedload(Cliente.ubicaciones)
+    ).all()
+    
+    result = []
+    for cliente in clientes:
+        cliente_dict = {
+            "cod_cliente": cliente.cod_cliente,
+            "identificacion": cliente.identificacion,
+            "nombre": cliente.nombre,
+            "direccion": cliente.direccion,
+            "celular": cliente.celular,
+            "correo": cliente.correo,
+            "tipo_cliente": cliente.tipo_cliente,
+            "razon_social": cliente.razon_social,
+            "sector": cliente.sector,
+            "fecha_registro": cliente.fecha_registro,
+            "id_ubicacion_principal": cliente.id_ubicacion_principal,
+            "ubicaciones": []
+        }
+        
+        # Agregar información de ubicaciones
+        for ubicacion in cliente.ubicaciones:
+            ubicacion_dict = {
+                "id_ubicacion": ubicacion.id_ubicacion,
+                "latitud": float(ubicacion.latitud),
+                "longitud": float(ubicacion.longitud),
+                "direccion": ubicacion.direccion,
+                "sector": ubicacion.sector,
+                "referencia": ubicacion.referencia,
+                "fecha_registro": ubicacion.fecha_registro
+            }
+            cliente_dict["ubicaciones"].append(ubicacion_dict)
+        
+        result.append(cliente_dict)
+    
+    return result
 
 def export_clientes_to_excel(db: Session):
     """
-    Exporta los clientes a un archivo Excel con diseño de tabla
+    Exporta los clientes a un archivo Excel con información de ubicación principal
     """
     try:
-        clientes = db.query(Cliente).all()
+        clientes = db.query(Cliente).options(
+            joinedload(Cliente.ubicaciones)
+        ).all()
         
         if not clientes:
             raise HTTPException(status_code=404, detail="No hay clientes para exportar")
@@ -66,6 +206,16 @@ def export_clientes_to_excel(db: Session):
                     print(f"Error formateando fecha para cliente {cliente.cod_cliente}: {e}")
                     fecha_registro_str = str(cliente.fecha_registro)
             
+            # Obtener información de ubicación principal
+            ubicacion_principal_info = "Sin ubicación"
+            if cliente.id_ubicacion_principal:
+                ubicacion_principal = next(
+                    (ub for ub in cliente.ubicaciones if ub.id_ubicacion == cliente.id_ubicacion_principal), 
+                    None
+                )
+                if ubicacion_principal:
+                    ubicacion_principal_info = f"{ubicacion_principal.sector} - {ubicacion_principal.direccion[:50]}..."
+            
             data.append({
                 'Código Cliente': cliente.cod_cliente or '',
                 'Identificación': cliente.identificacion or '',
@@ -76,6 +226,8 @@ def export_clientes_to_excel(db: Session):
                 'Tipo Cliente': cliente.tipo_cliente or '',
                 'Razón Social': cliente.razon_social or '',
                 'Sector': cliente.sector or '',
+                'Ubicación Principal': ubicacion_principal_info,
+                'Total Ubicaciones': len(cliente.ubicaciones),
                 'Fecha Registro': fecha_registro_str
             })
         
@@ -101,10 +253,10 @@ def export_clientes_to_excel(db: Session):
             bottom=Side(style='thin')
         )
         
-        # Agregar título principal - corregir el merge de celdas
-        ws.merge_cells('A1:J1')  # Cambiar a J1 porque tenemos 10 columnas
+        # Agregar título principal
+        ws.merge_cells('A1:L1')  # Actualizado para incluir las nuevas columnas
         title_cell = ws['A1']
-        title_cell.value = f"LISTA DE CLIENTES - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        title_cell.value = f"LISTA DE CLIENTES CON UBICACIONES - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         title_cell.font = Font(bold=True, size=14)
         title_cell.alignment = Alignment(horizontal="center", vertical="center")
         title_cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
@@ -147,7 +299,9 @@ def export_clientes_to_excel(db: Session):
             'G': 15,  # Tipo Cliente
             'H': 25,  # Razón Social
             'I': 20,  # Sector
-            'J': 15   # Fecha Registro
+            'J': 35,  # Ubicación Principal
+            'K': 15,  # Total Ubicaciones
+            'L': 15   # Fecha Registro
         }
         
         for col_letter, width in column_widths.items():
@@ -157,6 +311,10 @@ def export_clientes_to_excel(db: Session):
         last_row = len(df) + 5
         ws.cell(row=last_row, column=1, value="Total de clientes:").font = Font(bold=True)
         ws.cell(row=last_row, column=2, value=len(df)).font = Font(bold=True)
+        
+        ws.cell(row=last_row + 1, column=1, value="Clientes con ubicación principal:").font = Font(bold=True)
+        clientes_con_ubicacion = len([c for c in clientes if c.id_ubicacion_principal])
+        ws.cell(row=last_row + 1, column=2, value=clientes_con_ubicacion).font = Font(bold=True)
         
         # Crear el archivo en memoria
         excel_buffer = io.BytesIO()

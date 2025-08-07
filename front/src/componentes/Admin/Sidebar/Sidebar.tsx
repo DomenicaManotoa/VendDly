@@ -18,6 +18,7 @@ import {
   TruckOutlined,
   UserSwitchOutlined,
   LoadingOutlined,
+  EnvironmentOutlined, // ✅ AGREGAR ESTE ICONO
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -37,6 +38,7 @@ const mainItems: MenuItem[] = [
   { key: '/marcas', icon: <TagsOutlined />, label: 'Marcas' },
   { key: '/roles', icon: <UserSwitchOutlined />, label: 'Roles' },
   { key: '/rutas', icon: <ReadOutlined />, label: 'Rutas' },
+  { key: '/ubicaciones_clientes', icon: <EnvironmentOutlined />, label: 'Ubicaciones Clientes' },
 ];
 
 const SidebarCustom: React.FC = () => {

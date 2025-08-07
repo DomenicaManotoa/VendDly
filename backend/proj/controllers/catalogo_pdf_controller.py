@@ -1,14 +1,14 @@
+from pydoc import doc
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, 
-    Image as ReportLabImage, PageBreak, KeepTogether, Frame, PageTemplate
+    Image as ReportLabImage, PageBreak, KeepTogether
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, cm
 from reportlab.pdfgen import canvas
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
-from reportlab.platypus.doctemplate import BaseDocTemplate
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from sqlalchemy.orm import Session
 from controllers.producto_controller import get_productos
 from datetime import datetime
@@ -23,201 +23,351 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class ModernCatalogoPDF:
+class ProfessionalCatalogoPDF:
     def __init__(self):
         self.styles = getSampleStyleSheet()
-        self.setup_custom_styles()
         self.setup_colors()
-        
+        self.setup_custom_styles()
+        # Store page dimensions for use in methods
+        self.page_width = A4[0]
+        self.page_height = A4[1]
+        self.left_margin = 0.5*inch
+        self.right_margin = 0.5*inch
+        self.top_margin = 0.8*inch
+        self.bottom_margin = 0.6*inch
+        self.content_width = self.page_width - self.left_margin - self.right_margin
+
     def setup_colors(self):
-        """Definir paleta de colores profesional"""
+        """Definir paleta de colores del sistema (verde lime y compatibles)"""
         self.colors = {
-            'primary': colors.HexColor('#2C3E50'),      # Azul oscuro profesional
-            'secondary': colors.HexColor('#ABD904'),     # Verde corporativo
-            'accent': colors.HexColor('#3498DB'),        # Azul claro
-            'text': colors.HexColor('#2C3E50'),          # Texto principal
-            'text_light': colors.HexColor('#7F8C8D'),    # Texto secundario
-            'background': colors.HexColor('#F8F9FA'),    # Fondo suave
+            'primary_green': colors.HexColor('#84CC16'),      # Verde lime principal
+            'light_green': colors.HexColor('#F0FDF4'),        # Fondo verde claro
+            'header_green': colors.HexColor('#65A30D'),       # Verde para headers
+            'dark_green': colors.HexColor('#365314'),         # Verde oscuro
             'white': colors.white,
-            'light_gray': colors.HexColor('#ECF0F1'),
-            'success': colors.HexColor('#27AE60'),
-            'warning': colors.HexColor('#F39C12'),
-            'danger': colors.HexColor('#E74C3C')
+            'black': colors.black,
+            'dark_gray': colors.HexColor('#1F2937'),          # Texto principal
+            'medium_gray': colors.HexColor('#6B7280'),        # Texto secundario
+            'light_gray': colors.HexColor('#F9FAFB'),         # Fondo alternativo
+            'border_gray': colors.HexColor('#E5E7EB'),        # Bordes
+            'accent_orange': colors.HexColor('#F97316')       # Acentos naranjas
         }
         
     def setup_custom_styles(self):
-        """Configurar estilos personalizados modernos"""
-        # Título principal - más moderno
-        self.title_style = ParagraphStyle(
-            'ModernTitle',
+        """Configurar estilos profesionales"""
+        # Título principal del catálogo
+        self.main_title_style = ParagraphStyle(
+            'MainTitle',
             parent=self.styles['Heading1'],
-            fontSize=28,
-            spaceAfter=30,
+            fontSize=36,
+            spaceAfter=20,
             spaceBefore=20,
             alignment=TA_CENTER,
-            textColor=colors.HexColor('#2C3E50'),
-            fontName='Helvetica-Bold',
-            leading=34
+            textColor=self.colors['white'],
+            fontName='Helvetica-Bold'
         )
         
-        # Subtítulo elegante
+        # Subtítulo del catálogo
         self.subtitle_style = ParagraphStyle(
-            'ModernSubtitle',
-            parent=self.styles['Heading2'],
+            'Subtitle',
+            parent=self.styles['Normal'],
             fontSize=18,
-            spaceAfter=25,
-            spaceBefore=15,
+            spaceAfter=30,
             alignment=TA_CENTER,
-            textColor=colors.HexColor('#ABD904'),
+            textColor=self.colors['white'],
+            fontName='Helvetica'
+        )
+        
+        # Título de categoría grande para página completa
+        self.category_page_title_style = ParagraphStyle(
+            'CategoryPageTitle',
+            parent=self.styles['Heading1'],
+            fontSize=48,
+            spaceAfter=0,
+            spaceBefore=0,
+            alignment=TA_CENTER,
+            textColor=self.colors['white'],
             fontName='Helvetica-Bold',
-            leading=22
+            leading=56
         )
         
-        # Información de empresa - más limpia
-        self.company_style = ParagraphStyle(
-            'CompanyInfo',
+        # Nombre del producto mejorado
+        self.product_name_style = ParagraphStyle(
+            'ProductName',
             parent=self.styles['Normal'],
-            fontSize=11,
+            fontSize=8,
             alignment=TA_CENTER,
-            textColor=colors.HexColor('#7F8C8D'),
-            spaceAfter=25,
-            leading=14
-        )
-        
-        # Headers de tabla - más elegantes
-        self.header_style = ParagraphStyle(
-            'TableHeader',
-            parent=self.styles['Normal'],
-            fontSize=10,
-            alignment=TA_CENTER,
-            textColor=colors.white,
+            textColor=self.colors['dark_gray'],
             fontName='Helvetica-Bold',
-            leading=12
+            leading=10,
+            spaceAfter=3,
+            spaceBefore=3
         )
         
-        # Contenido de tabla - mejor legibilidad
-        self.cell_style = ParagraphStyle(
-            'TableCell',
+        # Descripción del producto mejorada
+        self.product_desc_style = ParagraphStyle(
+            'ProductDesc',
             parent=self.styles['Normal'],
-            fontSize=9,
-            alignment=TA_LEFT,
-            textColor=colors.HexColor('#2C3E50'),
-            leading=11
-        )
-        
-        # Estilo para números/precios
-        self.price_style = ParagraphStyle(
-            'PriceStyle',
-            parent=self.styles['Normal'],
-            fontSize=9,
+            fontSize=7,
             alignment=TA_CENTER,
-            textColor=colors.HexColor('#27AE60'),
-            fontName='Helvetica-Bold',
-            leading=11
+            textColor=self.colors['medium_gray'],
+            leading=8,
+            spaceAfter=2,
+            spaceBefore=2
         )
 
-    def create_modern_header(self, canvas, doc):
-        """Crear encabezado moderno con diseño profesional"""
+    def generate_catalog_pdf(self, db: Session, filters: dict = None):
+        """Generar PDF del catálogo profesional"""
+        try:
+            elements = self.create_professional_catalog(db, filters)
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+            
+            # Configuración de documento con márgenes ajustados
+            doc = SimpleDocTemplate(
+                temp_file.name, 
+                pagesize=A4,
+                topMargin=self.top_margin,
+                bottomMargin=self.bottom_margin,
+                leftMargin=self.left_margin,
+                rightMargin=self.right_margin
+            )
+            
+            # Variable para controlar el tipo de página
+            self.page_type = 'cover'
+            self.category_names = list(self.group_products_by_category(get_productos(db)).keys())
+            self.current_category_index = 0
+            
+            doc.build(
+                elements,
+                onFirstPage=self.create_cover_page,
+                onLaterPages=self.handle_page_types
+            )
+            
+            self.cleanup_temp_files()
+            return temp_file.name
+            
+        except Exception as e:
+            logger.error(f"Error al generar PDF: {e}")
+            raise Exception(f"Error al generar PDF: {str(e)}")
+
+    def handle_page_types(self, canvas, doc):
+        """Manejar diferentes tipos de páginas"""
+        # Determinar si es página de categoría basándose en el número de página
+        # Página 1: Portada
+        # Página 2, 4, 6, etc.: Páginas de categoría 
+        # Página 3, 5, 7, etc.: Páginas de productos
+        
+        if doc.page == 1:
+            # Esta es la portada, ya manejada
+            return
+        elif (doc.page - 2) % 2 == 0:  # Páginas pares después de portada = categorías
+            category_index = (doc.page - 2) // 2
+            if category_index < len(self.category_names):
+                self.create_category_page(canvas, doc, self.category_names[category_index])
+        else:  # Páginas impares después de portada = productos
+            self.create_standard_header(canvas, doc)
+
+    def create_cover_page(self, canvas, doc):
+        """Crear página de portada completa - SIN cuadrados blancos"""
         canvas.saveState()
         
-        # Fondo del header con gradiente visual
-        canvas.setFillColor(self.colors['primary'])
-        canvas.rect(0, doc.height + doc.topMargin - 60, doc.width + doc.leftMargin + doc.rightMargin, 60, fill=1)
+        # Fondo completo verde
+        canvas.setFillColor(self.colors['primary_green'])
+        canvas.rect(0, 0, doc.pagesize[0], doc.pagesize[1], fill=1)
         
-        # Logo/Nombre de la empresa - más prominente
-        canvas.setFont('Helvetica-Bold', 20)
+        # Título principal mejorado con mejor contraste
+        canvas.setFont('Helvetica-Bold', 48)
         canvas.setFillColor(self.colors['white'])
-        canvas.drawString(doc.leftMargin, doc.height + doc.topMargin - 35, "CATÁLOGO DE PRODUCTOS")
-        
-        # Línea decorativa moderna
-        canvas.setStrokeColor(self.colors['secondary'])
-        canvas.setLineWidth(3)
-        canvas.line(
-            doc.leftMargin, 
-            doc.height + doc.topMargin - 45, 
-            doc.width + doc.leftMargin - 50, 
-            doc.height + doc.topMargin - 45
+        # Agregar sombra para mejor contraste
+        shadow_offset = 2
+        # Sombra
+        canvas.setFillColor(colors.HexColor('#000000'))
+        canvas.drawCentredString(
+            doc.pagesize[0]/2 + shadow_offset, 
+            doc.pagesize[1]/2 + 20 - shadow_offset, 
+            "CATÁLOGO"
+        )
+        # Texto principal
+        canvas.setFillColor(self.colors['white'])
+        canvas.drawCentredString(
+            doc.pagesize[0]/2, 
+            doc.pagesize[1]/2 + 20, 
+            "CATÁLOGO"
         )
         
-        # Fecha y hora - más elegante
-        canvas.setFont('Helvetica', 9)
-        canvas.setFillColor(self.colors['light_gray'])
-        fecha_actual = datetime.now().strftime("%d de %B de %Y • %H:%M")
-        canvas.drawRightString(
-            doc.width + doc.leftMargin - 20, 
-            doc.height + doc.topMargin - 25, 
-            f"Generado: {fecha_actual}"
+        # Nombre de la empresa con estilo
+        canvas.setFont('Helvetica-Bold', 28)
+        canvas.setFillColor(self.colors['white'])
+        canvas.drawCentredString(
+            doc.pagesize[0]/2, 
+            doc.pagesize[1]/2 - 40, 
+            "VendDly Solutions"
+        )
+        
+        # Fecha con estilo
+        canvas.setFont('Helvetica', 18)
+        fecha_actual = datetime.now().strftime("%B %Y")
+        canvas.drawCentredString(
+            doc.pagesize[0]/2, 
+            doc.pagesize[1]/2 - 80, 
+            fecha_actual.upper()
+        )
+        
+        # Líneas decorativas
+        canvas.setStrokeColor(self.colors['white'])
+        canvas.setLineWidth(4)
+        # Línea superior
+        canvas.line(100, doc.pagesize[1]/2 + 80, doc.pagesize[0] - 100, doc.pagesize[1]/2 + 80)
+        # Línea inferior
+        canvas.line(100, doc.pagesize[1]/2 - 120, doc.pagesize[0] - 100, doc.pagesize[1]/2 - 120)
+        
+        # Texto descriptivo en la parte inferior
+        canvas.setFont('Helvetica', 14)
+        canvas.setFillColor(self.colors['white'])
+        canvas.drawCentredString(
+            doc.pagesize[0]/2, 
+            150, 
+            "PRODUCTOS DE CALIDAD PARA SU NEGOCIO"
         )
         
         canvas.restoreState()
 
-    def create_modern_footer(self, canvas, doc):
-        """Crear pie de página moderno"""
+    def create_category_page(self, canvas, doc, categoria_nombre):
+        """Crear página completa para categoría - SIN cuadrados blancos"""
         canvas.saveState()
         
-        # Línea decorativa superior
-        canvas.setStrokeColor(self.colors['light_gray'])
-        canvas.setLineWidth(1)
-        canvas.line(doc.leftMargin, 60, doc.width + doc.leftMargin, 60)
+        # Fondo completo verde oscuro
+        canvas.setFillColor(self.colors['dark_green'])
+        canvas.rect(0, 0, doc.pagesize[0], doc.pagesize[1], fill=1)
         
-        # Información de la empresa - layout moderno
+        # Título de categoría centrado verticalmente
+        canvas.setFont('Helvetica-Bold', 48)
+        canvas.setFillColor(self.colors['white'])
+        canvas.drawCentredString(
+            doc.pagesize[0]/2, 
+            doc.pagesize[1]/2 + 20, 
+            categoria_nombre.upper()
+        )
+        
+        # Nombre de la empresa debajo del título
+        canvas.setFont('Helvetica', 20)
+        canvas.setFillColor(colors.HexColor('#A3A3A3'))  # Gris claro
+        canvas.drawCentredString(
+            doc.pagesize[0]/2, 
+            doc.pagesize[1]/2 - 30, 
+            "VendDly Solutions"
+        )
+        
+        # Fecha debajo de la empresa
+        canvas.setFont('Helvetica', 16)
+        fecha_actual = datetime.now().strftime("%B %Y")
+        canvas.drawCentredString(
+            doc.pagesize[0]/2, 
+            doc.pagesize[1]/2 - 60, 
+            fecha_actual.upper()
+        )
+        
+        # Líneas decorativas
+        canvas.setStrokeColor(self.colors['primary_green'])
+        canvas.setLineWidth(4)
+        # Línea superior
+        line_y_top = doc.pagesize[1]/2 + 80
+        canvas.line(150, line_y_top, doc.pagesize[0] - 150, line_y_top)
+        # Línea inferior
+        line_y_bottom = doc.pagesize[1]/2 - 100
+        canvas.line(150, line_y_bottom, doc.pagesize[0] - 150, line_y_bottom)
+        
+        canvas.restoreState()
+
+    def create_standard_header(self, canvas, doc):
+        """Crear encabezado estándar para páginas de productos"""
+        canvas.saveState()
+        
+        # Línea superior verde
+        canvas.setStrokeColor(self.colors['primary_green'])
+        canvas.setLineWidth(3)
+        canvas.line(
+            doc.leftMargin, 
+            doc.height + doc.topMargin - 15, 
+            doc.width + doc.leftMargin, 
+            doc.height + doc.topMargin - 15
+        )
+        
+        # Título pequeño
+        canvas.setFont('Helvetica-Bold', 10)
+        canvas.setFillColor(self.colors['primary_green'])
+        canvas.drawString(
+            doc.leftMargin, 
+            doc.height + doc.topMargin - 30, 
+            "CATÁLOGO DE PRODUCTOS"
+        )
+        
+        # Número de página
         canvas.setFont('Helvetica', 9)
-        canvas.setFillColor(self.colors['text_light'])
-        canvas.drawString(doc.leftMargin, 45, "VendDly Solutions S.A.")
-        canvas.drawString(doc.leftMargin, 35, "📞 +593 XX XXX XXXX  •  ✉ info@venddly.com  •  🌐 www.venddly.com")
-        
-        # Número de página - diseño moderno
-        canvas.setFont('Helvetica-Bold', 9)
-        canvas.setFillColor(self.colors['primary'])
-        page_text = f"Página {doc.page}"
-        canvas.drawRightString(doc.width + doc.leftMargin, 40, page_text)
+        canvas.setFillColor(self.colors['medium_gray'])
+        canvas.drawRightString(
+            doc.width + doc.leftMargin, 
+            doc.height + doc.topMargin - 30, 
+            f"Página {doc.page}"
+        )
         
         canvas.restoreState()
 
     def download_and_process_image(self, image_url, max_size=(80, 80)):
-        """Descargar y procesar imagen de producto"""
+        """Procesar imagen de producto"""
         try:
             if not image_url or image_url == 'https://via.placeholder.com/300x200?text=Sin+Imagen':
                 return None
-                
-            # Si es una URL local, convertirla a ruta absoluta
-            if image_url.startswith('/uploads/'):
-                image_path = image_url[1:]  # Remover el primer '/'
-                if os.path.exists(image_path):
-                    img = PILImage.open(image_path)
+
+            # Obtener ruta del proyecto
+            current_file_dir = os.path.dirname(__file__)
+            project_root = os.path.abspath(os.path.join(current_file_dir, '..', '..', '..'))
+            
+            # Procesar URL local del servidor
+            if any(host in image_url for host in ['127.0.0.1:8000', 'localhost:8000']):
+                if '/uploads/' in image_url:
+                    relative_path = image_url.split('/uploads/')[-1]
+                    image_path = os.path.join(project_root, 'uploads', relative_path)
                 else:
                     return None
-            elif image_url.startswith('http'):
-                # Descargar imagen desde URL
-                response = requests.get(image_url, timeout=5)
+                    
+            elif image_url.startswith('/uploads/'):
+                relative_path = image_url[9:]
+                image_path = os.path.join(project_root, 'uploads', relative_path)
+                
+            elif image_url.startswith('http') and not any(host in image_url for host in ['127.0.0.1', 'localhost']):
+                response = requests.get(image_url, timeout=10)
                 if response.status_code == 200:
                     img = PILImage.open(BytesIO(response.content))
                 else:
                     return None
             else:
-                # Ruta local relativa
-                if os.path.exists(image_url):
-                    img = PILImage.open(image_url)
+                image_path = os.path.join(project_root, image_url.lstrip('/'))
+
+            # Abrir imagen local
+            if 'image_path' in locals():
+                if os.path.exists(image_path):
+                    img = PILImage.open(image_path)
                 else:
                     return None
-                    
+
             # Procesar imagen
             img = img.convert('RGB')
             img.thumbnail(max_size, PILImage.Resampling.LANCZOS)
-            
+
             # Crear archivo temporal
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
-            img.save(temp_file.name, 'JPEG', quality=85)
+            img.save(temp_file.name, 'JPEG', quality=90)
             temp_file.close()
-            
+
             return temp_file.name
-            
+
         except Exception as e:
-            logger.warning(f"Error al procesar imagen {image_url}: {e}")
+            logger.error(f"Error al procesar imagen {image_url}: {str(e)}")
             return None
 
-    def create_product_grid_layout(self, db: Session, filters: dict = None):
-        """Crear layout de productos en formato de cuadrícula moderna"""
+    def create_professional_catalog(self, db: Session, filters: dict = None):
+        """Crear catálogo profesional organizado por categorías - CON páginas de productos"""
         productos = get_productos(db)
         
         if filters:
@@ -225,174 +375,209 @@ class ModernCatalogoPDF:
             
         elements = []
         
-        # Título y información inicial
-        elements.extend(self.create_header_section(productos))
+        # Página de portada
+        elements.append(Spacer(1, 10))
+        elements.append(PageBreak())
         
-        # Crear productos en formato de tarjetas
-        products_per_row = 2
-        current_row = []
+        # Agrupar productos por categoría
+        productos_por_categoria = self.group_products_by_category(productos)
         
-        for i, producto in enumerate(productos):
-            # Crear tarjeta de producto
-            product_card = self.create_product_card(producto)
-            current_row.append(product_card)
+        # Crear secciones por categoría
+        for i, (categoria_nombre, productos_categoria) in enumerate(productos_por_categoria.items()):
+            # 1. Página de categoría (portada de la categoría)
+            elements.append(Spacer(1, 10))
+            elements.append(PageBreak())
             
-            # Si completamos una fila o es el último producto
-            if len(current_row) == products_per_row or i == len(productos) - 1:
-                # Crear tabla para la fila
-                while len(current_row) < products_per_row:
-                    current_row.append("")  # Llenar espacios vacíos
-                    
-                row_table = Table([current_row], colWidths=[3.8*inch, 3.8*inch])
-                row_table.setStyle(TableStyle([
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                    ('TOPPADDING', (0, 0), (-1, -1), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-                ]))
+            # 2. Página de productos de la categoría
+            elements.append(Spacer(1, 50))  # Espacio para header
+            
+            # Grid de productos - 4 columnas
+            products_per_row = 4
+            current_row = []
+            
+            for j, producto in enumerate(productos_categoria):
+                product_cell = self.create_professional_product_cell(producto)
+                current_row.append(product_cell)
                 
-                elements.append(KeepTogether(row_table))
-                elements.append(Spacer(1, 15))
-                current_row = []
+                # Completar fila o último producto de la categoría
+                if len(current_row) == products_per_row or j == len(productos_categoria) - 1:
+                    actual_cols = len(current_row)
+                    col_width = (self.content_width - 0.5*inch) / products_per_row
+                    
+                    # Crear tabla para la fila
+                    row_table = Table(
+                        [current_row], 
+                        colWidths=[col_width] * actual_cols,
+                        rowHeights=[2.5*inch]
+                    )
+                    
+                    row_table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ]))
+                    
+                    elements.append(KeepTogether(row_table))
+                    elements.append(Spacer(1, 10))
+                    current_row = []
+            
+            # Agregar página break después de los productos (excepto la última categoría)
+            if i < len(productos_por_categoria) - 1:
+                elements.append(PageBreak())
                 
         return elements
 
-    def create_product_card(self, producto):
-        """Crear tarjeta individual de producto con diseño moderno"""
-        card_elements = []
+    def create_professional_product_cell(self, producto):
+        """Crear celda de producto estilo profesional sin stock"""
+        cell_data = []
         
-        # Contenedor principal de la tarjeta
-        card_data = []
+        # Imagen del producto centrada
+        image_cell = self.create_product_image(producto)
+        cell_data.append([image_cell])
         
-        # Fila 1: Imagen y información básica
-        image_cell = ""
-        if producto.imagen:
-            image_path = self.download_and_process_image(producto.imagen)
-            if image_path:
-                try:
-                    img = ReportLabImage(image_path, width=60, height=60)
-                    image_cell = img
-                except:
-                    image_cell = Paragraph("📷", self.cell_style)
-            else:
-                image_cell = Paragraph("📷", self.cell_style)
-        else:
-            image_cell = Paragraph("📷", self.cell_style)
+        # Nombre del producto - permitir más líneas si es necesario
+        nombre_completo = producto.nombre.upper()
+        # Dividir nombre en líneas si es muy largo
+        if len(nombre_completo) > 20:
+            palabras = nombre_completo.split()
+            lineas = []
+            linea_actual = ""
             
-        # Información del producto
-        product_info = []
+            for palabra in palabras:
+                if len(linea_actual + " " + palabra) <= 20:
+                    if linea_actual:
+                        linea_actual += " " + palabra
+                    else:
+                        linea_actual = palabra
+                else:
+                    if linea_actual:
+                        lineas.append(linea_actual)
+                    linea_actual = palabra
+            
+            if linea_actual:
+                lineas.append(linea_actual)
+            
+            # Limitar a máximo 3 líneas
+            if len(lineas) > 3:
+                lineas = lineas[:2]
+                lineas.append(lineas[-1][:15] + "...")
+            
+            nombre_texto = "<br/>".join(lineas)
+        else:
+            nombre_texto = nombre_completo
         
-        # Nombre del producto (destacado)
-        nombre_truncado = producto.nombre[:35] + "..." if len(producto.nombre) > 35 else producto.nombre
-        product_info.append(Paragraph(f"<b>{nombre_truncado}</b>", 
-                          ParagraphStyle('ProductName', parent=self.cell_style, fontSize=10, fontName='Helvetica-Bold')))
+        nombre = Paragraph(f"<b>{nombre_texto}</b>", self.product_name_style)
+        cell_data.append([nombre])
         
-        # Marca y categoría
-        marca = producto.marca.descripcion if producto.marca else "N/A"
-        categoria = producto.categoria.descripcion if producto.categoria else "N/A"
-        product_info.append(Paragraph(f"<i>{marca} • {categoria}</i>", 
-                          ParagraphStyle('ProductMeta', parent=self.cell_style, fontSize=8, textColor=self.colors['text_light'])))
+        # Información adicional compacta (SIN precio) - solo marca
+        info_parts = []
+        if producto.marca:
+            marca_text = producto.marca.descripcion
+            if len(marca_text) > 18:
+                marca_text = marca_text[:15] + "..."
+            info_parts.append(marca_text)
         
-        # Precios
-        precio_minorista = f"${producto.precio_minorista:.2f}"
-        precio_mayorista = f"${producto.precio_mayorista:.2f}"
-        product_info.append(Paragraph(f"<b>Minorista:</b> {precio_minorista}", self.price_style))
-        product_info.append(Paragraph(f"<b>Mayorista:</b> {precio_mayorista}", 
-                          ParagraphStyle('WholesalePrice', parent=self.price_style, textColor=self.colors['accent'])))
+        # NO agregar precio - comentado
+        # if hasattr(producto, 'precio_minorista') and producto.precio_minorista:
+        #     try:
+        #         precio = float(producto.precio_minorista)
+        #         info_parts.append(f"${precio:.2f}")
+        #     except:
+        #         pass
         
-        # Stock con color
-        stock_color = self.get_stock_color(producto.stock)
-        stock_text = f"<b>Stock:</b> {producto.stock}"
-        product_info.append(Paragraph(stock_text, 
-                          ParagraphStyle('StockInfo', parent=self.cell_style, textColor=stock_color)))
+        if info_parts:
+            info_text = "<br/>".join(info_parts)
+            info = Paragraph(info_text, self.product_desc_style)
+            cell_data.append([info])
         
-        # Crear tabla para la tarjeta
-        card_table = Table([
-            [image_cell, product_info]
-        ], colWidths=[70, 2.5*inch])
+        # Crear tabla interna para la celda con altura dinámica
+        cell_width = (self.content_width - 0.5*inch) / 4  # 4 columns
         
-        card_table.setStyle(TableStyle([
-            # Bordes y fondo
+        # Calcular altura basada en contenido
+        base_height = 1.8*inch  # Altura base
+        if len(cell_data) > 2:  # Si hay más contenido
+            cell_height = base_height + 0.3*inch  # Aumentar altura
+        else:
+            cell_height = base_height
+        
+        cell_table = Table(cell_data, colWidths=[cell_width], rowHeights=None)
+        
+        # Fondo blanco con bordes verdes suaves
+        cell_table.setStyle(TableStyle([
+            # Fondo y bordes
             ('BACKGROUND', (0, 0), (-1, -1), self.colors['white']),
-            ('BOX', (0, 0), (-1, -1), 1, self.colors['light_gray']),
-            ('ROUNDEDCORNERS', [3, 3, 3, 3]),
+            ('BOX', (0, 0), (-1, -1), 1, self.colors['primary_green']),
+            ('ROUNDEDCORNERS', [5, 5, 5, 5]),  # Esquinas redondeadas
             
             # Alineación
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
-            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-            
-            # Padding
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('LEFTPADDING', (0, 0), (-1, -1), 8),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ]))
-        
-        return card_table
-
-    def create_header_section(self, productos):
-        """Crear sección de encabezado con estadísticas"""
-        elements = []
-        
-        # Título principal
-        title = Paragraph("CATÁLOGO DE PRODUCTOS", self.title_style)
-        elements.append(title)
-        
-        # Información de la empresa
-        company_info = Paragraph(
-            "<b>VendDly Solutions S.A.</b><br/>"
-            "Soluciones Comerciales Integrales<br/>"
-            "📞 +593 XX XXX XXXX  •  ✉ info@venddly.com<br/>"
-            f"<i>Generado el {datetime.now().strftime('%d de %B de %Y')}</i>",
-            self.company_style
-        )
-        elements.append(company_info)
-        
-        # Estadísticas en formato moderno
-        total_products = len(productos)
-        productos_activos = len([p for p in productos if p.estado == 'activo'])
-        
-        stats_data = [[
-            Paragraph(f"<b>{total_products}</b><br/>Total Productos", 
-                     ParagraphStyle('Stat', parent=self.cell_style, alignment=TA_CENTER, fontSize=10)),
-            Paragraph(f"<b>{productos_activos}</b><br/>Productos Activos", 
-                     ParagraphStyle('Stat', parent=self.cell_style, alignment=TA_CENTER, fontSize=10)),
-            Paragraph(f"<b>{total_products - productos_activos}</b><br/>Productos Inactivos", 
-                     ParagraphStyle('Stat', parent=self.cell_style, alignment=TA_CENTER, fontSize=10))
-        ]]
-        
-        stats_table = Table(stats_data, colWidths=[2.5*inch, 2.5*inch, 2.5*inch])
-        stats_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), self.colors['background']),
-            ('BOX', (0, 0), (-1, -1), 1, self.colors['light_gray']),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            
+            # Padding ajustado para contenido dinámico
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            
+            # Espaciado especial para imagen
+            ('TOPPADDING', (0, 0), (0, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (0, 0), 10),
         ]))
         
-        elements.append(stats_table)
-        elements.append(Spacer(1, 30))
-        
-        return elements
+        return cell_table
 
-    def get_stock_color(self, stock):
-        """Obtener color según el nivel de stock"""
-        try:
-            stock_num = int(stock) if str(stock).isdigit() else 0
-            if stock_num > 10:
-                return self.colors['success']
-            elif stock_num > 0:
-                return self.colors['warning']
-            else:
-                return self.colors['danger']
-        except:
-            return self.colors['text']
+    def create_product_image(self, producto):
+        """Crear imagen del producto con estilo profesional"""
+        if producto.imagen:
+            image_path = self.download_and_process_image(producto.imagen, (70, 70))
+            if image_path:
+                try:
+                    return ReportLabImage(image_path, width=70, height=70)
+                except Exception as e:
+                    logger.warning(f"Error al crear imagen: {e}")
+        
+        # Placeholder profesional si no hay imagen con estilo verde
+        placeholder = Paragraph(
+            "<para align='center'>"
+            "<font size='24' color='#84CC16'>📦</font><br/>"
+            "<font size='6' color='#6B7280'>SIN IMAGEN</font>"
+            "</para>", 
+            self.product_desc_style
+        )
+        return placeholder
+
+    def group_products_by_category(self, productos):
+        """Agrupar productos por categoría"""
+        productos_por_categoria = {}
+        
+        for producto in productos:
+            # Obtener nombre de la categoría
+            categoria_nombre = "PRODUCTOS GENERALES"
+            if producto.categoria and hasattr(producto.categoria, 'descripcion'):
+                categoria_nombre = producto.categoria.descripcion
+            elif producto.categoria and hasattr(producto.categoria, 'nombre'):
+                categoria_nombre = producto.categoria.nombre
+            
+            # Agregar producto a la categoría correspondiente
+            if categoria_nombre not in productos_por_categoria:
+                productos_por_categoria[categoria_nombre] = []
+            
+            productos_por_categoria[categoria_nombre].append(producto)
+        
+        # Ordenar categorías alfabéticamente
+        sorted_categories = {}
+        category_names = sorted(productos_por_categoria.keys())
+        
+        for cat_name in category_names:
+            sorted_categories[cat_name] = productos_por_categoria[cat_name]
+        
+        return sorted_categories
 
     def apply_filters(self, productos, filters):
-        """Aplicar filtros a la lista de productos"""
+        """Aplicar filtros a los productos"""
         filtered_products = productos
         
         if filters.get('search'):
@@ -421,45 +606,23 @@ class ModernCatalogoPDF:
         
         return filtered_products
 
-    def generate_catalog_pdf(self, db: Session, filters: dict = None):
-        """Generar PDF del catálogo con diseño moderno"""
+    def cleanup_temp_files(self):
+        """Limpiar archivos temporales"""
+        temp_dir = tempfile.gettempdir()
         try:
-            # Crear archivo temporal
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
-            temp_filename = temp_file.name
-            temp_file.close()
+            for filename in os.listdir(temp_dir):
+                if filename.endswith('.jpg') and filename.startswith('tmp'):
+                    file_path = os.path.join(temp_dir, filename)
+                    try:
+                        os.unlink(file_path)
+                    except:
+                        pass
+        except:
+            pass
 
-            # Crear documento con márgenes optimizados
-            doc = SimpleDocTemplate(
-                temp_filename,
-                pagesize=A4,
-                rightMargin=40,
-                leftMargin=40,
-                topMargin=80,
-                bottomMargin=80
-            )
-
-            # Generar elementos del documento
-            elements = self.create_product_grid_layout(db, filters)
-
-            # Función para decoraciones de página
-            def add_page_decorations(canvas, doc):
-                self.create_modern_header(canvas, doc)
-                self.create_modern_footer(canvas, doc)
-
-            # Generar PDF
-            doc.build(elements, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
-            
-            logger.info(f"PDF moderno generado exitosamente: {temp_filename}")
-            return temp_filename
-
-        except Exception as e:
-            logger.error(f"Error al generar PDF moderno: {str(e)}")
-            raise Exception(f"Error al generar PDF: {str(e)}")
-
-# Instancia global del generador moderno
-modern_pdf_generator = ModernCatalogoPDF()
+# Instancia global
+professional_pdf_generator = ProfessionalCatalogoPDF()
 
 def generate_catalog_pdf(db: Session, filters: dict = None):
-    """Función principal para generar PDF moderno del catálogo"""
-    return modern_pdf_generator.generate_catalog_pdf(db, filters)
+    """Función principal para generar PDF profesional del catálogo"""
+    return professional_pdf_generator.generate_catalog_pdf(db, filters)

@@ -22,17 +22,19 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class RolInfo(BaseModel):
+    id_rol: int
+    descripcion: str
+
 class UserLoginInfo(BaseModel):
-    """Modelo para la información del usuario en el login"""
     identificacion: str
     nombre: str
     correo: str
     rucempresarial: str
     estado: str
-    rol: int
+    rol: RolInfo
 
 class LoginResponse(BaseModel):
-    """Modelo completo para la respuesta del login"""
     access_token: str
     token_type: str
     user: UserLoginInfo
