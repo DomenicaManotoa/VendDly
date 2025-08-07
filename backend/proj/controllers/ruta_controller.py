@@ -1,9 +1,39 @@
+import json
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from shapely.geometry import shape
 from models.models import Ruta
 
 def get_rutas(db: Session):
-    return db.query(Ruta).all()
+    rutas = db.query(Ruta).all()
+    rutas_response = []
+
+    for ruta in rutas:
+        latitud = None
+        longitud = None
+
+        if ruta.poligono_geojson:
+            try:
+                geojson = json.loads(ruta.poligono_geojson)
+                geometry = shape(geojson)
+                centroide = geometry.centroid
+                latitud = centroide.y
+                longitud = centroide.x
+            except Exception as e:
+                print(f"Error procesando el polígono de la ruta {ruta.id_ruta}: {e}")
+
+        rutas_response.append({
+            "id_ruta": ruta.id_ruta,
+            "nombre": ruta.nombre,
+            "tipo_ruta": ruta.tipo_ruta,
+            "sector": ruta.sector,
+            "direccion": ruta.direccion,
+            "estado": ruta.estado,
+            "latitud": latitud,
+            "longitud": longitud
+        })
+
+    return rutas_response
 
 def get_ruta(db: Session, id_ruta: int):
     ruta = db.query(Ruta).filter(Ruta.id_ruta == id_ruta).first()

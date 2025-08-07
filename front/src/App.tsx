@@ -83,6 +83,8 @@ export default function App() {
           <Route path="/bodega/home" element={<HomeBodeguero />} />
           <Route path="/bodega/inventario" element={<InventarioBodeguero />} />
           <Route path="/bodega/catalogo" element={<CatalogoBodeguero />} />
+          <Route path="/bodega/categoria" element={<CategoriaBodeguero />} />
+          <Route path="/bodega/marca" element={<MarcaBodeguero />} />
         </Route>
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarFacturador con ProtectedRoute */}

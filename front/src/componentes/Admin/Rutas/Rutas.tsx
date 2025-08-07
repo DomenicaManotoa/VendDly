@@ -1,232 +1,100 @@
-import React, { useState, useEffect } from "react";
-import { Button, Modal, Form, Input, Select, Table, Tag, message, Card, Space, Popconfirm } from "antd";
-import { PlusOutlined, EnvironmentOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import type { ColumnsType } from 'antd/es/table';
+import { useEffect, useState } from "react";
+import { Button, Modal, Form, Input, Select, Table, Tag, message } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import MapaClientes from "./MapaClientes";
-import { ubicacionClienteService } from "../../Admin/ubicacionCliente/ubicacionClienteService";
-import { UbicacionCliente, Ruta } from "../../../types/types";
-
 const { Option } = Select;
 
 export default function Rutas() {
+  const [rutas, setRutas] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [form] = Form.useForm();
-  const [rutas, setRutas] = useState<Ruta[]>([]);
   const [rutaSeleccionada, setRutaSeleccionada] = useState<string | null>(null);
-  const [ubicacionesClientes, setUbicacionesClientes] = useState<UbicacionCliente[]>([]);
-  const [loadingUbicaciones, setLoadingUbicaciones] = useState(false);
-  const [loadingRutas, setLoadingRutas] = useState(false);
-  const [editingRuta, setEditingRuta] = useState<Ruta | null>(null);
 
   useEffect(() => {
-    cargarUbicacionesClientes();
-    cargarRutas();
+    const token = localStorage.getItem("token");
+    fetch("http://localhost:8000/rutas", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Rutas desde backend:", data);
+        setRutas(Array.isArray(data) ? data : []);
+      });
   }, []);
 
-  const cargarUbicacionesClientes = async () => {
-    setLoadingUbicaciones(true);
+  const handleCreate = async () => {
     try {
-      const ubicaciones = await ubicacionClienteService.getUbicaciones();
-      setUbicacionesClientes(ubicaciones);
-    } catch (error) {
-      console.error('Error al cargar ubicaciones de clientes:', error);
-      message.error('Error al cargar las ubicaciones de clientes');
-    } finally {
-      setLoadingUbicaciones(false);
-    }
-  };
-
-  const cargarRutas = async () => {
-    setLoadingRutas(true);
-    try {
-      // Aquí deberías implementar el servicio de rutas
-      // const rutasData = await rutaService.getRutas();
-      // setRutas(rutasData);
-      
-      // Por ahora iniciamos con array vacío hasta que implementes el servicio
-      setRutas([]);
-      
-    } catch (error) {
-      console.error('Error al cargar rutas:', error);
-      message.error('Error al cargar las rutas');
-    } finally {
-      setLoadingRutas(false);
-    }
-  };
-
-  const handleCreateEdit = () => {
-    form.validateFields().then((values: any) => {
-      if (editingRuta) {
-        // Actualizar ruta existente
-        const rutasActualizadas = rutas.map(ruta => 
-          ruta.id_ruta === editingRuta.id_ruta 
-            ? { ...ruta, ...values }
-            : ruta
-        );
-        setRutas(rutasActualizadas);
-        message.success('Ruta actualizada correctamente');
-      } else {
-        // Crear nueva ruta
-        const nuevaRuta: Ruta = {
-          id_ruta: Date.now(), // ID temporal hasta que tengas el servicio
-          sector: values.sector,
-          direccion: values.direccion,
-          tipo_ruta: values.tipo_ruta,
-          estado: "Planificada",
-          fecha_creacion: new Date().toISOString().slice(0, 10),
-        };
-        setRutas(prev => [...prev, nuevaRuta]);
-        message.success('Ruta creada correctamente');
-      }
-      
+      const values = await form.validateFields();
+      const nuevaRuta = {
+        ...values,
+        estado: "Planificada",
+        fecha_creacion: new Date().toISOString().slice(0, 10),
+        latitud: Number(values.latitud),  // Si pones inputs para lat y lon
+        longitud: Number(values.longitud),
+      };
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:8000/rutas", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(nuevaRuta),
+      });
+      if (!response.ok) throw new Error();
+      // Recarga rutas
+      fetch("http://localhost:8000/rutas", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => setRutas(Array.isArray(data) ? data : []));
       form.resetFields();
       setModalVisible(false);
-      setEditingRuta(null);
-    }).catch(error => {
-      console.error('Error de validación:', error);
-    });
-  };
-
-  const handleEdit = (ruta: Ruta) => {
-    setEditingRuta(ruta);
-    form.setFieldsValue({
-      sector: ruta.sector,
-      direccion: ruta.direccion,
-      tipo_ruta: ruta.tipo_ruta
-    });
-    setModalVisible(true);
-  };
-
-  const handleDelete = (rutaId: number) => {
-    setRutas(prev => prev.filter(ruta => ruta.id_ruta !== rutaId));
-    message.success('Ruta eliminada correctamente');
-  };
-
-  const handleCreate = () => {
-    setEditingRuta(null);
-    form.resetFields();
-    setModalVisible(true);
-  };
-
-  // Obtener sectores únicos de las ubicaciones reales de clientes
-  const sectoresDisponibles = Array.from(new Set(ubicacionesClientes.map(u => u.sector)));
-
-  // Filtrar ubicaciones por sector seleccionado
-  const ubicacionesFiltradas = rutaSeleccionada
-    ? ubicacionesClientes.filter(u => u.sector === rutaSeleccionada)
-    : ubicacionesClientes;
-
-  const columns: ColumnsType<Ruta> = [
-    { 
-      title: "Sector", 
-      dataIndex: "sector", 
-      key: "sector",
-      render: (sector: string) => {
-        const clientesEnSector = ubicacionesClientes.filter(u => u.sector === sector).length;
-        return (
-          <div>
-            <Tag color="blue">{sector}</Tag>
-            {clientesEnSector > 0 && (
-              <div className="text-xs text-gray-500">
-                {clientesEnSector} cliente{clientesEnSector !== 1 ? 's' : ''}
-              </div>
-            )}
-          </div>
-        );
-      }
-    },
-    { 
-      title: "Dirección", 
-      dataIndex: "direccion", 
-      key: "direccion",
-      ellipsis: true
-    },
-    { 
-      title: "Tipo de Ruta", 
-      dataIndex: "tipo_ruta", 
-      key: "tipo_ruta",
-      render: (tipo: string) => (
-        <Tag color={tipo === "venta" ? "green" : "orange"}>
-          {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
-        </Tag>
-      )
-    },
-    { 
-      title: "Estado", 
-      dataIndex: "estado", 
-      key: "estado", 
-      render: (estado: string) => (
-        <Tag color={estado === "En ejecución" ? "green" : "blue"}>
-          {estado}
-        </Tag>
-      )
-    },
-    { 
-      title: "Fecha de creación", 
-      dataIndex: "fecha_creacion", 
-      key: "fecha_creacion",
-      render: (fecha: string) => new Date(fecha).toLocaleDateString('es-ES')
-    },
-    {
-      title: "Acciones",
-      key: "acciones",
-      render: (_: any, record: Ruta) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<EnvironmentOutlined />}
-            onClick={() => setRutaSeleccionada(record.sector)}
-            title="Ver en Mapa"
-          />
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            title="Editar"
-          />
-          <Popconfirm
-            title="¿Estás seguro de eliminar esta ruta?"
-            onConfirm={() => handleDelete(record.id_ruta)}
-            okText="Sí"
-            cancelText="No"
-          >
-            <Button
-              type="link"
-              danger
-              icon={<DeleteOutlined />}
-              title="Eliminar"
-            />
-          </Popconfirm>
-        </Space>
-      )
+      message.success("Ruta creada correctamente");
+    } catch (error) {
+      message.error("No se pudo crear la ruta");
     }
+  };
+
+  const columns = [
+    { title: "Sector", dataIndex: "sector", key: "sector" },
+    { title: "Dirección", dataIndex: "direccion", key: "direccion" },
+    { title: "Tipo de Ruta", dataIndex: "tipo_ruta", key: "tipo_ruta" },
+    {
+      title: "Estado",
+      dataIndex: "estado",
+      key: "estado",
+      render: (estado: string) => (
+        <Tag color={estado === "En ejecución" ? "green" : "blue"}>{estado}</Tag>
+      ),
+    },
+    { title: "Fecha de creación", dataIndex: "fecha_creacion", key: "fecha_creacion" },
   ];
 
   return (
     <div className="p-6">
-      <Card>
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-xl font-semibold">Gestión de Rutas</h2>
-            <p className="text-gray-600">
-              Total de ubicaciones de clientes: {ubicacionesClientes.length}
-              {sectoresDisponibles.length > 0 && ` • Sectores disponibles: ${sectoresDisponibles.length}`}
-            </p>
-          </div>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={handleCreate}
-          >
-            Crear Ruta
-          </Button>
-        </div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Gestión de Rutas</h2>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => setModalVisible(true)}
+        >
+          Crear Ruta
+        </Button>
+      </div>
 
         <Table 
           dataSource={rutas} 
           columns={columns} 
           rowKey="id_ruta"
-          loading={loadingRutas}
+          loading={!rutas.length}
           pagination={{ 
             pageSize: 10,
             showSizeChanger: true,
@@ -238,125 +106,77 @@ export default function Rutas() {
           }}
         />
 
-        <Modal
-          title={editingRuta ? "Editar Ruta" : "Crear Nueva Ruta"}
-          open={modalVisible}
-          onCancel={() => {
-            setModalVisible(false);
-            setEditingRuta(null);
-            form.resetFields();
-          }}
-          onOk={handleCreateEdit}
-          okText={editingRuta ? "Actualizar" : "Crear"}
-          cancelText="Cancelar"
-        >
-          <Form form={form} layout="vertical">
-            <Form.Item 
-              name="sector" 
-              label="Sector" 
-              rules={[{ required: true, message: 'Por favor seleccione un sector' }]}
-            >
-              <Select 
-                placeholder="Seleccione un sector"
-                showSearch
-                filterOption={(input, option) => {
-                  if (!option?.children) return false;
-                  return option.children.toString().toLowerCase().includes(input.toLowerCase());
-                }}
-              >
-                {/* Sectores con clientes registrados */}
-                {sectoresDisponibles.map((sector) => {
-                  const clientesEnSector = ubicacionesClientes.filter(u => u.sector === sector).length;
-                  return (
-                    <Option key={sector} value={sector}>
-                      {sector} ({clientesEnSector} cliente{clientesEnSector !== 1 ? 's' : ''})
-                    </Option>
-                  );
-                })}
-                
-                {/* Sectores adicionales predefinidos */}
-                {['Este', 'Oeste', 'Centro Norte', 'Centro Sur', 'Periferia', 'Industrial', 'Comercial'].map(sector => 
-                  !sectoresDisponibles.includes(sector) && (
-                    <Option key={sector} value={sector}>
-                      {sector}
-                    </Option>
-                  )
-                )}
-              </Select>
-            </Form.Item>
-            
-            <Form.Item 
-              name="direccion" 
-              label="Dirección Principal" 
-              rules={[{ required: true, message: 'Por favor ingrese la dirección' }]}
-            >
-              <Input placeholder="Dirección principal de la ruta" />
-            </Form.Item>
-            
-            <Form.Item 
-              name="tipo_ruta" 
-              label="Tipo de Ruta" 
-              rules={[{ required: true, message: 'Por favor seleccione el tipo de ruta' }]}
-            >
-              <Select placeholder="Seleccione tipo de ruta">
-                <Option value="venta">Venta</Option>
-                <Option value="entrega">Entrega</Option>
-              </Select>
-            </Form.Item>
-          </Form>
-        </Modal>
-      </Card>
-
-      <Card className="mt-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">
-            Mapa de Clientes
-            {rutaSeleccionada && ` - Sector: ${rutaSeleccionada}`}
-          </h3>
-          
-          <div className="flex gap-2">
-            <Select
-              placeholder="Filtrar por sector"
-              allowClear
-              style={{ width: 200 }}
-              onChange={setRutaSeleccionada}
-              value={rutaSeleccionada}
-              loading={loadingUbicaciones}
-            >
-              {sectoresDisponibles.map((sector) => (
-                <Option key={sector} value={sector}>
-                  {sector}
-                </Option>
-              ))}
+      <Modal
+        title="Crear Nueva Ruta"
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        onOk={handleCreate}
+        okText="Crear"
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="sector"
+            label="Sector"
+            rules={[{ required: true }]}
+          >
+            <Input placeholder="Ej. Sur, Centro, Norte" />
+          </Form.Item>
+          <Form.Item
+            name="direccion"
+            label="Dirección"
+            rules={[{ required: true }]}
+          >
+            <Input placeholder="Dirección principal" />
+          </Form.Item>
+          <Form.Item
+            name="tipo_ruta"
+            label="Tipo de Ruta"
+            rules={[{ required: true }]}
+          >
+            <Select placeholder="Seleccione tipo de ruta">
+              <Option value="Venta">Venta</Option>
+              <Option value="Entrega">Entrega</Option>
             </Select>
-            
-            <Button 
-              onClick={() => setRutaSeleccionada(null)}
-              disabled={!rutaSeleccionada}
-            >
-              Mostrar Todos
-            </Button>
-          </div>
-        </div>
+          </Form.Item>
+          {/* Opcional: campos para latitud y longitud */}
+          <Form.Item
+            name="latitud"
+            label="Latitud"
+            rules={[{ required: true, message: "Ingrese latitud" }]}
+          >
+            <Input type="number" step="any" placeholder="-0.22985" />
+          </Form.Item>
+          <Form.Item
+            name="longitud"
+            label="Longitud"
+            rules={[{ required: true, message: "Ingrese longitud" }]}
+          >
+            <Input type="number" step="any" placeholder="-78.52495" />
+          </Form.Item>
+        </Form>
+      </Modal>
 
-        {loadingUbicaciones ? (
-          <div className="text-center py-8">
-            Cargando ubicaciones de clientes...
-          </div>
-        ) : (
-          <>
-            <div className="mb-2 text-sm text-gray-600">
-              Mostrando {ubicacionesFiltradas.length} de {ubicacionesClientes.length} ubicaciones
-              {rutaSeleccionada && ` en el sector ${rutaSeleccionada}`}
-            </div>
-            
-            <MapaClientes 
-              sectorSeleccionado={rutaSeleccionada}
-              ubicacionesReales={ubicacionesFiltradas}
-            />
-          </>
-        )}
-      </Card>
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold mb-2">Clientes en el Mapa</h3>
+        <Select
+          placeholder="Filtrar por sector"
+          onChange={(value) => setRutaSeleccionada(value)}
+          allowClear
+          style={{ width: 300, marginBottom: 16 }}
+        >
+          {rutas.map((ruta) => (
+            <Option key={ruta.id_ruta} value={ruta.sector}>
+              {ruta.sector} - {ruta.tipo_ruta}
+            </Option>
+          ))}
+        </Select>
+
+        <MapaClientes
+          rutas={rutas.filter(
+            (r) => !rutaSeleccionada || r.sector === rutaSeleccionada
+          )}
+        />
+      </div>
     </div>
   );
 }

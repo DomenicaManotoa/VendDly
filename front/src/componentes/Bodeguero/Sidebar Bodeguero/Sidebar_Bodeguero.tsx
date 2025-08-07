@@ -4,11 +4,12 @@ import { Layout, Menu, Button, Modal, Spin } from 'antd';
 import {
   AppstoreOutlined,
   HomeOutlined,
+  LoadingOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   ShoppingOutlined,
-  LoadingOutlined,
+
 } from '@ant-design/icons';
 import { useLogout } from '../../../hooks/useLogout'; // Importa el hook
 
