@@ -477,3 +477,35 @@ export interface AsignacionRuta {
     correo?: string;
   };
 }
+
+// Interface para facturas
+export interface Factura {
+  id_factura: number;
+  cod_cliente: string;
+  numero_factura: number;
+  fecha_emision: string;
+  estado: string;
+  subtotal: number;
+  iva: number;
+  total: number;
+  cliente?: {
+    nombre: string;
+    razon_social: string;
+  };
+}
+
+// Interface para pedidos con factura
+export interface PedidoConFactura extends Pedido {
+  factura?: Factura;
+  cliente?: {
+    nombre: string;
+    razon_social: string;
+  };
+}
+
+// Interface para Estado de pedido
+export interface EstadoPedido {
+  id_estado_pedido: number;
+  fecha_actualizada: string;
+  descripcion: string;
+}

@@ -2,7 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { EditOutlined } from "@ant-design/icons";
 import { Pedido, EstadoPedido } from "types/types";
-import { Table, Select, Button, Tag, message, Modal, Typography, Space, Card } from "antd";
+import { Table, Select, Button, Tag, message, Modal, Typography, Card } from "antd";
 
 const { Option } = Select;
 const { Title } = Typography;
