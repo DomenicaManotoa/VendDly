@@ -1,9 +1,29 @@
-import React from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import { UbicacionCliente, Ruta } from "../../../types/types";
 
 type Props = {
+  rutas: {
+    latitud: number;
+    longitud: number;
+    nombre?: string;
+    direccion?: string;
+    sector?: string;
+    tipo_ruta?: string;
+    [key: string]: any;
+  }[];
+};
+
+// Íconos llamativos por tipo
+const iconoRuta = (tipo: string = "") =>
+  L.icon({
+    iconUrl:
+      tipo === "venta"
+        ? "https://cdn-icons-png.flaticon.com/512/3144/3144456.png" // carrito rojo
+        : "https://cdn-icons-png.flaticon.com/512/10435/10435117.png", // paquete azul
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40]
   sectorSeleccionado: string | null;
   ubicacionesReales?: UbicacionCliente[];
   rutaSeleccionada?: Ruta | null; // Nueva prop para mostrar ruta específica
@@ -72,7 +92,7 @@ const getIconBySector = (sector: string, tipoRuta?: string, orden?: number) => {
     iconAnchor: [14, 14],
     popupAnchor: [0, -14]
   });
-};
+
 
 const MapaClientes = ({ 
   sectorSeleccionado, 

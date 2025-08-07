@@ -126,7 +126,7 @@ export interface Props {
   roles: Rol[];
 }
 
-// INTERFAZ CLIENTE ACTUALIZADA con nuevo campo
+// INTERFAZ CLIENTE
 export interface Cliente {
   cod_cliente: string;
   identificacion: string;
@@ -138,8 +138,7 @@ export interface Cliente {
   razon_social: string;
   sector: string;
   fecha_registro?: string;
-  fecha_actualizacion?: string;
-  id_ubicacion_principal?: number | null; // CAMPO CLAVE para ubicación principal
+  id_ubicacion_principal?: number | null;
 }
 
 export interface FormClientesProps {
@@ -149,21 +148,25 @@ export interface FormClientesProps {
   onSubmit: (cliente: Usuario) => Promise<void>;
 }
 
-export interface Pedidos{
+// INTERFACES DE PEDIDOS (SIMPLIFICADAS)
+export interface Pedido {
   id_pedido: number;
-  estado: string;
   numero_pedido: string;
-  fecha_pedido: Date;
+  fecha_pedido: string;
   subtotal: number;
   iva: number;
   total: number;
-  cod_cliente: number;
+  cod_cliente: string;
+  id_ubicacion_entrega?: number | null;
+  id_ruta_venta?: number | null;
+  id_ruta_entrega?: number | null;
+  detalles?: DetallePedido[];
 }
 
 export interface DetallePedido {
   id_detalle_pedido: number;
   id_pedido: number;
-  id_producto: string;
+  id_producto: number;
   cantidad: number;
   precio_unitario: number;
   descuento: number;
@@ -171,6 +174,57 @@ export interface DetallePedido {
   subtotal: number;
 }
 
+// INTERFAZ PARA PROPS DEL FORMULARIO DE PEDIDOS
+export interface FormCrearPedidoProps {
+  onCancel: () => void;
+  onSubmit: () => void;
+  clientes: Cliente[];
+  pedidoEditar?: Pedido | null;
+}
+
+// INTERFAZ PARA CREAR PEDIDO (datos que se envían al backend)
+export interface CrearPedidoRequest {
+  numero_pedido?: string;
+  fecha_pedido: string;
+  cod_cliente: string;
+  subtotal: number;
+  iva: number;
+  total: number;
+  id_ubicacion_entrega?: number | null;
+  id_ruta_venta?: number | null;
+  id_ruta_entrega?: number | null;
+  detalle_pedido: {
+    id_producto: number;
+    cantidad: number;
+    precio_unitario: number;
+    descuento: number;
+    subtotal_lineal: number;
+    subtotal: number;
+  }[];
+}
+
+// INTERFAZ PARA ACTUALIZAR PEDIDO
+export interface ActualizarPedidoRequest {
+  numero_pedido?: string;
+  fecha_pedido?: string;
+  cod_cliente?: string;
+  subtotal?: number;
+  iva?: number;
+  total?: number;
+  id_ubicacion_entrega?: number | null;
+  id_ruta_venta?: number | null;
+  id_ruta_entrega?: number | null;
+  detalles: {
+    id_producto: number;
+    cantidad: number;
+    precio_unitario: number;
+    descuento: number;
+    subtotal_lineal: number;
+    subtotal: number;
+  }[];
+}
+
+// Interfaz para productos
 export interface Producto {
   id_producto: number;
   nombre: string;
@@ -196,7 +250,7 @@ export interface Categoria {
   descripcion: string;
 }
 
-// INTERFAZ UBICACION CLIENTE ACTUALIZADA
+// INTERFAZ UBICACION CLIENTE
 export interface UbicacionCliente {
   id_ubicacion?: number;
   cod_cliente: string;
@@ -206,8 +260,8 @@ export interface UbicacionCliente {
   sector: string;
   referencia?: string;
   fecha_registro?: string;
-  cliente?: Cliente; // Relación con cliente
-  es_principal?: boolean; // NUEVO: Indica si es la ubicación principal del cliente
+  cliente?: Cliente;
+  es_principal?: boolean;
 }
 
 export interface FormUbicacionClienteProps {
@@ -323,8 +377,6 @@ export interface Ruta {
   asignaciones?: AsignacionRuta[];
 }
 
-// NUEVAS INTERFACES para el manejo de ubicaciones principales
-
 // Interface para estadísticas de ubicaciones
 export interface EstadisticasUbicaciones {
   totalUbicaciones: number;
@@ -353,22 +405,6 @@ export interface EstadisticasClientes {
   sectoresConMasClientes: { sector: string; cantidad: number }[];
 }
 
-// Interface para verificación de integridad
-export interface VerificacionIntegridad {
-  clientesSinUbicacionPrincipal: string[];
-  clientesConUbicacionPrincipalInvalida: string[];
-  clientesSinUbicaciones: string[];
-  ubicacionesHuerfanas: number[];
-  resumen: string;
-}
-
-// Interface para resultado de reparación
-export interface ResultadoReparacion {
-  reparados: number;
-  errores: string[];
-  detalles: { codCliente: string; accion: string }[];
-}
-
 // Interface para cliente con ubicaciones detalladas
 export interface ClienteConUbicaciones extends Cliente {
   ubicaciones: (UbicacionCliente & { es_principal?: boolean })[];
@@ -381,61 +417,12 @@ export interface ClienteConUbicaciones extends Cliente {
   };
 }
 
-// Interface para resumen de ubicaciones por cliente
-export interface ResumenUbicacionesCliente {
-  cod_cliente: string;
-  nombre_cliente: string;
-  total_ubicaciones: number;
-  tiene_ubicacion_principal: boolean;
-  ubicacion_principal?: {
-    id: number;
-    direccion: string;
-    sector: string;
-  };
-  ubicaciones: {
-    id: number;
-    direccion: string;
-    sector: string;
-    es_principal: boolean;
-  }[];
-}
-
 // Interface para selector de ubicación principal
 export interface SelectorUbicacionPrincipalProps {
   codCliente: string;
   valorSeleccionado?: number;
   onChange: (idUbicacion?: number) => void;
   disabled?: boolean;
-}
-
-// Interface para props del dashboard de ubicaciones
-export interface DashboardUbicacionesProps {
-  onNavegateToUbicaciones?: () => void;
-  onNavegateToClientes?: () => void;
-}
-
-// Interface para problemas de integridad detectados
-export interface ProblemaIntegridad {
-  tipo: 'sin_ubicacion' | 'sin_principal' | 'principal_invalida' | 'ubicacion_huerfana';
-  codCliente?: string;
-  idUbicacion?: number;
-  descripcion: string;
-  accionSugerida: string;
-  gravedad: 'alta' | 'media' | 'baja';
-}
-
-// Interface para respuesta del backend al crear ubicación
-export interface RespuestaCreacionUbicacion {
-  ubicacion: UbicacionCliente;
-  ubicacion_principal_establecida: boolean;
-  mensaje?: string;
-}
-
-// Interface para respuesta del backend al eliminar ubicación
-export interface RespuestaEliminacionUbicacion {
-  mensaje: string;
-  nueva_ubicacion_principal?: number;
-  cliente_sin_ubicacion_principal?: boolean;
 }
 
 // Interface para configuración de mapa

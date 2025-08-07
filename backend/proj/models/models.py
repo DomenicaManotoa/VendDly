@@ -186,6 +186,7 @@ class Pedido(Base):
     id_ubicacion_entrega = Column(Integer, ForeignKey('ubicacion_cliente.id_ubicacion'))
     id_ruta_venta = Column(Integer, ForeignKey('ruta.id_ruta'))  # Ruta donde se generó el pedido
     id_ruta_entrega = Column(Integer, ForeignKey('ruta.id_ruta'))  # Ruta para la entrega
+    
         
     # Relaciones
     cliente = relationship("Cliente", back_populates="pedidos")

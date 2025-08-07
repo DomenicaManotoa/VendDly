@@ -13,6 +13,7 @@ import axios from 'axios';
 const { Option } = Select;
 
 export default function Rutas() {
+  const [rutas, setRutas] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalAsignacionVisible, setModalAsignacionVisible] = useState(false);
   const [form] = Form.useForm();
@@ -30,8 +31,18 @@ export default function Rutas() {
 
 
   useEffect(() => {
-    cargarUbicacionesClientes();
-    cargarRutas();
+    const token = localStorage.getItem("token");
+    fetch("http://localhost:8000/rutas", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Rutas desde backend:", data);
+        setRutas(Array.isArray(data) ? data : []);
+      });
   }, []);
 
   const cargarUbicacionesClientes = async () => {
@@ -249,10 +260,8 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
       dataIndex: "estado", 
       key: "estado", 
       render: (estado: string) => (
-        <Tag color={estado === "En ejecución" ? "green" : "blue"}>
-          {estado}
-        </Tag>
-      )
+        <Tag color={estado === "En ejecución" ? "green" : "blue"}>{estado}</Tag>
+      ),
     },
     { 
       title: "Fecha de ejecución", 
@@ -366,7 +375,7 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
           dataSource={rutas} 
           columns={columns} 
           rowKey="id_ruta"
-          loading={loadingRutas}
+          loading={!rutas.length}
           pagination={{ 
             pageSize: 10,
             showSizeChanger: true,

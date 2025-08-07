@@ -332,7 +332,7 @@ const Clientes = () => {
       responsive: ['md'],
     },
     {
-      title: 'Identificación',
+      title: 'Identificación del vendedor',
       dataIndex: 'identificacion',
       key: 'identificacion',
       sorter: (a, b) => a.identificacion.localeCompare(b.identificacion),

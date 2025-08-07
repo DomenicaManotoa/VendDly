@@ -3,7 +3,6 @@ import { Login } from './Controllers/Login';
 import Home from 'componentes/Admin/Home/Home';
 import Pedidos from 'componentes/Admin/Pedidos/Index';
 import Catalogo from 'componentes/Admin/Catalogo/Catalogo';
-import Facturas from 'componentes/Admin/Facturas/Facturas';
 import Entregas from 'componentes/Admin/Entregas/Entregas';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Clientes from 'componentes/Admin/Clientes/IndexClientes';
@@ -38,12 +37,13 @@ import PedidosVendedor from 'componentes/Vendedor/Pedidos Vendedor/Pedidos_Vende
 import RutasVendedor from 'componentes/Vendedor/Rutas Vendedor/Rutas_Vendedor';
 import Rutas from 'componentes/Admin/Rutas/Rutas';
 import UbicacionClientePage from 'componentes/Admin/ubicacionCliente/UbicacionCliente';
-
+import EstadoPedidos from "componentes/Admin/Pedidos/EstadoPedido";
 
 // ✅ IMPORTAR PROTECTEDROUTE - AGREGAR ESTA LÍNEA
 import { ProtectedRoute } from 'componentes/ProtectedRoute';
 import CategoriaBodeguero from "componentes/Bodeguero/Categoria Bodeguero/CategoriaBodeguero";
 import MarcaBodeguero from "componentes/Bodeguero/Marca Bodeguero/MarcaBodeguero";
+import Facturas from "componentes/Admin/Facturas/Facturas";
 
 
 export default function App() {
@@ -64,13 +64,14 @@ export default function App() {
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/empleados" element={<Usuarios />} />
           <Route path="/entregas" element={<Entregas />} />
-          <Route path="/facturas" element={<Facturas />} />
           <Route path="/pedidos" element={<Pedidos />} />
+          <Route path="/pedidos/estadopedidos" element={<EstadoPedidos />} />
           <Route path="/categorias" element={<Categorias_Admin />} />
           <Route path="/marcas" element={<Marcas_Admin />} />
           <Route path="/roles" element={<Roles_Admin />} />
           <Route path="/rutas" element={<Rutas />} />
           <Route path="/ubicaciones_clientes" element={<UbicacionClientePage />} />
+          <Route path="/facturas" element={<Facturas />} />
         </Route>
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarBodega con ProtectedRoute */}
@@ -82,6 +83,8 @@ export default function App() {
           <Route path="/bodega/home" element={<HomeBodeguero />} />
           <Route path="/bodega/inventario" element={<InventarioBodeguero />} />
           <Route path="/bodega/catalogo" element={<CatalogoBodeguero />} />
+          <Route path="/bodega/categoria" element={<CategoriaBodeguero />} />
+          <Route path="/bodega/marca" element={<MarcaBodeguero />} />
         </Route>
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarFacturador con ProtectedRoute */}
