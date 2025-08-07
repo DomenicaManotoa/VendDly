@@ -21,8 +21,6 @@ from routes.detalle_factura_routes import router as detalle_factura_router
 from routes.catalogo_pdf_routes import router as catalogo_pdf_router
 from routes.ubicacion_cliente_routes import router as ubicacion_cliente_router
 from routes.ruta_routes import router as ruta_router
-from routes.tracking_data_routes import router as tracking_data_router
-from routes.historial_tracking_routes import router as historial_tracking_router
 import uvicorn
 
 # Función para verificar si las tablas existen
@@ -32,7 +30,6 @@ def check_tables_exist():
         'roles', 'usuarios', 'categoria', 'marca', 'productos',
         'ubicacion_cliente', 'cliente', 'ruta', 'asignacion_ruta',
         'pedido', 'estado_pedido', 'detalle_pedido',
-        'tracking_data', 'historial_tracking',
         'factura', 'detalle_factura'
     ]
     
@@ -74,8 +71,6 @@ app.include_router(detalle_factura_router)
 app.include_router(catalogo_pdf_router, prefix="/api", tags=["Catálogo PDF"])
 app.include_router(ubicacion_cliente_router)
 app.include_router(ruta_router)
-app.include_router(tracking_data_router)
-app.include_router(historial_tracking_router)
 
 # Configurar CORS
 app.add_middleware(

@@ -62,8 +62,6 @@ class Usuario(Base):
     id_rol = Column(Integer, ForeignKey('roles.id_rol'))
 
     rol = relationship("Rol", back_populates="usuarios")
-    tracking_data = relationship("TrackingData", back_populates="usuario")
-    historial_tracking = relationship("HistorialTracking", back_populates="usuario")
 
 class Categoria(Base):
     __tablename__ = 'categoria'
@@ -153,7 +151,6 @@ class Ruta(Base):
     asignaciones = relationship("AsignacionRuta", back_populates="ruta")
     pedidos_venta = relationship("Pedido", foreign_keys="Pedido.id_ruta_venta", back_populates="ruta_venta")
     pedidos_entrega = relationship("Pedido", foreign_keys="Pedido.id_ruta_entrega", back_populates="ruta_entrega")
-    tracking_data = relationship("TrackingData", back_populates="ruta")
 
 class AsignacionRuta(Base):
     __tablename__ = 'asignacion_ruta'
@@ -180,7 +177,6 @@ class Pedido(Base):
     __tablename__ = 'pedido'
     
     id_pedido = Column(Integer, primary_key=True, autoincrement=True)
-    estado = Column(String(50))
     numero_pedido = Column(String)
     fecha_pedido = Column(Date)
     subtotal = Column(Float)
@@ -190,8 +186,7 @@ class Pedido(Base):
     id_ubicacion_entrega = Column(Integer, ForeignKey('ubicacion_cliente.id_ubicacion'))
     id_ruta_venta = Column(Integer, ForeignKey('ruta.id_ruta'))  # Ruta donde se generó el pedido
     id_ruta_entrega = Column(Integer, ForeignKey('ruta.id_ruta'))  # Ruta para la entrega
-    estado_entrega = Column(String(50), server_default='Pendiente')
-    
+        
     # Relaciones
     cliente = relationship("Cliente", back_populates="pedidos")
     ubicacion_entrega = relationship("UbicacionCliente")
@@ -225,37 +220,6 @@ class DetallePedido(Base):
     pedido = relationship("Pedido", back_populates="detalles")
     producto = relationship("Producto")
 
-
-class TrackingData(Base):
-    __tablename__ = 'tracking_data'
-
-    id_tracking = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    id_ruta = Column(Integer, ForeignKey('ruta.id_ruta'), nullable=False)
-    identificacion_usuario = Column(String(50), ForeignKey('usuarios.identificacion'), nullable=False)
-    cod_cliente = Column(String(50), ForeignKey('cliente.cod_cliente'))
-    latitud = Column(DECIMAL(10, 8), nullable=False)
-    longitud = Column(DECIMAL(11, 8), nullable=False)
-    precision = Column(Float)
-    velocidad = Column(Float)
-    evento = Column(String(50))
-    observaciones = Column(Text)
-    fecha_hora = Column(TIMESTAMP, server_default=func.now())  # Cambiado aquí
-
-    ruta = relationship("Ruta", back_populates="tracking_data")
-    usuario = relationship("Usuario", back_populates="tracking_data")
-    cliente = relationship("Cliente")
-
-class HistorialTracking(Base):
-    __tablename__ = 'historial_tracking'
-
-    id_historial = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    identificacion_usuario = Column(String(50), ForeignKey('usuarios.identificacion'), nullable=False)
-    latitud = Column(DECIMAL(10, 8), nullable=False)
-    longitud = Column(DECIMAL(11, 8), nullable=False)
-    fecha_hora = Column(TIMESTAMP, server_default=func.now())  # Cambiado aquí
-
-    usuario = relationship("Usuario", back_populates="historial_tracking")
-
 class Factura(Base):
     __tablename__ = 'factura'
 
@@ -270,6 +234,7 @@ class Factura(Base):
 
     cliente = relationship("Cliente", back_populates="facturas")
     detalles = relationship("DetalleFactura", back_populates="factura")
+
 
 class DetalleFactura(Base):
     __tablename__ = 'detalle_factura'

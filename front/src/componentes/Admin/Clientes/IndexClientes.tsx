@@ -226,7 +226,6 @@ const Clientes = () => {
     }
   };
 
-  // Modifica las funciones
   const handleAdd = () => {
     setClientToEdit(null);
     setIsFormVisible(true);
@@ -323,7 +322,7 @@ const Clientes = () => {
     )
     .sort((a, b) => a.sector.localeCompare(b.sector));
 
-  // Columnas para la tabla
+  // Columnas para la tabla - SIN estado_ubicaciones
   const columns: ColumnsType<Cliente> = [
     {
       title: "Código Cliente",
@@ -429,37 +428,6 @@ const Clientes = () => {
       }
     },
     {
-      title: 'Estado Ubicaciones',
-      key: 'estado_ubicaciones',
-      responsive: ['xl'],
-      render: (_, record: Cliente) => {
-        const totalUbicaciones = contarUbicacionesCliente(record.cod_cliente);
-        const tieneUbicacionPrincipal = !!record.id_ubicacion_principal;
-        
-        if (totalUbicaciones === 0) {
-          return (
-            <Tag color="red">
-              Sin ubicaciones
-            </Tag>
-          );
-        }
-        
-        if (!tieneUbicacionPrincipal) {
-          return (
-            <Tag color="orange">
-              Sin ubicación principal
-            </Tag>
-          );
-        }
-        
-        return (
-          <Tag color="green">
-            Configurado ({totalUbicaciones})
-          </Tag>
-        );
-      }
-    },
-    {
       title: 'Fecha Registro',
       dataIndex: 'fecha_registro',
       key: 'fecha_registro',
@@ -518,7 +486,7 @@ const Clientes = () => {
     },
   ];
 
-  // Renderizado para móviles (cards)
+  // Renderizado para móviles (cards) - Simplificado
   const renderMobileCards = () => (
     <Row gutter={[16, 16]}>
       {filteredClientes.map((cliente) => {
@@ -598,7 +566,7 @@ const Clientes = () => {
     </Row>
   );
 
-  // Estadísticas mejoradas
+  // Estadísticas simplificadas
   const clientesConUbicacionPrincipal = clientes.filter(c => c.id_ubicacion_principal).length;
   const clientesSinUbicaciones = clientes.filter(c => contarUbicacionesCliente(c.cod_cliente) === 0).length;
 
@@ -713,7 +681,7 @@ const Clientes = () => {
           dataSource={filteredClientes}
           rowKey="cod_cliente"
           loading={loading}
-          scroll={{ x: 1600 }}
+          scroll={{ x: 1400 }} // Reducido de 1600 a 1400 por quitar columna
           locale={{
             emptyText: 'No hay clientes disponibles'
           }}

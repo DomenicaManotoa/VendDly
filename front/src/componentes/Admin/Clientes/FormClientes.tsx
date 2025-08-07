@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { FormClientesProps, UbicacionCliente } from "types/types";
 import { ubicacionClienteService } from "../../Admin/ubicacionCliente/ubicacionClienteService";
-import { EnvironmentOutlined, PlusOutlined } from "@ant-design/icons";
+import { EnvironmentOutlined } from "@ant-design/icons";
 import SelectorUbicacionPrincipal from "./SelectorUbicacionPrincipal";
 
 const FormClientes: React.FC<FormClientesProps> = ({ 
@@ -105,27 +105,6 @@ const FormClientes: React.FC<FormClientesProps> = ({
 
   const handleUbicacionPrincipalChange = (idUbicacion?: number) => {
     form.setFieldsValue({ id_ubicacion_principal: idUbicacion });
-  };
-
-  const abrirGestionUbicaciones = () => {
-    const codCliente = form.getFieldValue('cod_cliente');
-    if (!codCliente) {
-      message.warning('Primero debe especificar un código de cliente');
-      return;
-    }
-    
-    // Aquí podrías abrir un modal para gestionar ubicaciones
-    // o redirigir a la página de ubicaciones con el filtro del cliente
-    message.info(`Redirigiendo a gestión de ubicaciones para el cliente: ${codCliente}`);
-    // window.open(`/ubicaciones-cliente?cliente=${codCliente}`, '_blank');
-  };
-
-  const handleRefreshUbicaciones = () => {
-    const codCliente = form.getFieldValue('cod_cliente');
-    if (codCliente) {
-      cargarUbicacionesCliente(codCliente);
-      message.success('Ubicaciones actualizadas');
-    }
   };
 
   return (
@@ -261,7 +240,7 @@ const FormClientes: React.FC<FormClientesProps> = ({
           <Input placeholder="Ingrese la razón social (opcional)" />
         </Form.Item>
 
-        {/* Selector de ubicación principal mejorado */}
+        {/* Selector de ubicación principal simplificado */}
         <Form.Item
           name="id_ubicacion_principal"
           label="Ubicación Principal"
@@ -274,39 +253,6 @@ const FormClientes: React.FC<FormClientesProps> = ({
             disabled={!currentCodCliente && !form.getFieldValue('cod_cliente')}
           />
         </Form.Item>
-
-        {/* Botones de acción para ubicaciones */}
-        {(currentCodCliente || form.getFieldValue('cod_cliente')) && (
-          <div style={{ 
-            padding: '12px', 
-            backgroundColor: '#f6f8fa', 
-            border: '1px solid #e1e8ed', 
-            borderRadius: '6px',
-            marginBottom: '16px'
-          }}>
-            <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-              Gestión de Ubicaciones
-            </div>
-            <Space>
-              <Button 
-                type="default" 
-                icon={<EnvironmentOutlined />}
-                onClick={abrirGestionUbicaciones}
-                size="small"
-              >
-                Gestionar Ubicaciones
-              </Button>
-              <Button 
-                type="default"
-                onClick={handleRefreshUbicaciones}
-                size="small"
-                loading={loadingUbicaciones}
-              >
-                Actualizar Lista
-              </Button>
-            </Space>
-          </div>
-        )}
 
         <Form.Item 
           name="fecha_registro" 

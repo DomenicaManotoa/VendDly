@@ -1,22 +1,33 @@
 import React, { useState, useEffect } from "react";
-import { Button, Modal, Form, Input, Select, Table, Tag, message, Card, Space, Popconfirm } from "antd";
-import { PlusOutlined, EnvironmentOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Button, Modal, Form, Input, Select, Table, Tag, message, Card, Space, Popconfirm, DatePicker, Checkbox } from "antd";
+import { PlusOutlined, EnvironmentOutlined, EditOutlined, DeleteOutlined, UserOutlined, CarOutlined } from "@ant-design/icons";
 import type { ColumnsType } from 'antd/es/table';
 import MapaClientes from "./MapaClientes";
 import { ubicacionClienteService } from "../../Admin/ubicacionCliente/ubicacionClienteService";
-import { UbicacionCliente, Ruta } from "../../../types/types";
+import { rutaService } from "./rutaService";
+import { UbicacionCliente, Ruta, AsignacionRuta, CrearRutaData, UsuarioConRol } from "../../../types/types";
+import { usuarioService } from "./usuarioService"; // Ajustar ruta según donde lo pongas
+import dayjs from 'dayjs';
+import axios from 'axios';
 
 const { Option } = Select;
 
 export default function Rutas() {
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalAsignacionVisible, setModalAsignacionVisible] = useState(false);
   const [form] = Form.useForm();
+  const [formAsignacion] = Form.useForm();
   const [rutas, setRutas] = useState<Ruta[]>([]);
   const [rutaSeleccionada, setRutaSeleccionada] = useState<string | null>(null);
+  const [rutaParaAsignar, setRutaParaAsignar] = useState<Ruta | null>(null);
   const [ubicacionesClientes, setUbicacionesClientes] = useState<UbicacionCliente[]>([]);
+  const [ubicacionesSeleccionadas, setUbicacionesSeleccionadas] = useState<number[]>([]);
   const [loadingUbicaciones, setLoadingUbicaciones] = useState(false);
   const [loadingRutas, setLoadingRutas] = useState(false);
   const [editingRuta, setEditingRuta] = useState<Ruta | null>(null);
+  const [usuariosDisponibles, setUsuariosDisponibles] = useState<UsuarioConRol[]>([]);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(false);
+
 
   useEffect(() => {
     cargarUbicacionesClientes();
@@ -39,13 +50,8 @@ export default function Rutas() {
   const cargarRutas = async () => {
     setLoadingRutas(true);
     try {
-      // Aquí deberías implementar el servicio de rutas
-      // const rutasData = await rutaService.getRutas();
-      // setRutas(rutasData);
-      
-      // Por ahora iniciamos con array vacío hasta que implementes el servicio
-      setRutas([]);
-      
+      const rutasData = await rutaService.getRutas();
+      setRutas(rutasData);
     } catch (error) {
       console.error('Error al cargar rutas:', error);
       message.error('Error al cargar las rutas');
@@ -54,27 +60,28 @@ export default function Rutas() {
     }
   };
 
-  const handleCreateEdit = () => {
-    form.validateFields().then((values: any) => {
+  const handleCreateEdit = async () => {
+    try {
+      const values = await form.validateFields();
+      
       if (editingRuta) {
         // Actualizar ruta existente
-        const rutasActualizadas = rutas.map(ruta => 
-          ruta.id_ruta === editingRuta.id_ruta 
-            ? { ...ruta, ...values }
-            : ruta
-        );
-        setRutas(rutasActualizadas);
+        const rutaActualizada = await rutaService.updateRuta(editingRuta.id_ruta, values);
+        setRutas(prev => prev.map(ruta => 
+          ruta.id_ruta === editingRuta.id_ruta ? rutaActualizada : ruta
+        ));
         message.success('Ruta actualizada correctamente');
       } else {
         // Crear nueva ruta
-        const nuevaRuta: Ruta = {
-          id_ruta: Date.now(), // ID temporal hasta que tengas el servicio
+        const nuevaRutaData: CrearRutaData = {
+          nombre: values.nombre,
+          tipo_ruta: values.tipo_ruta,
           sector: values.sector,
           direccion: values.direccion,
-          tipo_ruta: values.tipo_ruta,
-          estado: "Planificada",
-          fecha_creacion: new Date().toISOString().slice(0, 10),
+          fecha_ejecucion: values.fecha_ejecucion ? values.fecha_ejecucion.format('YYYY-MM-DD') : undefined
         };
+        
+        const nuevaRuta = await rutaService.createRuta(nuevaRutaData);
         setRutas(prev => [...prev, nuevaRuta]);
         message.success('Ruta creada correctamente');
       }
@@ -82,30 +89,105 @@ export default function Rutas() {
       form.resetFields();
       setModalVisible(false);
       setEditingRuta(null);
-    }).catch(error => {
-      console.error('Error de validación:', error);
-    });
+    } catch (error) {
+      console.error('Error al crear/actualizar ruta:', error);
+      message.error('Error al procesar la ruta');
+    }
   };
 
   const handleEdit = (ruta: Ruta) => {
     setEditingRuta(ruta);
     form.setFieldsValue({
+      nombre: ruta.nombre,
       sector: ruta.sector,
       direccion: ruta.direccion,
-      tipo_ruta: ruta.tipo_ruta
+      tipo_ruta: ruta.tipo_ruta,
+      fecha_ejecucion: ruta.fecha_ejecucion ? dayjs(ruta.fecha_ejecucion) : null
     });
     setModalVisible(true);
   };
 
-  const handleDelete = (rutaId: number) => {
-    setRutas(prev => prev.filter(ruta => ruta.id_ruta !== rutaId));
-    message.success('Ruta eliminada correctamente');
+  const handleDelete = async (rutaId: number) => {
+    try {
+      await rutaService.deleteRuta(rutaId);
+      setRutas(prev => prev.filter(ruta => ruta.id_ruta !== rutaId));
+      message.success('Ruta eliminada correctamente');
+    } catch (error) {
+      console.error('Error al eliminar ruta:', error);
+      message.error('Error al eliminar la ruta');
+    }
   };
 
   const handleCreate = () => {
     setEditingRuta(null);
     form.resetFields();
     setModalVisible(true);
+  };
+
+// Modificar la función handleAsignarUbicaciones
+const handleAsignarUbicaciones = async (ruta: Ruta) => {
+  setRutaParaAsignar(ruta);
+  setUbicacionesSeleccionadas([]);
+  formAsignacion.resetFields();
+  
+  // Cargar usuarios según el tipo de ruta - USAR rutaService
+  setLoadingUsuarios(true);
+  try {
+    const rolRequerido = ruta.tipo_ruta === 'venta' ? 'Vendedor' : 'Transportista';
+    const usuarios = await rutaService.getUsuariosPorRol(rolRequerido); // Cambio aquí
+    setUsuariosDisponibles(usuarios);
+  } catch (error) {
+    console.error('Error al cargar usuarios:', error);
+    message.error('Error al cargar usuarios disponibles');
+    setUsuariosDisponibles([]);
+  } finally {
+    setLoadingUsuarios(false);
+  }
+  
+  setModalAsignacionVisible(true);
+};
+
+  const handleConfirmarAsignacion = async () => {
+    try {
+      const values = await formAsignacion.validateFields();
+      
+      if (ubicacionesSeleccionadas.length === 0) {
+        message.warning('Debe seleccionar al menos una ubicación');
+        return;
+      }
+
+      const asignaciones: Omit<AsignacionRuta, 'id_asignacion' | 'ubicacion_info'>[] = 
+        ubicacionesSeleccionadas.map((idUbicacion, index) => {
+          const ubicacion = ubicacionesClientes.find(u => u.id_ubicacion === idUbicacion);
+          return {
+            identificacion_usuario: values.identificacion_usuario,
+            tipo_usuario: values.tipo_usuario,
+            cod_cliente: ubicacion?.cod_cliente || '',
+            id_ubicacion: idUbicacion,
+            orden_visita: index + 1
+          };
+        });
+
+      if (rutaParaAsignar) {
+        const rutaActualizada = await rutaService.updateRuta(rutaParaAsignar.id_ruta, {
+          asignaciones
+        });
+        
+        // CAMBIO CLAVE: Recargar todas las rutas para actualizar la tabla
+        await cargarRutas();
+        
+        message.success(`Ruta asignada correctamente a ${values.identificacion_usuario}`);
+        setModalAsignacionVisible(false);
+        setRutaParaAsignar(null);
+        setUbicacionesSeleccionadas([]);
+        setUsuariosDisponibles([]);
+        formAsignacion.resetFields();
+      }
+    } catch (error: any) {
+      console.error('Error al asignar ubicaciones:', error);
+      const errorMessage = error.response?.data?.detail || 'Error al asignar ubicaciones a la ruta';
+      message.error(errorMessage);
+    }
   };
 
   // Obtener sectores únicos de las ubicaciones reales de clientes
@@ -116,7 +198,18 @@ export default function Rutas() {
     ? ubicacionesClientes.filter(u => u.sector === rutaSeleccionada)
     : ubicacionesClientes;
 
+  // Obtener ubicaciones del sector de la ruta para asignar
+  const ubicacionesParaAsignar = rutaParaAsignar
+    ? ubicacionesClientes.filter(u => u.sector === rutaParaAsignar.sector)
+    : [];
+
   const columns: ColumnsType<Ruta> = [
+    { 
+      title: "Nombre", 
+      dataIndex: "nombre", 
+      key: "nombre",
+      ellipsis: true
+    },
     { 
       title: "Sector", 
       dataIndex: "sector", 
@@ -128,7 +221,7 @@ export default function Rutas() {
             <Tag color="blue">{sector}</Tag>
             {clientesEnSector > 0 && (
               <div className="text-xs text-gray-500">
-                {clientesEnSector} cliente{clientesEnSector !== 1 ? 's' : ''}
+                {clientesEnSector} ubicación{clientesEnSector !== 1 ? 'es' : ''}
               </div>
             )}
           </div>
@@ -162,14 +255,55 @@ export default function Rutas() {
       )
     },
     { 
-      title: "Fecha de creación", 
-      dataIndex: "fecha_creacion", 
-      key: "fecha_creacion",
-      render: (fecha: string) => new Date(fecha).toLocaleDateString('es-ES')
+      title: "Fecha de ejecución", 
+      dataIndex: "fecha_ejecucion", 
+      key: "fecha_ejecucion",
+      render: (fecha: string) => fecha ? new Date(fecha).toLocaleDateString('es-ES') : '-'
+    },
+    { 
+      title: "Usuario Asignado", 
+      key: "usuario_asignado",
+      render: (_: any, record: Ruta) => {
+        if (!record.asignaciones || record.asignaciones.length === 0) {
+          return <span className="text-gray-400">Sin asignar</span>;
+        }
+        
+        // Obtener el primer usuario asignado (puede haber múltiples)
+        const primeraAsignacion = record.asignaciones[0];
+        return (
+          <div>
+            <div className="font-medium">
+              {primeraAsignacion.identificacion_usuario}
+            </div>
+            <div className="text-sm text-gray-500">
+              {primeraAsignacion.usuario?.nombre || 'Nombre no disponible'}
+            </div>
+            <div className="text-xs text-blue-600">
+              {primeraAsignacion.tipo_usuario}
+            </div>
+            {record.asignaciones.length > 1 && (
+              <div className="text-xs text-gray-400">
+                +{record.asignaciones.length - 1} más
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
+    
+    { 
+      title: "Asignaciones", 
+      key: "asignaciones",
+      render: (_: any, record: Ruta) => (
+        <div className="text-center">
+          {record.asignaciones?.length || 0}
+        </div>
+      )
     },
     {
       title: "Acciones",
       key: "acciones",
+      width: 200,
       render: (_: any, record: Ruta) => (
         <Space>
           <Button
@@ -177,6 +311,12 @@ export default function Rutas() {
             icon={<EnvironmentOutlined />}
             onClick={() => setRutaSeleccionada(record.sector)}
             title="Ver en Mapa"
+          />
+          <Button
+            type="link"
+            icon={<UserOutlined />}
+            onClick={() => handleAsignarUbicaciones(record)}
+            title="Asignar Ubicaciones"
           />
           <Button
             type="link"
@@ -208,10 +348,10 @@ export default function Rutas() {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-xl font-semibold">Gestión de Rutas</h2>
-            <p className="text-gray-600">
-              Total de ubicaciones de clientes: {ubicacionesClientes.length}
-              {sectoresDisponibles.length > 0 && ` • Sectores disponibles: ${sectoresDisponibles.length}`}
-            </p>
+              <p className="text-gray-600">
+                Total de rutas: {rutas.length} • Total de ubicaciones: {ubicacionesClientes.length}
+                {sectoresDisponibles.length > 0 && ` • Sectores disponibles: ${sectoresDisponibles.length}`}
+              </p>
           </div>
           <Button 
             type="primary" 
@@ -238,6 +378,7 @@ export default function Rutas() {
           }}
         />
 
+        {/* Modal para crear/editar ruta */}
         <Modal
           title={editingRuta ? "Editar Ruta" : "Crear Nueva Ruta"}
           open={modalVisible}
@@ -249,8 +390,17 @@ export default function Rutas() {
           onOk={handleCreateEdit}
           okText={editingRuta ? "Actualizar" : "Crear"}
           cancelText="Cancelar"
+          width={600}
         >
           <Form form={form} layout="vertical">
+            <Form.Item 
+              name="nombre" 
+              label="Nombre de la Ruta" 
+              rules={[{ required: true, message: 'Por favor ingrese el nombre de la ruta' }]}
+            >
+              <Input placeholder="Ej: Ruta Centro Mañana" />
+            </Form.Item>
+
             <Form.Item 
               name="sector" 
               label="Sector" 
@@ -269,7 +419,7 @@ export default function Rutas() {
                   const clientesEnSector = ubicacionesClientes.filter(u => u.sector === sector).length;
                   return (
                     <Option key={sector} value={sector}>
-                      {sector} ({clientesEnSector} cliente{clientesEnSector !== 1 ? 's' : ''})
+                      {sector} ({clientesEnSector} ubicación{clientesEnSector !== 1 ? 'es' : ''})
                     </Option>
                   );
                 })}
@@ -303,14 +453,150 @@ export default function Rutas() {
                 <Option value="entrega">Entrega</Option>
               </Select>
             </Form.Item>
+
+            <Form.Item 
+              name="fecha_ejecucion" 
+              label="Fecha de Ejecución (Opcional)"
+            >
+              <DatePicker 
+                style={{ width: '100%' }}
+                placeholder="Seleccione fecha de ejecución"
+                disabledDate={(current) => current && current < dayjs().startOf('day')}
+              />
+            </Form.Item>
           </Form>
+        </Modal>
+
+        {/* Modal para asignar ubicaciones */}
+        <Modal
+          title={`Asignar Ubicaciones - ${rutaParaAsignar?.nombre}`}
+          open={modalAsignacionVisible}
+          onCancel={() => {
+            setModalAsignacionVisible(false);
+            setRutaParaAsignar(null);
+            setUbicacionesSeleccionadas([]);
+            formAsignacion.resetFields();
+          }}
+          onOk={handleConfirmarAsignacion}
+          okText="Asignar Ubicaciones"
+          cancelText="Cancelar"
+          width={800}
+        >
+          <Form form={formAsignacion} layout="vertical">
+            <Form.Item 
+              name="identificacion_usuario" 
+              label="Usuario" 
+              rules={[{ required: true, message: 'Por favor seleccione un usuario' }]}
+            >
+              <Select 
+                placeholder="Seleccione un usuario"
+                loading={loadingUsuarios}
+                showSearch
+                filterOption={(input, option) => {
+                  if (!option?.children) return false;
+                  return option.children.toString().toLowerCase().includes(input.toLowerCase());
+                }}
+                onChange={(value) => {
+                  const usuarioSeleccionado = usuariosDisponibles.find(u => u.identificacion === value);
+                  if (usuarioSeleccionado) {
+                    const tipoUsuario = rutaParaAsignar?.tipo_ruta === 'venta' ? 'vendedor' : 'transportista';
+                    formAsignacion.setFieldsValue({
+                      tipo_usuario: tipoUsuario
+                    });
+                  }
+                }}
+              >
+                {usuariosDisponibles.map((usuario) => (
+                  <Option key={usuario.identificacion} value={usuario.identificacion}>
+                    <div>
+                      <div className="font-medium">{usuario.identificacion}</div>
+                      <div className="text-sm text-gray-500">{usuario.nombre}</div>
+                      <div className="text-xs text-blue-600">
+                        {typeof usuario.rol === 'object' ? usuario.rol.descripcion : usuario.rol}
+                      </div>
+                    </div>
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item 
+              name="tipo_usuario" 
+              label="Tipo de Usuario" 
+              rules={[{ required: true, message: 'Por favor seleccione el tipo de usuario' }]}
+            >
+              <Select 
+                placeholder="Seleccione tipo de usuario"
+                onChange={(value) => {
+                  // Validar que el tipo coincida con el tipo de ruta
+                  const tipoEsperado = rutaParaAsignar?.tipo_ruta === 'venta' ? 'vendedor' : 'transportista';
+                  if (value !== tipoEsperado) {
+                    message.warning(`Para rutas de ${rutaParaAsignar?.tipo_ruta} debe seleccionar "${tipoEsperado}"`);
+                  }
+                }}
+              >
+                <Option 
+                  value="vendedor" 
+                  disabled={rutaParaAsignar?.tipo_ruta !== 'venta'}
+                >
+                  <UserOutlined /> Vendedor {rutaParaAsignar?.tipo_ruta !== 'venta' && '(Solo para rutas de venta)'}
+                </Option>
+                <Option 
+                  value="transportista"
+                  disabled={rutaParaAsignar?.tipo_ruta !== 'entrega'}
+                >
+                  <CarOutlined /> Transportista {rutaParaAsignar?.tipo_ruta !== 'entrega' && '(Solo para rutas de entrega)'}
+                </Option>
+              </Select>
+            </Form.Item>
+          </Form>
+
+          <div className="mt-4">
+            <h4 className="font-semibold mb-2">
+              Ubicaciones Disponibles en {rutaParaAsignar?.sector} ({ubicacionesParaAsignar.length})
+            </h4>
+            <div className="max-h-60 overflow-y-auto">
+              {ubicacionesParaAsignar.map((ubicacion) => (
+                <div key={ubicacion.id_ubicacion} className="border rounded p-3 mb-2">
+                  <Checkbox
+                    checked={ubicacionesSeleccionadas.includes(ubicacion.id_ubicacion!)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setUbicacionesSeleccionadas(prev => [...prev, ubicacion.id_ubicacion!]);
+                      } else {
+                        setUbicacionesSeleccionadas(prev => 
+                          prev.filter(id => id !== ubicacion.id_ubicacion)
+                        );
+                      }
+                    }}
+                  >
+                    <div className="ml-2">
+                      <div className="font-medium">Cliente: {ubicacion.cod_cliente}</div>
+                      <div className="text-sm text-gray-600">{ubicacion.direccion}</div>
+                      {ubicacion.referencia && (
+                        <div className="text-xs text-gray-500">{ubicacion.referencia}</div>
+                      )}
+                    </div>
+                  </Checkbox>
+                </div>
+              ))}
+            </div>
+            
+            {ubicacionesSeleccionadas.length > 0 && (
+              <div className="mt-2 p-2 bg-blue-50 rounded">
+                <div className="text-sm text-blue-600">
+                  Seleccionadas: {ubicacionesSeleccionadas.length} ubicación{ubicacionesSeleccionadas.length !== 1 ? 'es' : ''}
+                </div>
+              </div>
+            )}
+          </div>
         </Modal>
       </Card>
 
       <Card className="mt-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">
-            Mapa de Clientes
+            Mapa de Ubicaciones
             {rutaSeleccionada && ` - Sector: ${rutaSeleccionada}`}
           </h3>
           
@@ -353,6 +639,8 @@ export default function Rutas() {
             <MapaClientes 
               sectorSeleccionado={rutaSeleccionada}
               ubicacionesReales={ubicacionesFiltradas}
+              rutaSeleccionada={rutas.find(r => r.sector === rutaSeleccionada) || null}
+              mostrarRuta={!!rutaSeleccionada}
             />
           </>
         )}

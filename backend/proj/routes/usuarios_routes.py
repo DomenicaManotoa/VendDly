@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse  # ← Nueva importación
 from sqlalchemy.orm import Session
 from dependencias.auth import get_db, get_current_user, require_role, require_admin
 from controllers import usuarios_controller
-from models.models import Usuario
+from models.models import Usuario, Rol
 import logging
 import io  # ← Nueva importación
 from datetime import datetime  # ← Nueva importación
@@ -129,3 +129,46 @@ def eliminar_usuario(
     except Exception as e:
         logger.error(f"Error al eliminar usuario {identificacion}: {e}")
         raise
+
+@router.get("/usuarios/rol/{rol}")
+def obtener_usuarios_por_rol(
+    rol: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtener usuarios por rol específico"""
+    try:
+        # Buscar el rol por descripción (case insensitive)
+        rol_obj = db.query(Rol).filter(Rol.descripcion.ilike(f"{rol}")).first()
+        if not rol_obj:
+            raise HTTPException(status_code=404, detail=f"Rol '{rol}' no encontrado")
+        
+        # Obtener usuarios con ese rol y estado activo
+        usuarios = db.query(Usuario).filter(
+            Usuario.id_rol == rol_obj.id_rol,
+            Usuario.estado == 'activo'
+        ).all()
+        
+        # Formatear respuesta
+        resultado = []
+        for usuario in usuarios:
+            usuario_dict = {
+                "identificacion": usuario.identificacion,
+                "nombre": usuario.nombre,
+                "correo": usuario.correo,
+                "celular": usuario.celular,
+                "estado": usuario.estado,
+                "id_rol": usuario.id_rol,
+                "rol": {
+                    "id_rol": rol_obj.id_rol,
+                    "descripcion": rol_obj.descripcion
+                }
+            }
+            resultado.append(usuario_dict)
+        
+        return resultado
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error interno del servidor")

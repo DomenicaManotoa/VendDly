@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Select, Button, Modal, Card, Row, Col, Tag, message, Spin, Space } from 'antd';
-import { EnvironmentOutlined, PlusOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Select, Button, Modal, Card, Row, Col, Tag, message, Spin } from 'antd';
+import { EnvironmentOutlined, ReloadOutlined } from '@ant-design/icons';
 import { UbicacionCliente } from '../../../types/types';
 import { ubicacionClienteService } from '../../Admin/ubicacionCliente/ubicacionClienteService';
 import MapaUbicacionCliente from '../ubicacionCliente/MapaUbicacionCliente';
-import FormUbicacionCliente from '../ubicacionCliente/FormUbicacionCliente';
-import { clienteService } from '../Clientes/clienteService';
 
 const { Option } = Select;
 
@@ -25,14 +23,10 @@ const SelectorUbicacionPrincipal: React.FC<SelectorUbicacionPrincipalProps> = ({
   const [ubicaciones, setUbicaciones] = useState<UbicacionCliente[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'view' | 'create' | 'edit'>('view');
-  const [ubicacionParaEditar, setUbicacionParaEditar] = useState<UbicacionCliente | null>(null);
-  const [clientes, setClientes] = useState<any[]>([]);
 
   useEffect(() => {
     if (codCliente) {
       cargarUbicaciones();
-      cargarClientes();
     } else {
       setUbicaciones([]);
     }
@@ -59,71 +53,16 @@ const SelectorUbicacionPrincipal: React.FC<SelectorUbicacionPrincipalProps> = ({
     }
   };
 
-  const cargarClientes = async () => {
-    try {
-      const clientesData = await clienteService.getClientes();
-      setClientes(clientesData);
-    } catch (error) {
-      console.error('Error al cargar clientes:', error);
-    }
-  };
-
   const handleSelectionChange = (value?: number) => {
     onChange(value);
   };
 
-  const abrirModalUbicaciones = (tipo: 'view' | 'create' | 'edit', ubicacion?: UbicacionCliente) => {
-    setModalType(tipo);
-    setUbicacionParaEditar(ubicacion || null);
+  const abrirModalUbicaciones = () => {
     setModalVisible(true);
   };
 
   const cerrarModal = () => {
     setModalVisible(false);
-    setUbicacionParaEditar(null);
-  };
-
-  const handleCreateEditUbicacion = async (ubicacionData: UbicacionCliente) => {
-    try {
-      if (modalType === 'edit' && ubicacionParaEditar?.id_ubicacion) {
-        await ubicacionClienteService.updateUbicacion(ubicacionParaEditar.id_ubicacion, ubicacionData);
-        message.success('Ubicación actualizada correctamente');
-      } else {
-        const nuevaUbicacion = await ubicacionClienteService.createUbicacion(ubicacionData);
-        message.success('Ubicación creada correctamente');
-        
-        // Si es la primera ubicación del cliente, establecerla como principal automáticamente
-        if (ubicaciones.length === 0) {
-          setTimeout(() => {
-            onChange(nuevaUbicacion.id_ubicacion);
-            message.info('Esta ubicación se ha establecido como principal automáticamente');
-          }, 500);
-        }
-      }
-      
-      cerrarModal();
-      cargarUbicaciones(); // Recargar ubicaciones
-    } catch (error) {
-      console.error('Error al procesar ubicación:', error);
-      message.error(modalType === 'edit' ? 'Error al actualizar ubicación' : 'Error al crear ubicación');
-    }
-  };
-
-  const handleDeleteUbicacion = async (idUbicacion: number) => {
-    try {
-      await ubicacionClienteService.deleteUbicacion(idUbicacion);
-      message.success('Ubicación eliminada correctamente');
-      
-      // Si la ubicación eliminada era la principal, limpiar la selección
-      if (valorSeleccionado === idUbicacion) {
-        onChange(undefined);
-      }
-      
-      cargarUbicaciones();
-    } catch (error) {
-      console.error('Error al eliminar ubicación:', error);
-      message.error('Error al eliminar ubicación');
-    }
   };
 
   const establecerComoPrincipal = async (idUbicacion: number) => {
@@ -155,23 +94,15 @@ const SelectorUbicacionPrincipal: React.FC<SelectorUbicacionPrincipalProps> = ({
             {ubicacion.sector}
             {esSeleccionada && <Tag color="blue" className="ml-2">Principal</Tag>}
           </span>
-          <Space>
-            {!esSeleccionada && (
-              <Button
-                type="text"
-                size="small"
-                onClick={() => establecerComoPrincipal(ubicacion.id_ubicacion!)}
-              >
-                Establecer como Principal
-              </Button>
-            )}
+          {!esSeleccionada && (
             <Button
               type="text"
-              icon={<EditOutlined />}
               size="small"
-              onClick={() => abrirModalUbicaciones('edit', ubicacion)}
-            />
-          </Space>
+              onClick={() => establecerComoPrincipal(ubicacion.id_ubicacion!)}
+            >
+              Establecer como Principal
+            </Button>
+          )}
         </div>
       }
     >
@@ -241,20 +172,11 @@ const SelectorUbicacionPrincipal: React.FC<SelectorUbicacionPrincipalProps> = ({
         <Button
           type="dashed"
           icon={<EnvironmentOutlined />}
-          onClick={() => abrirModalUbicaciones('view')}
+          onClick={abrirModalUbicaciones}
           title="Ver todas las ubicaciones"
           disabled={ubicaciones.length === 0}
         >
           Ver ({ubicaciones.length})
-        </Button>
-
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => abrirModalUbicaciones('create')}
-          title="Crear nueva ubicación"
-        >
-          Nueva
         </Button>
       </div>
 
@@ -279,107 +201,71 @@ const SelectorUbicacionPrincipal: React.FC<SelectorUbicacionPrincipalProps> = ({
             <EnvironmentOutlined className="text-orange-600 mr-2" />
             <span className="text-orange-800">
               Este cliente no tiene ubicaciones registradas.
-              <Button 
-                type="link" 
-                className="p-0 ml-1 h-auto"
-                onClick={() => abrirModalUbicaciones('create')}
-              >
-                Crear la primera ubicación
-              </Button>
             </span>
           </div>
         </div>
       )}
 
-      {/* Modal para gestionar ubicaciones */}
+      {/* Modal para ver ubicaciones - Simplificado */}
       <Modal
-        title={
-          modalType === 'view' ? `Ubicaciones de Cliente ${codCliente}` : 
-          modalType === 'create' ? 'Crear Nueva Ubicación' : 
-          'Editar Ubicación'
-        }
+        title={`Ubicaciones de Cliente ${codCliente}`}
         open={modalVisible}
         onCancel={cerrarModal}
-        footer={null}
+        footer={[
+          <Button key="close" onClick={cerrarModal}>
+            Cerrar
+          </Button>
+        ]}
         width={900}
         destroyOnClose
       >
-        {modalType === 'view' ? (
-          <div>
-            {loading ? (
-              <div className="text-center py-8">
-                <Spin size="large" />
-                <p className="mt-2">Cargando ubicaciones...</p>
-              </div>
-            ) : ubicaciones.length > 0 ? (
-              <>
-                <div className="mb-4">
-                  <p className="text-gray-600">
-                    Total de ubicaciones: <strong>{ubicaciones.length}</strong>
-                  </p>
-                </div>
-
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <h4 className="font-semibold mb-3">Lista de Ubicaciones</h4>
-                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                      {ubicaciones.map(ubicacion => 
-                        renderUbicacionCard(
-                          ubicacion, 
-                          ubicacion.id_ubicacion === valorSeleccionado
-                        )
-                      )}
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <h4 className="font-semibold mb-3">Mapa de Ubicaciones</h4>
-                    <div style={{ height: '400px' }}>
-                      <MapaUbicacionCliente
-                        ubicaciones={ubicaciones}
-                        readonly={true}
-                      />
-                    </div>
-                  </Col>
-                </Row>
-
-                <div className="mt-4 text-center">
-                  <Button 
-                    type="primary" 
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                      setModalType('create');
-                    }}
-                  >
-                    Agregar Nueva Ubicación
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <EnvironmentOutlined className="text-4xl text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No hay ubicaciones registradas</h3>
-                <p className="text-gray-600 mb-4">
-                  Este cliente aún no tiene ubicaciones registradas en el sistema.
+        <div>
+          {loading ? (
+            <div className="text-center py-8">
+              <Spin size="large" />
+              <p className="mt-2">Cargando ubicaciones...</p>
+            </div>
+          ) : ubicaciones.length > 0 ? (
+            <>
+              <div className="mb-4">
+                <p className="text-gray-600">
+                  Total de ubicaciones: <strong>{ubicaciones.length}</strong>
                 </p>
-                <Button 
-                  type="primary" 
-                  icon={<PlusOutlined />}
-                  onClick={() => setModalType('create')}
-                >
-                  Crear Primera Ubicación
-                </Button>
               </div>
-            )}
-          </div>
-        ) : (
-          <FormUbicacionCliente
-            visible={true}
-            ubicacion={ubicacionParaEditar}
-            clientes={clientes}
-            onCancel={cerrarModal}
-            onSubmit={handleCreateEditUbicacion}
-          />
-        )}
+
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <h4 className="font-semibold mb-3">Lista de Ubicaciones</h4>
+                  <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    {ubicaciones.map(ubicacion => 
+                      renderUbicacionCard(
+                        ubicacion, 
+                        ubicacion.id_ubicacion === valorSeleccionado
+                      )
+                    )}
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <h4 className="font-semibold mb-3">Mapa de Ubicaciones</h4>
+                  <div style={{ height: '400px' }}>
+                    <MapaUbicacionCliente
+                      ubicaciones={ubicaciones}
+                      readonly={true}
+                    />
+                  </div>
+                </Col>
+              </Row>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <EnvironmentOutlined className="text-4xl text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No hay ubicaciones registradas</h3>
+              <p className="text-gray-600 mb-4">
+                Este cliente aún no tiene ubicaciones registradas en el sistema.
+              </p>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

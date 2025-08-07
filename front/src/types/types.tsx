@@ -225,14 +225,102 @@ export interface MapaUbicacionProps {
   readonly?: boolean;
 }
 
-// Interface para rutas
-export interface Ruta {
-  id_ruta: number;
+// Interface para asignación de ruta
+export interface AsignacionRuta {
+  id_asignacion?: number;
+  identificacion_usuario?: string;
+  tipo_usuario?: 'vendedor' | 'transportista';
+  cod_cliente?: string;
+  id_ubicacion?: number;
+  orden_visita?: number;
+  // Información adicional de la ubicación
+  ubicacion_info?: {
+    direccion: string;
+    sector: string;
+    latitud: number;
+    longitud: number;
+    referencia?: string;
+  };
+}
+
+// Props para selector de ubicaciones
+export interface SelectorUbicacionesProps {
+  ubicaciones: UbicacionClienteRuta[];
+  ubicacionesSeleccionadas: number[];
+  onChange: (ubicaciones: number[]) => void;
+  tipoRuta: 'venta' | 'entrega';
+}
+
+// Interface para mapa de rutas
+export interface MapaRutasProps {
+  ruta?: Ruta;
+  ubicaciones: UbicacionClienteRuta[];
+  onUbicacionSelect?: (ubicacion: UbicacionClienteRuta) => void;
+  mostrarRuta?: boolean;
+}
+
+// Interface para ubicación de cliente en rutas
+export interface UbicacionClienteRuta {
+  id_ubicacion: number;
+  cod_cliente: string;
+  direccion: string;
+  sector: string;
+  latitud: number;
+  longitud: number;
+  referencia?: string;
+  selected?: boolean; // Para marcar si está seleccionada en la ruta
+  orden_visita?: number; // Orden de visita en la ruta
+}
+
+// Interface para crear/editar ruta
+export interface CrearRutaRequest {
+  nombre: string;
+  tipo_ruta: 'venta' | 'entrega';
   sector: string;
   direccion: string;
-  tipo_ruta: string;
+  fecha_ejecucion?: string;
+  asignaciones?: Omit<AsignacionRuta, 'id_asignacion' | 'ubicacion_info'>[];
+}
+
+// Alternativa: Interface específica para creación (sin estado)
+export interface CrearRutaData {
+  nombre: string;
+  tipo_ruta: 'venta' | 'entrega';
+  sector: string;
+  direccion: string;
+  fecha_ejecucion?: string;
+  asignaciones?: Omit<AsignacionRuta, 'id_asignacion' | 'ubicacion_info'>[];
+}
+
+// Interface para actualizar ruta (todos los campos opcionales)
+export interface ActualizarRutaData {
+  nombre?: string;
+  tipo_ruta?: 'venta' | 'entrega';
+  sector?: string;
+  direccion?: string;
+  estado?: string;
+  fecha_ejecucion?: string;
+  asignaciones?: Omit<AsignacionRuta, 'id_asignacion' | 'ubicacion_info'>[];
+}
+
+// Y agregar en types.tsx:
+export interface UsuarioConRol extends Usuario {
+  rol: {
+    id_rol: number;
+    descripcion: string;
+  };
+}
+
+export interface Ruta {
+  id_ruta: number;
+  nombre: string;
+  sector: string;
+  direccion: string;
+  tipo_ruta: 'venta' | 'entrega';
   estado: string;
   fecha_creacion: string;
+  fecha_ejecucion?: string;
+  asignaciones?: AsignacionRuta[];
 }
 
 // NUEVAS INTERFACES para el manejo de ubicaciones principales
@@ -378,4 +466,27 @@ export interface OpcionesExportacion {
   incluirUbicaciones: boolean;
   incluirEstadisticas: boolean;
   filtros?: FiltrosUbicaciones;
+}
+
+// Actualizar la interface AsignacionRuta existente para incluir información del usuario
+export interface AsignacionRuta {
+  id_asignacion?: number;
+  identificacion_usuario?: string;
+  tipo_usuario?: 'vendedor' | 'transportista';
+  cod_cliente?: string;
+  id_ubicacion?: number;
+  orden_visita?: number;
+  // Información adicional de la ubicación
+  ubicacion_info?: {
+    direccion: string;
+    sector: string;
+    latitud: number;
+    longitud: number;
+    referencia?: string;
+  };
+  // AGREGAR: Información del usuario asignado
+  usuario?: {
+    nombre: string;
+    correo?: string;
+  };
 }

@@ -52,7 +52,7 @@ export default function App() {
         
         {/* ✅ CAMBIO: Envolver LayoutConSidebar con ProtectedRoute */}
         <Route element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="Admin"> {/* Agregar requiredRole */}
             <LayoutConSidebar />
           </ProtectedRoute>
         }>
