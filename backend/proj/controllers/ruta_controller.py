@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from models.models import Ruta, AsignacionRuta, UbicacionCliente, Usuario, Rol
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 from datetime import datetime
 
 # Reemplazar la función validate_user_role existente
@@ -202,7 +202,6 @@ def get_rutas_con_asignaciones(db: Session):
             "asignaciones": []
         }
         
-        # Obtener asignaciones con información de ubicaciones
         for asignacion in ruta.asignaciones:
             asignacion_dict = {
                 "id_asignacion": asignacion.id_asignacion,
@@ -211,11 +210,11 @@ def get_rutas_con_asignaciones(db: Session):
                 "cod_cliente": asignacion.cod_cliente,
                 "id_ubicacion": asignacion.id_ubicacion,
                 "orden_visita": asignacion.orden_visita,
-                # AGREGAR ESTA INFORMACIÓN DEL USUARIO:
                 "usuario": {
                     "nombre": asignacion.usuario.nombre if asignacion.usuario else None,
                     "correo": asignacion.usuario.correo if asignacion.usuario else None
-                } if asignacion.usuario else None
+                } if asignacion.usuario else None,
+                "pedidos": []  # Nuevo campo para pedidos
             }
             
             # Agregar información de la ubicación si existe
@@ -227,6 +226,27 @@ def get_rutas_con_asignaciones(db: Session):
                     "longitud": float(asignacion.ubicacion.longitud),
                     "referencia": asignacion.ubicacion.referencia
                 }
+            
+            # Si es ruta de entrega y hay cliente, obtener pedidos con sus estados
+            if ruta.tipo_ruta == 'entrega' and asignacion.cod_cliente:
+                from models.models import Pedido
+                pedidos_cliente = db.query(Pedido).filter(
+                    Pedido.cod_cliente == asignacion.cod_cliente,
+                    Pedido.id_ruta_entrega == ruta.id_ruta
+                ).all()
+                
+                pedidos_info = []
+                for pedido in pedidos_cliente:
+                    pedidos_info.append({
+                        "id_pedido": pedido.id_pedido,
+                        "numero_pedido": pedido.numero_pedido,
+                        "fecha_pedido": pedido.fecha_pedido.strftime('%Y-%m-%d') if pedido.fecha_pedido else None,
+                        "total": float(pedido.total) if pedido.total else 0,
+                        "estado": get_ultimo_estado_pedido(db, pedido.id_pedido),
+                        "cod_cliente": pedido.cod_cliente
+                    })
+                
+                asignacion_dict["pedidos"] = pedidos_info
             
             ruta_dict["asignaciones"].append(asignacion_dict)
         
@@ -256,3 +276,80 @@ def get_ubicaciones_por_sector(db: Session, sector: str):
         }
         for ub in ubicaciones
     ]
+
+def get_pedidos_cliente_para_ruta(db: Session, cod_cliente: str, tipo_ruta: str = 'entrega'):
+    """Obtener pedidos pendientes de un cliente para asignar a ruta de entrega"""
+    from models.models import Pedido, EstadoPedido
+    
+    # Subquery para obtener el estado más reciente de cada pedido
+    subquery = db.query(
+        EstadoPedido.id_pedido,
+        EstadoPedido.descripcion.label('ultimo_estado')
+    ).distinct(EstadoPedido.id_pedido).order_by(
+        EstadoPedido.id_pedido,
+        EstadoPedido.fecha_actualizada.desc()
+    ).subquery()
+    
+    pedidos = db.query(Pedido).join(
+        subquery, Pedido.id_pedido == subquery.c.id_pedido
+    ).filter(
+        and_(
+            Pedido.cod_cliente == cod_cliente,
+            or_(
+                subquery.c.ultimo_estado == 'Pendiente',
+                subquery.c.ultimo_estado == 'Confirmado'
+            ),
+            Pedido.id_ruta_entrega.is_(None)  # Sin ruta de entrega asignada
+        )
+    ).all()
+    
+    return [
+        {
+            "id_pedido": p.id_pedido,
+            "numero_pedido": p.numero_pedido,
+            "fecha_pedido": p.fecha_pedido.strftime('%Y-%m-%d') if p.fecha_pedido else None,
+            "total": float(p.total) if p.total else 0,
+            "estado": get_ultimo_estado_pedido(db, p.id_pedido),
+            "cod_cliente": p.cod_cliente
+        }
+        for p in pedidos
+    ]
+
+def get_ultimo_estado_pedido(db: Session, id_pedido: int):
+    """Obtener el último estado de un pedido"""
+    from models.models import EstadoPedido
+    
+    ultimo_estado = db.query(EstadoPedido).filter(
+        EstadoPedido.id_pedido == id_pedido
+    ).order_by(EstadoPedido.fecha_actualizada.desc()).first()
+    
+    return ultimo_estado.descripcion if ultimo_estado else 'Sin estado'
+
+def asignar_pedidos_a_ruta_entrega(db: Session, id_ruta: int, pedidos_ids: list):
+    """Asignar pedidos a una ruta de entrega"""
+    from models.models import Pedido, EstadoPedido
+    from datetime import date
+    
+    try:
+        # Actualizar los pedidos con la ruta de entrega
+        db.query(Pedido).filter(
+            Pedido.id_pedido.in_(pedidos_ids)
+        ).update({
+            Pedido.id_ruta_entrega: id_ruta
+        }, synchronize_session=False)
+        
+        # Crear estados "En ruta" para cada pedido
+        for pedido_id in pedidos_ids:
+            nuevo_estado = EstadoPedido(
+                id_pedido=pedido_id,
+                fecha_actualizada=date.today(),
+                descripcion="En ruta"
+            )
+            db.add(nuevo_estado)
+        
+        db.commit()
+        return {"mensaje": f"{len(pedidos_ids)} pedidos asignados a la ruta"}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error al asignar pedidos: {str(e)}")

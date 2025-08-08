@@ -225,7 +225,6 @@ export interface MapaUbicacionProps {
   readonly?: boolean;
 }
 
-// Interface para asignación de ruta
 export interface AsignacionRuta {
   id_asignacion?: number;
   identificacion_usuario?: string;
@@ -241,6 +240,13 @@ export interface AsignacionRuta {
     longitud: number;
     referencia?: string;
   };
+  // Información del usuario asignado
+  usuario?: {
+    nombre: string;
+    correo?: string;
+  };
+  // Pedidos asociados (solo para rutas de entrega)
+  pedidos?: PedidoRuta[];
 }
 
 // Props para selector de ubicaciones
@@ -321,6 +327,73 @@ export interface Ruta {
   fecha_creacion: string;
   fecha_ejecucion?: string;
   asignaciones?: AsignacionRuta[];
+}
+
+// Interfaces para pedidos en rutas
+export interface PedidoRuta {
+  id_pedido: number;
+  numero_pedido: string;
+  fecha_pedido: string;
+  cod_cliente: string;
+  total: number;
+  estado: string;
+  cliente_info?: {
+    nombre: string;
+  };
+}
+
+export interface AsignacionConPedidos extends AsignacionRuta {
+  pedidos?: PedidoRuta[];
+}
+
+
+// Interface para estadísticas de entregas
+export interface EstadisticasEntregas {
+  totalRutasEntrega: number;
+  rutasEnEjecucion: number;
+  rutasCompletadas: number;
+  rutasPlanificadas: number;
+  rutasCanceladas: number;
+  totalParadas: number;
+  transportistasAsignados: number;
+  sectoresConEntregas: number;
+  promedioParadasPorRuta: number;
+}
+
+// Interface para resumen de entrega por transportista
+export interface ResumenEntregaTransportista {
+  identificacion_usuario: string;
+  nombre_usuario: string;
+  rutasAsignadas: number;
+  rutasCompletadas: number;
+  rutasEnEjecucion: number;
+  totalParadas: number;
+  sectoresAtendidos: string[];
+}
+
+// Interface para estadísticas de ventas
+export interface EstadisticasVentas {
+  totalRutasVenta: number;
+  rutasEnEjecucion: number;
+  rutasCompletadas: number;
+  rutasPlanificadas: number;
+  rutasCanceladas: number;
+  totalVisitasProgramadas: number;
+  vendedoresAsignados: number;
+  sectoresConVentas: number;
+  promedioVisitasPorRuta: number;
+}
+
+// Interface para resumen de ventas por vendedor
+export interface ResumenVentaVendedor {
+  identificacion_usuario: string;
+  nombre_usuario: string;
+  rutasAsignadas: number;
+  rutasCompletadas: number;
+  rutasEnEjecucion: number;
+  totalVisitasProgramadas: number;
+  sectoresAtendidos: string[];
+  clientesAsignados: string[];
 }
 
 // NUEVAS INTERFACES para el manejo de ubicaciones principales
@@ -490,3 +563,4 @@ export interface AsignacionRuta {
     correo?: string;
   };
 }
+

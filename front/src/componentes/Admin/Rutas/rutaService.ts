@@ -1,6 +1,6 @@
 // Cambiar el archivo completo a:
 import axios from '../../../utils/axiosConfig';
-import { Ruta, CrearRutaData, ActualizarRutaData, UsuarioConRol } from '../../../types/types';
+import { Ruta, CrearRutaData, ActualizarRutaData, UsuarioConRol, PedidoRuta } from '../../../types/types';
 
 export const rutaService = {
   // Obtener todas las rutas
@@ -25,6 +25,60 @@ export const rutaService = {
       throw error;
     }
   },
+    // Obtener solo rutas de entrega
+  getRutasEntrega: async (): Promise<Ruta[]> => {
+    try {
+      const todasLasRutas = await rutaService.getRutas();
+      return todasLasRutas.filter(ruta => ruta.tipo_ruta === 'entrega');
+    } catch (error) {
+      console.error('Error al obtener rutas de entrega:', error);
+      throw error;
+    }
+  },
+
+    // Obtener solo rutas de venta
+  getRutasVenta: async (): Promise<Ruta[]> => {
+    try {
+      const todasLasRutas = await rutaService.getRutas();
+      return todasLasRutas.filter(ruta => ruta.tipo_ruta === 'venta');
+    } catch (error) {
+      console.error('Error al obtener rutas de venta:', error);
+      throw error;
+    }
+  },
+
+  // Agregar al final del objeto rutaService, antes del cierre
+getPedidosRuta: async (idRuta: number): Promise<PedidoRuta[]> => {
+  try {
+    const response = await axios.get(`/rutas/${idRuta}/pedidos`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener pedidos de la ruta:', error);
+    throw error;
+  }
+},
+
+asignarPedidosRuta: async (idRuta: number, pedidosIds: number[]): Promise<void> => {
+  try {
+    await axios.post(`/rutas/${idRuta}/asignar-pedidos`, {
+      pedidos_ids: pedidosIds
+    });
+  } catch (error) {
+    console.error('Error al asignar pedidos a la ruta:', error);
+    throw error;
+  }
+},
+
+getPedidosClienteDisponibles: async (codCliente: string): Promise<PedidoRuta[]> => {
+  try {
+    // Este endpoint necesitarás crearlo en el backend si quieres obtener pedidos disponibles por cliente
+    const response = await axios.get(`/pedidos/cliente/${codCliente}/disponibles`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener pedidos disponibles del cliente:', error);
+    throw error;
+  }
+},
 
   // Crear nueva ruta
   createRuta: async (ruta: CrearRutaData): Promise<Ruta> => {

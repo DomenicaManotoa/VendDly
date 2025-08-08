@@ -18,7 +18,8 @@ import {
   TruckOutlined,
   UserSwitchOutlined,
   LoadingOutlined,
-  EnvironmentOutlined, // ✅ AGREGAR ESTE ICONO
+  EnvironmentOutlined,
+  DollarOutlined, // ✅ AGREGAR ESTE ICONO PARA VENTAS
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -34,6 +35,7 @@ const mainItems: MenuItem[] = [
   { key: '/pedidos', icon: <SnippetsOutlined />, label: 'Pedidos' },
   { key: '/facturas', icon: <ContainerOutlined />, label: 'Facturas' },
   { key: '/entregas', icon: <TruckOutlined />, label: 'Entregas' },
+  { key: '/venta', icon: <DollarOutlined />, label: 'Ventas' }, // ✅ AGREGAR ITEM DE VENTAS
   { key: '/categorias', icon: <ShopOutlined />, label: 'Categorías' },
   { key: '/marcas', icon: <TagsOutlined />, label: 'Marcas' },
   { key: '/roles', icon: <UserSwitchOutlined />, label: 'Roles' },

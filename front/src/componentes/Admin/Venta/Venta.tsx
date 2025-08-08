@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Table, Tag, Card, Select, message, Space, Button } from "antd";
-import { EnvironmentOutlined, UserOutlined, TruckOutlined } from "@ant-design/icons";
+import { EnvironmentOutlined, UserOutlined, DollarOutlined } from "@ant-design/icons";
 import type { ColumnsType } from 'antd/es/table';
 import MapaClientes from "../Rutas/MapaClientes";
 import { rutaService } from "../Rutas/rutaService";
@@ -9,8 +9,8 @@ import { Ruta, UbicacionCliente } from "../../../types/types";
 
 const { Option } = Select;
 
-export default function Entregas() {
-  const [rutasEntrega, setRutasEntrega] = useState<Ruta[]>([]);
+export default function Venta() {
+  const [rutasVenta, setRutasVenta] = useState<Ruta[]>([]);
   const [rutaSeleccionada, setRutaSeleccionada] = useState<Ruta | null>(null);
   const [sectorSeleccionado, setSectorSeleccionado] = useState<string | null>(null);
   const [ubicacionesClientes, setUbicacionesClientes] = useState<UbicacionCliente[]>([]);
@@ -18,20 +18,20 @@ export default function Entregas() {
   const [loadingUbicaciones, setLoadingUbicaciones] = useState(false);
 
   useEffect(() => {
-    cargarRutasEntrega();
+    cargarRutasVenta();
     cargarUbicacionesClientes();
   }, []);
 
-  const cargarRutasEntrega = async () => {
+  const cargarRutasVenta = async () => {
     setLoadingRutas(true);
     try {
       const todasLasRutas = await rutaService.getRutas();
-      // Filtrar solo rutas de entrega
-      const rutasDeEntrega = todasLasRutas.filter(ruta => ruta.tipo_ruta === 'entrega');
-      setRutasEntrega(rutasDeEntrega);
+      // Filtrar solo rutas de venta
+      const rutasDeVenta = todasLasRutas.filter(ruta => ruta.tipo_ruta === 'venta');
+      setRutasVenta(rutasDeVenta);
     } catch (error) {
-      console.error('Error al cargar rutas de entrega:', error);
-      message.error('Error al cargar las rutas de entrega');
+      console.error('Error al cargar rutas de venta:', error);
+      message.error('Error al cargar las rutas de venta');
     } finally {
       setLoadingRutas(false);
     }
@@ -50,30 +50,30 @@ export default function Entregas() {
     }
   };
 
-  // Obtener sectores únicos de las rutas de entrega
-  const sectoresDisponibles = Array.from(new Set(rutasEntrega.map(r => r.sector)));
+  // Obtener sectores únicos de las rutas de venta
+  const sectoresDisponibles = Array.from(new Set(rutasVenta.map(r => r.sector)));
 
-// Reemplazar la función ubicacionesFiltradas (línea aproximada 54-63)
-const ubicacionesFiltradas = rutaSeleccionada 
-  ? ubicacionesClientes.filter(u => {
-      // Mostrar ubicaciones que están en las asignaciones de la ruta seleccionada
-      return rutaSeleccionada.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion);
-    })
-  : sectorSeleccionado
-  ? // Solo ubicaciones que están en rutas de entrega del sector seleccionado
-    ubicacionesClientes.filter(u => {
-      return u.sector === sectorSeleccionado && 
-        rutasEntrega.some(ruta => 
-          ruta.sector === sectorSeleccionado &&
+  // Filtrar ubicaciones solo de rutas de venta
+  const ubicacionesFiltradas = rutaSeleccionada 
+    ? ubicacionesClientes.filter(u => {
+        // Mostrar ubicaciones que están en las asignaciones de la ruta seleccionada
+        return rutaSeleccionada.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion);
+      })
+    : sectorSeleccionado
+    ? // Solo ubicaciones que están en rutas de venta del sector seleccionado
+      ubicacionesClientes.filter(u => {
+        return u.sector === sectorSeleccionado && 
+          rutasVenta.some(ruta => 
+            ruta.sector === sectorSeleccionado &&
+            ruta.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion)
+          );
+      })
+    : // Mostrar solo ubicaciones que están asignadas a alguna ruta de venta
+      ubicacionesClientes.filter(u => 
+        rutasVenta.some(ruta => 
           ruta.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion)
-        );
-    })
-  : // Mostrar solo ubicaciones que están asignadas a alguna ruta de entrega
-    ubicacionesClientes.filter(u => 
-      rutasEntrega.some(ruta => 
-        ruta.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion)
-      )
-    );
+        )
+      );
 
   const handleVerEnMapa = (ruta: Ruta) => {
     setRutaSeleccionada(ruta);
@@ -103,11 +103,11 @@ const ubicacionesFiltradas = rutaSeleccionada
       dataIndex: "sector", 
       key: "sector",
       render: (sector: string) => {
-        const rutasEnSector = rutasEntrega.filter(r => r.sector === sector).length;
+        const rutasEnSector = rutasVenta.filter(r => r.sector === sector).length;
         const ubicacionesEnSector = ubicacionesClientes.filter(u => u.sector === sector).length;
         return (
           <div>
-            <Tag color="orange">{sector}</Tag>
+            <Tag color="green">{sector}</Tag>
             <div className="text-xs text-gray-500">
               {rutasEnSector} ruta{rutasEnSector !== 1 ? 's' : ''} • {ubicacionesEnSector} ubicación{ubicacionesEnSector !== 1 ? 'es' : ''}
             </div>
@@ -145,38 +145,38 @@ const ubicacionesFiltradas = rutaSeleccionada
       render: (fecha: string) => fecha ? new Date(fecha).toLocaleDateString('es-ES') : '-'
     },
     { 
-      title: "Transportista Asignado", 
-      key: "transportista_asignado",
+      title: "Vendedor Asignado", 
+      key: "vendedor_asignado",
       render: (_: any, record: Ruta) => {
-        const transportista = record.asignaciones?.find(asig => asig.tipo_usuario === 'transportista');
+        const vendedor = record.asignaciones?.find(asig => asig.tipo_usuario === 'vendedor');
         
-        if (!transportista) {
+        if (!vendedor) {
           return <span className="text-gray-400">Sin asignar</span>;
         }
         
         return (
           <div>
             <div className="font-medium flex items-center gap-1">
-              <TruckOutlined className="text-orange-500" />
-              {transportista.identificacion_usuario}
+              <DollarOutlined className="text-green-500" />
+              {vendedor.identificacion_usuario}
             </div>
             <div className="text-sm text-gray-500">
-              {transportista.usuario?.nombre || 'Nombre no disponible'}
+              {vendedor.usuario?.nombre || 'Nombre no disponible'}
             </div>
           </div>
         );
       }
     },
     { 
-      title: "Paradas Programadas", 
-      key: "paradas",
+      title: "Clientes Programados", 
+      key: "clientes",
       align: 'center',
       render: (_: any, record: Ruta) => {
-        const paradas = record.asignaciones?.filter(asig => asig.id_ubicacion).length || 0;
+        const clientes = record.asignaciones?.filter(asig => asig.id_ubicacion).length || 0;
         return (
           <div className="text-center">
-            <div className="text-lg font-semibold text-blue-600">{paradas}</div>
-            <div className="text-xs text-gray-500">ubicaciones</div>
+            <div className="text-lg font-semibold text-green-600">{clientes}</div>
+            <div className="text-xs text-gray-500">visitas</div>
           </div>
         );
       }
@@ -192,7 +192,7 @@ const ubicacionesFiltradas = rutaSeleccionada
             icon={<EnvironmentOutlined />}
             onClick={() => handleVerEnMapa(record)}
             title="Ver Ruta en Mapa"
-            className="text-blue-500 hover:text-blue-700"
+            className="text-green-500 hover:text-green-700"
           />
         </Space>
       )
@@ -205,11 +205,11 @@ const ubicacionesFiltradas = rutaSeleccionada
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-xl font-semibold flex items-center gap-2">
-              <TruckOutlined className="text-orange-500" />
-              Gestión de Entregas
+              <DollarOutlined className="text-green-500" />
+              Gestión de Ventas
             </h2>
             <p className="text-gray-600">
-              Total de rutas de entrega: {rutasEntrega.length} • 
+              Total de rutas de venta: {rutasVenta.length} • 
               Sectores disponibles: {sectoresDisponibles.length} • 
               Total ubicaciones: {ubicacionesClientes.length}
             </p>
@@ -227,7 +227,7 @@ const ubicacionesFiltradas = rutaSeleccionada
             disabled={!!rutaSeleccionada}
           >
             {sectoresDisponibles.map((sector) => {
-              const rutasEnSector = rutasEntrega.filter(r => r.sector === sector).length;
+              const rutasEnSector = rutasVenta.filter(r => r.sector === sector).length;
               return (
                 <Option key={sector} value={sector}>
                   {sector} ({rutasEnSector} ruta{rutasEnSector !== 1 ? 's' : ''})
@@ -250,18 +250,18 @@ const ubicacionesFiltradas = rutaSeleccionada
 
         {/* Información de filtros aplicados */}
         {rutaSeleccionada && (
-          <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded">
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded">
             <div className="flex items-center gap-2">
-              <TruckOutlined className="text-orange-500" />
+              <DollarOutlined className="text-green-500" />
               <span className="font-medium">Visualizando ruta: {rutaSeleccionada.nombre}</span>
-              <Tag color="orange">Entrega</Tag>
+              <Tag color="green">Venta</Tag>
               <Tag color="blue">{rutaSeleccionada.sector}</Tag>
             </div>
           </div>
         )}
 
         <Table 
-          dataSource={rutasEntrega} 
+          dataSource={rutasVenta} 
           columns={columns} 
           rowKey="id_ruta"
           loading={loadingRutas}
@@ -269,22 +269,22 @@ const ubicacionesFiltradas = rutaSeleccionada
             pageSize: 10,
             showSizeChanger: true,
             showTotal: (total, range) => 
-              `${range[0]}-${range[1]} de ${total} rutas de entrega`
+              `${range[0]}-${range[1]} de ${total} rutas de venta`
           }}
           locale={{
             emptyText: (
               <div className="text-center py-8">
-                <TruckOutlined className="text-6xl text-gray-300 mb-4" />
+                <DollarOutlined className="text-6xl text-gray-300 mb-4" />
                 <div className="text-gray-500">
-                  No hay rutas de entrega registradas.
+                  No hay rutas de venta registradas.
                   <br />
-                  Las rutas de entrega se crean desde la sección "Rutas".
+                  Las rutas de venta se crean desde la sección "Rutas".
                 </div>
               </div>
             )
           }}
           rowClassName={(record) => 
-            rutaSeleccionada?.id_ruta === record.id_ruta ? 'bg-orange-50' : ''
+            rutaSeleccionada?.id_ruta === record.id_ruta ? 'bg-green-50' : ''
           }
         />
       </Card>
@@ -293,7 +293,7 @@ const ubicacionesFiltradas = rutaSeleccionada
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <EnvironmentOutlined />
-            Mapa de Rutas de Entrega
+            Mapa de Rutas de Venta
             {rutaSeleccionada && ` - ${rutaSeleccionada.nombre}`}
             {sectorSeleccionado && ` - Sector: ${sectorSeleccionado}`}
           </h3>
@@ -301,15 +301,15 @@ const ubicacionesFiltradas = rutaSeleccionada
 
         {loadingUbicaciones ? (
           <div className="text-center py-8">
-            Cargando ubicaciones de entrega...
+            Cargando ubicaciones de venta...
           </div>
         ) : (
           <>
             <div className="mb-2 text-sm text-gray-600">
-              Mostrando {ubicacionesFiltradas.length} ubicaciones de entrega
+              Mostrando {ubicacionesFiltradas.length} ubicaciones de venta
               {rutaSeleccionada && ` para la ruta "${rutaSeleccionada.nombre}"`}
-              {sectorSeleccionado && !rutaSeleccionada && ` en rutas de entrega del sector ${sectorSeleccionado}`}
-              {!rutaSeleccionada && !sectorSeleccionado && ` (solo ubicaciones asignadas a rutas de entrega)`}
+              {sectorSeleccionado && !rutaSeleccionada && ` en rutas de venta del sector ${sectorSeleccionado}`}
+              {!rutaSeleccionada && !sectorSeleccionado && ` (solo ubicaciones asignadas a rutas de venta)`}
             </div>
             
             <MapaClientes 

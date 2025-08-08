@@ -261,3 +261,79 @@ def actualizar_estado_ruta(
         db.rollback()
         logger.error(f"Error al actualizar estado de ruta {id_ruta}: {e}")
         raise HTTPException(status_code=500, detail="Error interno del servidor")
+    
+@router.get("/rutas/{id_ruta}/pedidos")
+def obtener_pedidos_ruta(
+    id_ruta: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtener pedidos asignados a una ruta de entrega"""
+    try:
+        from models.models import Pedido
+        
+        ruta = db.query(Ruta).filter(Ruta.id_ruta == id_ruta).first()
+        if not ruta:
+            raise HTTPException(status_code=404, detail="Ruta no encontrada")
+        
+        if ruta.tipo_ruta != 'entrega':
+            raise HTTPException(status_code=400, detail="Solo rutas de entrega tienen pedidos")
+        
+        pedidos = db.query(Pedido).filter(Pedido.id_ruta_entrega == id_ruta).all()
+        
+        return [
+            {
+                "id_pedido": p.id_pedido,
+                "numero_pedido": p.numero_pedido,
+                "fecha_pedido": p.fecha_pedido.strftime('%Y-%m-%d') if p.fecha_pedido else None,
+                "cod_cliente": p.cod_cliente,
+                "total": float(p.total) if p.total else 0,
+                "estado": ruta_controller.get_ultimo_estado_pedido(db, p.id_pedido),
+                "cliente_info": {
+                    "nombre": p.cliente.nombre if p.cliente else None
+                }
+            }
+            for p in pedidos
+        ]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error al obtener pedidos de ruta {id_ruta}: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
+
+@router.get("/pedidos/cliente/{cod_cliente}/disponibles")
+def obtener_pedidos_cliente_disponibles(
+    cod_cliente: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtener pedidos disponibles de un cliente para asignar a ruta"""
+    try:
+        pedidos = ruta_controller.get_pedidos_cliente_para_ruta(db, cod_cliente)
+        return pedidos
+    except Exception as e:
+        logger.error(f"Error al obtener pedidos disponibles del cliente {cod_cliente}: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
+
+@router.post("/rutas/{id_ruta}/asignar-pedidos")
+def asignar_pedidos_ruta(
+    id_ruta: int,
+    pedidos_data: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin())
+):
+    """Asignar pedidos a una ruta de entrega"""
+    try:
+        pedidos_ids = pedidos_data.get('pedidos_ids', [])
+        
+        if not pedidos_ids:
+            raise HTTPException(status_code=400, detail="Debe proporcionar al menos un pedido")
+        
+        return ruta_controller.asignar_pedidos_a_ruta_entrega(db, id_ruta, pedidos_ids)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error al asignar pedidos a ruta {id_ruta}: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")

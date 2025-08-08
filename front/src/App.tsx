@@ -5,6 +5,7 @@ import Pedidos from 'componentes/Admin/Pedidos/Index';
 import Catalogo from 'componentes/Admin/Catalogo/Catalogo';
 import Facturas from 'componentes/Admin/Facturas/Facturas';
 import Entregas from 'componentes/Admin/Entregas/Entregas';
+import Venta from 'componentes/Admin/Venta/Venta';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Clientes from 'componentes/Admin/Clientes/IndexClientes';
 import Inventario from 'componentes/Admin/Inventario/Inventario_Index';
@@ -40,6 +41,7 @@ import Rutas from 'componentes/Admin/Rutas/Rutas';
 import UbicacionClientePage from 'componentes/Admin/ubicacionCliente/UbicacionCliente';
 
 
+
 // ✅ IMPORTAR PROTECTEDROUTE - AGREGAR ESTA LÍNEA
 import { ProtectedRoute } from 'componentes/ProtectedRoute';
 
@@ -62,6 +64,7 @@ export default function App() {
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/empleados" element={<Usuarios />} />
           <Route path="/entregas" element={<Entregas />} />
+          <Route path="/venta" element={<Venta />} />
           <Route path="/facturas" element={<Facturas />} />
           <Route path="/pedidos" element={<Pedidos />} />
           <Route path="/categorias" element={<Categorias_Admin />} />
