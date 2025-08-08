@@ -44,11 +44,12 @@ def create_usuario(db: Session, usuario_data: dict):
     Crea un nuevo usuario con salt
     """
     try:
-        # Generar salt y hashear la contraseña antes de guardar
-        if 'contrasena' in usuario_data:
+        # CAMBIO 1: Generar salt y hashear la contraseña antes de guardar
+        if 'contrasena' in usuario_data and usuario_data['contrasena']:
             salt = generate_salt()
             usuario_data['salt'] = salt
             usuario_data['contrasena'] = hash_password_with_salt(usuario_data['contrasena'], salt)
+            print(f"Usuario creado - Salt generado y contraseña hasheada")
         
         nuevo_usuario = Usuario(**usuario_data)
         db.add(nuevo_usuario)
@@ -66,24 +67,34 @@ def create_usuario(db: Session, usuario_data: dict):
 
 def update_usuario(db: Session, identificacion: str, usuario_data: dict):
     """
-    Actualiza un usuario existente con salt
+    Actualiza un usuario existente con salt - CORREGIDO para evitar doble hash
     """
     try:
         usuario = db.query(Usuario).filter(Usuario.identificacion == identificacion).first()
         if not usuario:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
         
-        # Si se está actualizando la contraseña, generar nuevo salt y hashearla
-        if 'contrasena' in usuario_data and usuario_data['contrasena']:
-            salt = generate_salt()
-            usuario_data['salt'] = salt
-            usuario_data['contrasena'] = hash_password_with_salt(usuario_data['contrasena'], salt)
-        elif 'contrasena' in usuario_data and not usuario_data['contrasena']:
-            # Si la contraseña está vacía, no actualizarla
-            del usuario_data['contrasena']
+        # CAMBIO 2: Solo hashear si realmente hay una nueva contraseña
+        if 'contrasena' in usuario_data:
+            if usuario_data['contrasena'] and usuario_data['contrasena'].strip():
+                # Solo hashear si hay una contraseña nueva no vacía
+                salt = generate_salt()
+                usuario_data['salt'] = salt
+                usuario_data['contrasena'] = hash_password_with_salt(usuario_data['contrasena'], salt)
+                print(f"Usuario editado - Nueva contraseña hasheada con nuevo salt")
+            else:
+                # Si la contraseña está vacía o solo espacios, no actualizarla
+                print(f"Usuario editado - Manteniendo contraseña existente")
+                del usuario_data['contrasena']
+                # CAMBIO 3: No tocar el salt existente si no se cambia la contraseña
+                if 'salt' in usuario_data:
+                    del usuario_data['salt']
         
+        # CAMBIO 4: Actualizar solo los campos que realmente cambiaron
         for key, value in usuario_data.items():
-            setattr(usuario, key, value)
+            if hasattr(usuario, key):  # Verificar que el atributo existe
+                setattr(usuario, key, value)
+                print(f"Actualizando campo {key}")
         
         db.commit()
         db.refresh(usuario)

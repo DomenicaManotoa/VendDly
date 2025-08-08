@@ -8,18 +8,20 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
 
   useEffect(() => {
     if (userToEdit) {
-      // Mapear los datos del usuario para el formulario
+      // CAMBIO 5: Mapear los datos del usuario para el formulario SIN incluir la contraseña
       const formData = {
         ...userToEdit,
         id_rol: typeof userToEdit.rol === 'object' && userToEdit.rol ? userToEdit.rol.id_rol : userToEdit.id_rol,
-        fecha_actualizacion: userToEdit.fecha_actualizacion ? dayjs(userToEdit.fecha_actualizacion) : dayjs()
+        fecha_actualizacion: userToEdit.fecha_actualizacion ? dayjs(userToEdit.fecha_actualizacion) : dayjs(),
+        // CAMBIO 6: NO establecer la contraseña en el formulario para edición
+        contrasena: undefined // Esto garantiza que el campo esté vacío
       };
       form.setFieldsValue(formData);
     } else {
       form.resetFields();
       // Establecer valores por defecto para nuevo usuario
       form.setFieldsValue({
-        estado: 'Activo',
+        estado: 'activo', // CAMBIO 7: Cambiar 'Activo' por 'activo' para consistencia
         fecha_actualizacion: dayjs()
       });
     }
@@ -28,16 +30,34 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
   const handleOk = () => {
     form.validateFields()
       .then(values => {
-        // Formatear los datos antes de enviar
+        console.log('Valores del formulario antes de procesar:', values);
+        
+        // CAMBIO 8: Mejorar el formateo de los datos antes de enviar
         const formattedValues = {
           ...values,
-          fecha_actualizacion: values.fecha_actualizacion ? values.fecha_actualizacion.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD')
+          fecha_actualizacion: values.fecha_actualizacion ? 
+            values.fecha_actualizacion.format('YYYY-MM-DD') : 
+            dayjs().format('YYYY-MM-DD')
         };
         
-        // Si es edición, no enviar la contraseña vacía
-        if (userToEdit && !values.contrasena) {
-          delete formattedValues.contrasena;
+        // CAMBIO 9: Manejo más robusto de la contraseña para edición
+        if (userToEdit) {
+          // Si es edición y la contraseña está vacía o solo espacios, no enviarla
+          if (!values.contrasena || values.contrasena.trim() === '') {
+            delete formattedValues.contrasena;
+            console.log('Edición: Contraseña vacía, manteniendo la actual');
+          } else {
+            console.log('Edición: Nueva contraseña proporcionada, será actualizada');
+          }
+        } else {
+          // Para nuevo usuario, la contraseña es obligatoria
+          console.log('Nuevo usuario: Contraseña será hasheada');
         }
+        
+        console.log('Datos formateados a enviar:', {
+          ...formattedValues,
+          contrasena: formattedValues.contrasena ? '***OCULTA***' : 'NO_ENVIADA'
+        });
         
         onSubmit(formattedValues);
         form.resetFields();
@@ -129,10 +149,14 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
             { required: true, message: 'La contraseña es requerida' },
             { min: 8, message: 'La contraseña debe tener al menos 8 caracteres' }
           ]}
+          // CAMBIO 10: Agregar ayuda visual para el usuario
+          help={userToEdit ? "Dejar vacío para mantener la contraseña actual" : undefined}
         >
           <Input.Password 
-            placeholder={userToEdit ? "Dejar vacío para mantener la actual" : "Ingrese la contraseña"} 
+            placeholder={userToEdit ? "Nueva contraseña (opcional)" : "Ingrese la contraseña"} 
             maxLength={100}
+            // CAMBIO 11: Limpiar el valor por defecto para edición
+            value={userToEdit ? undefined : undefined}
           />
         </Form.Item>
         
@@ -144,8 +168,8 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
           <Select 
             placeholder="Seleccione el estado"
             options={[
-              { value: 'activo', label: 'activo' },
-              { value: 'inactivo', label: 'inactivo' }
+              { value: 'activo', label: 'Activo' },
+              { value: 'inactivo', label: 'Inactivo' }
             ]} 
           />
         </Form.Item>
