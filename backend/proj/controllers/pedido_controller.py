@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from models.models import Pedido, DetallePedido
 from typing import Dict, Any
+from datetime import datetime
 
 def get_pedidos(db: Session):
     """Obtiene todos los pedidos con sus detalles"""
@@ -16,9 +17,6 @@ def get_pedidos(db: Session):
             "iva": pedido.iva,
             "total": pedido.total,
             "cod_cliente": pedido.cod_cliente,
-            "id_ubicacion_entrega": pedido.id_ubicacion_entrega,
-            "id_ruta_venta": pedido.id_ruta_venta,
-            "id_ruta_entrega": pedido.id_ruta_entrega,
             "detalles": []
         }
         
@@ -54,9 +52,6 @@ def get_pedido(db: Session, id_pedido: int):
         "iva": pedido.iva,
         "total": pedido.total,
         "cod_cliente": pedido.cod_cliente,
-        "id_ubicacion_entrega": pedido.id_ubicacion_entrega,
-        "id_ruta_venta": pedido.id_ruta_venta,
-        "id_ruta_entrega": pedido.id_ruta_entrega,
         "detalles": []
     }
     
@@ -79,20 +74,23 @@ def get_pedido(db: Session, id_pedido: int):
 def create_pedido(db: Session, pedido_data: Dict[str, Any]):
     """Crea un nuevo pedido con sus detalles"""
     try:
-        # Extraer detalles del pedido_data
-        detalles_data = pedido_data.pop('detalle_pedido', [])
+        # Crear una copia para no modificar el original
+        data_copy = pedido_data.copy()
         
-        # Preparar datos del pedido (sin los detalles)
+        # Extraer detalles del pedido_data
+        detalles_data = data_copy.get('detalle_pedido', [])
+        
+        fecha_pedido = data_copy.get("fecha_pedido")
+        if isinstance(fecha_pedido, str):
+            fecha_pedido = datetime.strptime(fecha_pedido, "%Y-%m-%d").date()
+        
         pedido_fields = {
-            "numero_pedido": pedido_data.get("numero_pedido"),
-            "fecha_pedido": pedido_data.get("fecha_pedido"),
-            "subtotal": pedido_data.get("subtotal", 0),
-            "iva": pedido_data.get("iva", 0),
-            "total": pedido_data.get("total", 0),
-            "cod_cliente": pedido_data.get("cod_cliente"),
-            "id_ubicacion_entrega": pedido_data.get("id_ubicacion_entrega"),
-            "id_ruta_venta": pedido_data.get("id_ruta_venta"),
-            "id_ruta_entrega": pedido_data.get("id_ruta_entrega")
+            "numero_pedido": data_copy.get("numero_pedido"),
+            "fecha_pedido": fecha_pedido,
+            "subtotal": float(data_copy.get("subtotal", 0)),
+            "iva": float(data_copy.get("iva", 0)),
+            "total": float(data_copy.get("total", 0)),
+            "cod_cliente": data_copy.get("cod_cliente")
         }
         
         # Filtrar campos None
@@ -124,7 +122,6 @@ def create_pedido(db: Session, pedido_data: Dict[str, Any]):
         db.commit()
         db.refresh(nuevo_pedido)
         
-        # Preparar respuesta con detalles
         response = {
             "id_pedido": nuevo_pedido.id_pedido,
             "numero_pedido": nuevo_pedido.numero_pedido,
@@ -133,9 +130,6 @@ def create_pedido(db: Session, pedido_data: Dict[str, Any]):
             "iva": nuevo_pedido.iva,
             "total": nuevo_pedido.total,
             "cod_cliente": nuevo_pedido.cod_cliente,
-            "id_ubicacion_entrega": nuevo_pedido.id_ubicacion_entrega,
-            "id_ruta_venta": nuevo_pedido.id_ruta_venta,
-            "id_ruta_entrega": nuevo_pedido.id_ruta_entrega,
             "detalles": []
         }
         
@@ -157,6 +151,10 @@ def create_pedido(db: Session, pedido_data: Dict[str, Any]):
         
     except Exception as e:
         db.rollback()
+        print(f"Error detallado al crear pedido: {str(e)}")
+        print(f"Tipo de error: {type(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error al crear pedido: {str(e)}")
 
 def update_pedido(db: Session, id_pedido: int, pedido_data: Dict[str, Any]):
@@ -206,9 +204,6 @@ def update_pedido(db: Session, id_pedido: int, pedido_data: Dict[str, Any]):
             "iva": pedido.iva,
             "total": pedido.total,
             "cod_cliente": pedido.cod_cliente,
-            "id_ubicacion_entrega": pedido.id_ubicacion_entrega,
-            "id_ruta_venta": pedido.id_ruta_venta,
-            "id_ruta_entrega": pedido.id_ruta_entrega,
             "detalles": []
         }
         

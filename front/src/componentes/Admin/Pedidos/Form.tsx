@@ -1,12 +1,10 @@
 import axios from "axios";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-import { Cliente, Pedido, DetallePedido, Producto, Categoria, Marca } from "types/types";
-import { Button, Form, InputNumber, Select, DatePicker, message, Space, Typography, Input, Divider } from "antd";
-import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
+import { Cliente, Pedido, DetallePedido, Producto } from "types/types";
+import { Button, Form, InputNumber, Select, DatePicker, message, Space, Typography, Input } from "antd";
 
 const { Text } = Typography;
-const { Option, OptGroup } = Select;
 
 interface FormCrearPedidoProps {
   onCancel: () => void;
@@ -18,12 +16,8 @@ interface FormCrearPedidoProps {
 const FormCrearPedido = ({ onCancel, onSubmit, clientes, pedidoEditar }: FormCrearPedidoProps) => {
   const [form] = Form.useForm();
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [marcas, setMarcas] = useState<Marca[]>([]);
   const [detalles, setDetalles] = useState<DetallePedido[]>([]);
   const [tipoCliente, setTipoCliente] = useState<"natural" | "juridico" | null>(null);
-  const [busquedaProducto, setBusquedaProducto] = useState("");
-  const [categoriaFiltro, setCategoriaFiltro] = useState<number | undefined>(undefined);
 
   // Función para obtener configuración de autenticación
   const getAxiosConfig = () => {
@@ -41,28 +35,21 @@ const FormCrearPedido = ({ onCancel, onSubmit, clientes, pedidoEditar }: FormCre
   };
 
   useEffect(() => {
-    const cargarDatos = async () => {
+    const cargarProductos = async () => {
       try {
         const config = getAxiosConfig();
         if (!config) return;
         
-        // Cargar productos, categorías y marcas en paralelo
-        const [productosRes, categoriasRes, marcasRes] = await Promise.all([
-          axios.get("http://127.0.0.1:8000/productos", config),
-          axios.get("http://127.0.0.1:8000/categorias", config).catch(() => ({ data: [] })),
-          axios.get("http://127.0.0.1:8000/marcas", config).catch(() => ({ data: [] }))
-        ]);
-
-        setProductos(productosRes.data);
-        setCategorias(categoriasRes.data);
-        setMarcas(marcasRes.data);
+        const response = await axios.get("http://127.0.0.1:8000/productos", config);
+        setProductos(response.data);
       } catch (error) {
-        console.error("Error al cargar datos:", error);
-        message.error("Error al cargar los datos necesarios");
+        console.error("Error al cargar productos:", error);
+        message.error("Error al cargar productos");
       }
     };
 
-    cargarDatos();
+    cargarProductos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -113,50 +100,20 @@ const FormCrearPedido = ({ onCancel, onSubmit, clientes, pedidoEditar }: FormCre
     setDetalles(nuevosDetalles);
   };
 
-  // Filtrar productos según búsqueda y categoría
-  const productosFiltrados = productos.filter(producto => {
-    const coincideNombre = producto.nombre.toLowerCase().includes(busquedaProducto.toLowerCase());
-    const coincideCategoria = categoriaFiltro ? producto.id_categoria === categoriaFiltro : true;
-    const coincideMarca = producto.marca?.descripcion?.toLowerCase().includes(busquedaProducto.toLowerCase()) || false;
-    
-    return (coincideNombre || coincideMarca) && coincideCategoria;
-  });
-
-  // Agrupar productos por categoría para el select
-  const productosAgrupados = () => {
-    const grupos: { [key: string]: Producto[] } = {};
-    
-    productosFiltrados.forEach(producto => {
-      const nombreCategoria = producto.categoria?.descripcion || 'Sin categoría';
-      if (!grupos[nombreCategoria]) {
-        grupos[nombreCategoria] = [];
-      }
-      grupos[nombreCategoria].push(producto);
-    });
-
-    return grupos;
-  };
-
-  const obtenerNombreProducto = (id_producto: number) => {
-    const producto = productos.find(p => p.id_producto === id_producto);
-    return producto ? producto.nombre : `Producto #${id_producto}`;
-  };
-
   const agregarDetalle = () => {
     if (productos.length === 0) {
       message.warning("No hay productos disponibles");
       return;
     }
 
-    const productosDisponibles = productosFiltrados.length > 0 ? productosFiltrados : productos;
     const precioInicial = tipoCliente === "juridico" 
-      ? productosDisponibles[0].precio_mayorista 
-      : productosDisponibles[0].precio_minorista;
+      ? productos[0].precio_mayorista 
+      : productos[0].precio_minorista;
     
     const nuevoDetalle: DetallePedido = {
       id_detalle_pedido: Date.now(), // ID temporal para el frontend
       id_pedido: 0, // Se asignará al crear el pedido
-      id_producto: productosDisponibles[0].id_producto,
+      id_producto: productos[0].id_producto,
       cantidad: 1,
       descuento: 0,
       precio_unitario: precioInicial,
@@ -199,82 +156,82 @@ const FormCrearPedido = ({ onCancel, onSubmit, clientes, pedidoEditar }: FormCre
   const ivaGeneral = detalles.reduce((acc, d) => acc + (d.subtotal * 0.12), 0);
   const totalGeneral = subtotalGeneral + ivaGeneral;
 
-  const handleFinish = async (values: any) => {
-    try {
-      if (detalles.length === 0) {
-        message.error("Debe agregar al menos un producto al pedido");
-        return;
-      }
+const handleFinish = async (values: any) => {
+  try {
+    if (detalles.length === 0) {
+      message.error("Debe agregar al menos un producto al pedido");
+      return;
+    }
 
-      const config = getAxiosConfig();
-      if (!config) return;
+    const config = getAxiosConfig();
+    if (!config) return;
 
-      // Preparar datos del pedido
-      const pedidoData = {
+    if (pedidoEditar) {
+      // Actualizar pedido existente
+      const datosActualizacion = {
+        numero_pedido: values.numero_pedido || pedidoEditar.numero_pedido,
+        fecha_pedido: values.fecha_pedido.format("YYYY-MM-DD"),
+        cod_cliente: values.cod_cliente,
+        subtotal: subtotalGeneral,
+        iva: ivaGeneral,
+        total: totalGeneral,
+        detalles: detalles.map(d => ({
+          id_producto: d.id_producto,
+          cantidad: d.cantidad,
+          precio_unitario: d.precio_unitario,
+          descuento: d.descuento,
+          subtotal_lineal: d.subtotal_lineal,
+          subtotal: d.subtotal
+        }))
+      };
+
+      await axios.put(
+        `http://127.0.0.1:8000/pedidos/${pedidoEditar.id_pedido}`, 
+        datosActualizacion,
+        config
+      );
+      message.success("Pedido actualizado correctamente");
+    } else {
+      // Crear nuevo pedido - ESTRUCTURA CORREGIDA
+      const datosCreacion = {
         numero_pedido: values.numero_pedido || `PED-${Date.now()}`,
         fecha_pedido: values.fecha_pedido.format("YYYY-MM-DD"),
         cod_cliente: values.cod_cliente,
         subtotal: subtotalGeneral,
         iva: ivaGeneral,
         total: totalGeneral,
-        // Campos opcionales que pueden ser null
         id_ubicacion_entrega: null,
         id_ruta_venta: null,
-        id_ruta_entrega: null
+        id_ruta_entrega: null,
+        detalle_pedido: detalles.map(d => ({
+          id_producto: d.id_producto,
+          cantidad: d.cantidad,
+          precio_unitario: d.precio_unitario,
+          descuento: d.descuento,
+          subtotal_lineal: d.subtotal_lineal,
+          subtotal: d.subtotal
+        }))
       };
 
-      if (pedidoEditar) {
-        // Actualizar pedido existente
-        const datosActualizacion = {
-          ...pedidoData,
-          detalles: detalles.map(d => ({
-            id_producto: d.id_producto,
-            cantidad: d.cantidad,
-            precio_unitario: d.precio_unitario,
-            descuento: d.descuento,
-            subtotal_lineal: d.subtotal_lineal,
-            subtotal: d.subtotal
-          }))
-        };
-
-        await axios.put(
-          `http://127.0.0.1:8000/pedidos/${pedidoEditar.id_pedido}`, 
-          datosActualizacion,
-          config
-        );
-        message.success("Pedido actualizado correctamente");
-      } else {
-        // Crear nuevo pedido
-        const datosCreacion = {
-          ...pedidoData,
-          detalle_pedido: detalles.map(d => ({
-            id_producto: d.id_producto,
-            cantidad: d.cantidad,
-            precio_unitario: d.precio_unitario,
-            descuento: d.descuento,
-            subtotal_lineal: d.subtotal_lineal,
-            subtotal: d.subtotal
-          }))
-        };
-
-        await axios.post("http://127.0.0.1:8000/pedidos", datosCreacion, config);
-        message.success("Pedido creado correctamente");
-      }
-
-      onSubmit();
-    } catch (error: any) {
-      console.error("Error al guardar pedido:", error);
-      
-      if (error.response?.status === 401) {
-        message.error("No autorizado. Por favor, inicia sesión nuevamente.");
-        window.location.href = '/login';
-      } else if (error.response?.status === 400) {
-        message.error(error.response.data.detail || "Datos inválidos");
-      } else {
-        message.error("Error al guardar el pedido. Intente nuevamente.");
-      }
+      console.log("Datos a enviar:", datosCreacion); // Para debug
+      await axios.post("http://127.0.0.1:8000/pedidos", datosCreacion, config);
+      message.success("Pedido creado correctamente");
     }
-  };
+
+    onSubmit();
+  } catch (error: any) {
+    console.error("Error al guardar pedido:", error);
+    
+    if (error.response?.status === 401) {
+      message.error("No autorizado. Por favor, inicia sesión nuevamente.");
+      window.location.href = '/login';
+    } else if (error.response?.status === 400) {
+      message.error(error.response.data.detail || "Datos inválidos");
+    } else {
+      message.error("Error al guardar el pedido. Intente nuevamente.");
+    }
+  }
+};
 
   return (
     <Form 
@@ -314,12 +271,16 @@ const FormCrearPedido = ({ onCancel, onSubmit, clientes, pedidoEditar }: FormCre
         />
       </Form.Item>
 
+      <Form.Item name="numero_pedido" label="Número de Pedido (Opcional)">
+        <Input 
+          placeholder="Se generará automáticamente si se deja vacío"
+        />
+      </Form.Item>
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <h4 style={{ margin: 0 }}>Productos del Pedido</h4>
           <Button 
             type="dashed" 
-            icon={<PlusOutlined />}
             onClick={agregarDetalle}
             disabled={!tipoCliente}
           >
@@ -331,36 +292,6 @@ const FormCrearPedido = ({ onCancel, onSubmit, clientes, pedidoEditar }: FormCre
           <Text type="secondary" style={{ fontStyle: "italic" }}>
             Seleccione un cliente para agregar productos
           </Text>
-        )}
-
-        {/* Filtros para productos */}
-        {tipoCliente && (
-          <div style={{ marginBottom: 16, padding: 12, backgroundColor: "#f5f5f5", borderRadius: 6 }}>
-            <Text strong style={{ marginBottom: 8, display: "block" }}>Filtros de productos:</Text>
-            <Space wrap>
-              <Input
-                placeholder="Buscar producto o marca..."
-                prefix={<SearchOutlined />}
-                value={busquedaProducto}
-                onChange={(e) => setBusquedaProducto(e.target.value)}
-                style={{ width: 200 }}
-                allowClear
-              />
-              <Select
-                placeholder="Filtrar por categoría"
-                value={categoriaFiltro}
-                onChange={setCategoriaFiltro}
-                style={{ width: 200 }}
-                allowClear
-              >
-                {categorias.map(cat => (
-                  <Option key={cat.id_categoria} value={cat.id_categoria}>
-                    {cat.descripcion}
-                  </Option>
-                ))}
-              </Select>
-            </Space>
-          </div>
         )}
       </div>
 
@@ -391,50 +322,20 @@ const FormCrearPedido = ({ onCancel, onSubmit, clientes, pedidoEditar }: FormCre
                 alignItems: "center"
               }}
             >
-              <div style={{ minWidth: 250, maxWidth: 300 }}>
-                <Text style={{ fontSize: "12px", marginBottom: 4, display: "block" }}>Producto</Text>
-                <Select
-                  value={detalle.id_producto}
-                  onChange={value => actualizarDetalle(index, "id_producto", value)}
-                  style={{ width: "100%" }}
-                  placeholder="Seleccionar producto"
-                  showSearch
-                  filterOption={false}
-                  onSearch={setBusquedaProducto}
-                  dropdownRender={menu => (
-                    <div>
-                      <div style={{ padding: 8 }}>
-                        <Input
-                          placeholder="Buscar productos..."
-                          prefix={<SearchOutlined />}
-                          value={busquedaProducto}
-                          onChange={(e) => setBusquedaProducto(e.target.value)}
-                        />
-                      </div>
-                      <Divider style={{ margin: 0 }} />
-                      {menu}
-                    </div>
-                  )}
-                >
-                  {Object.entries(productosAgrupados()).map(([categoria, productosGrupo]) => (
-                    <OptGroup key={categoria} label={categoria}>
-                      {productosGrupo.map(producto => (
-                        <Option key={producto.id_producto} value={producto.id_producto}>
-                          <div>
-                            <div>{producto.nombre}</div>
-                            <div style={{ fontSize: "12px", color: "#666" }}>
-                              {producto.marca?.descripcion} - Stock: {producto.stock}
-                            </div>
-                            <div style={{ fontSize: "12px", color: "#1890ff" }}>
-                              ${tipoCliente === "juridico" ? producto.precio_mayorista : producto.precio_minorista}
-                            </div>
-                          </div>
-                        </Option>
-                      ))}
-                    </OptGroup>
-                  ))}
-                </Select>
-              </div>
+              <Select
+                value={detalle.id_producto}
+                onChange={value => actualizarDetalle(index, "id_producto", value)}
+                options={productos.map(p => ({ 
+                  value: p.id_producto, 
+                  label: `${p.nombre} - ${tipoCliente === "juridico" ? p.precio_mayorista : p.precio_minorista}` 
+                }))}
+                style={{ width: 250, minWidth: 200 }}
+                placeholder="Seleccionar producto"
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+              />
               
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                 <Text style={{ fontSize: "12px", marginBottom: 2 }}>Cantidad</Text>

@@ -1,7 +1,7 @@
 import axios from "axios";
 import FormCrearPedido from "./Form";
 import { authService } from "auth/auth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Pedido, Cliente } from "types/types";
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { Table, Button, Space, Popconfirm, Input, message, Modal, Descriptions, Typography, Row, Col } from "antd";
@@ -32,45 +32,45 @@ const Pedidos = () => {
     };
   };
 
-  const obtenerPedidos = async () => {
-    setCargando(true);
-    try {
-      const config = getAxiosConfig();
-      if (!config) return;
-      
-      const { data } = await axios.get("http://127.0.0.1:8000/pedidos", config);
-      setPedidos(data);
-    } catch (error: any) {
-      console.error("Error al obtener pedidos:", error);
-      if (error.response?.status === 401) {
-        message.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        authService.logout();
-        window.location.href = '/login';
-      } else {
-        message.error("Error al obtener pedidos");
-      }
+const obtenerPedidos = useCallback(async () => {
+  setCargando(true);
+  try {
+    const config = getAxiosConfig();
+    if (!config) return;
+    
+    const { data } = await axios.get("http://127.0.0.1:8000/pedidos", config);
+    setPedidos(data);
+  } catch (error: any) {
+    console.error("Error al obtener pedidos:", error);
+    if (error.response?.status === 401) {
+      message.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+      authService.logout();
+      window.location.href = '/login';
+    } else {
+      message.error("Error al obtener pedidos");
     }
-    setCargando(false);
-  };
+  }
+  setCargando(false);
+}, []);
 
-  const obtenerClientes = async () => {
-    try {
-      const config = getAxiosConfig();
-      if (!config) return;
-      
-      const { data } = await axios.get("http://127.0.0.1:8000/clientes", config);
-      setClientes(data);
-    } catch (error: any) {
-      console.error("Error al cargar clientes:", error);
-      if (error.response?.status === 401) {
-        message.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        authService.logout();
-        window.location.href = '/login';
-      } else {
-        message.error("Error al cargar clientes");
-      }
+const obtenerClientes = useCallback(async () => {
+  try {
+    const config = getAxiosConfig();
+    if (!config) return;
+    
+    const { data } = await axios.get("http://127.0.0.1:8000/clientes", config);
+    setClientes(data);
+  } catch (error: any) {
+    console.error("Error al cargar clientes:", error);
+    if (error.response?.status === 401) {
+      message.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+      authService.logout();
+      window.location.href = '/login';
+    } else {
+      message.error("Error al cargar clientes");
     }
-  };
+  }
+}, []);
 
   const eliminarPedido = async (id_pedido: number) => {
     try {
@@ -188,16 +188,16 @@ const Pedidos = () => {
     }
   ];
 
-  useEffect(() => {
-    if (!authService.isAuthenticated()) {
-      message.error('No estás autenticado. Por favor, inicia sesión.');
-      window.location.href = '/login';
-      return;
-    }
+useEffect(() => {
+  if (!authService.isAuthenticated()) {
+    message.error('No estás autenticado. Por favor, inicia sesión.');
+    window.location.href = '/login';
+    return;
+  }
 
-    obtenerPedidos();
-    obtenerClientes();
-  }, []);
+  obtenerPedidos();
+  obtenerClientes();
+}, [obtenerPedidos, obtenerClientes]);
 
   return (
     <div style={{ padding: "24px" }}>
