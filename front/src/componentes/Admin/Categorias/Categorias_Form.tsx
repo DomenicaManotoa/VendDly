@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
-import { Form, Input, Button, message } from 'antd';
+import { Form, Input, Button, message, Space, Grid } from 'antd';
+
+const { useBreakpoint } = Grid;
 
 const Categoria_Form = ({
   onClose,
@@ -11,6 +13,8 @@ const Categoria_Form = ({
   onSave: (values: { key?: string; nombre: string }) => void;
 }) => {
   const [form] = Form.useForm();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   useEffect(() => {
     if (initialValues) {
@@ -30,26 +34,32 @@ const Categoria_Form = ({
   };
 
   return (
-    <Form form={form} layout="vertical" onFinish={onFinish}>
+    <Form
+      form={form}
+      layout="vertical"
+      onFinish={onFinish}
+      style={{ width: '100%' }}
+    >
       <Form.Item
         label="Nombre de la Categoría"
         name="nombre"
-        rules={[{ required: true, message: 'Por favor ingresa el nombre de la categoría' }]}
+        rules={[
+          { required: true, message: 'Por favor ingresa el nombre de la categoría' }
+        ]}
       >
         <Input placeholder="Ejemplo: Categoría XYZ" autoFocus />
       </Form.Item>
 
-      <Form.Item style={{ textAlign: 'right' }}>
-        <Button onClick={onClose} style={{ marginRight: 8 }}>
-          Cancelar
-        </Button>
-        <Button type="primary" htmlType="submit">
-          Guardar
-        </Button>
+      <Form.Item style={{ textAlign: isMobile ? 'center' : 'right' }}>
+        <Space wrap size="middle">
+          <Button onClick={onClose}>Cancelar</Button>
+          <Button type="primary" htmlType="submit">
+            Guardar
+          </Button>
+        </Space>
       </Form.Item>
     </Form>
   );
 };
 
 export default Categoria_Form;
-

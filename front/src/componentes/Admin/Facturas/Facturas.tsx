@@ -517,18 +517,28 @@ const Facturas: React.FC = () => {
   return (
     <div style={{ padding: '24px' }}>
       <Card>
-        <Row gutter={[16, 16]} align="middle" justify="space-between">
-          <Col>
+        <Row
+          gutter={[16, 16]}
+          align="middle"
+          justify="space-between"
+          wrap
+        >
+          <Col xs={24} sm={16} md={12} lg={10} xl={8}>
             <Title level={3} style={{ margin: 0 }}>
-              {vistaActual === 'pedidos' ? 'Gestión de Facturas - Pedidos' : 'Facturas Emitidas'}
+              {vistaActual === 'pedidos'
+                ? 'Gestión de Facturas - Pedidos'
+                : 'Facturas Emitidas'}
             </Title>
           </Col>
-          <Col>
-            <Space>
+          <Col xs={24} sm={8} md={12} lg={14} xl={16}>
+            <Space
+              size="middle"
+              style={{ width: '100%', justifyContent: 'flex-end', flexWrap: 'wrap' }}
+            >
               <Select
                 value={vistaActual}
                 onChange={setVistaActual}
-                style={{ width: 150 }}
+                style={{ minWidth: 150, flexGrow: 1, maxWidth: 200 }}
               >
                 <Option value="pedidos">Pedidos</Option>
                 <Option value="facturas">Facturas</Option>
@@ -537,6 +547,7 @@ const Facturas: React.FC = () => {
                 icon={<ReloadOutlined />}
                 onClick={cargarDatos}
                 loading={loading}
+                style={{ whiteSpace: 'nowrap' }}
               >
                 Actualizar
               </Button>
@@ -547,8 +558,8 @@ const Facturas: React.FC = () => {
         <Divider />
 
         {/* Filtros y búsqueda */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} md={8}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }} wrap>
+          <Col xs={24} sm={12} md={10} lg={8} xl={6}>
             <Search
               placeholder={`Buscar por número, cliente o código`}
               allowClear
@@ -559,7 +570,7 @@ const Facturas: React.FC = () => {
             />
           </Col>
           {vistaActual === 'facturas' && (
-            <Col xs={24} sm={12} md={4}>
+            <Col xs={24} sm={12} md={6} lg={4} xl={3}>
               <Select
                 placeholder="Estado"
                 style={{ width: '100%' }}
@@ -573,12 +584,13 @@ const Facturas: React.FC = () => {
               </Select>
             </Col>
           )}
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={24} md={8} lg={6} xl={5}>
             <RangePicker
               style={{ width: '100%' }}
               placeholder={['Fecha inicio', 'Fecha fin']}
               value={fechaRango}
               onChange={handleRangeChange}
+              allowClear
             />
           </Col>
         </Row>
@@ -586,18 +598,25 @@ const Facturas: React.FC = () => {
         {/* Acciones masivas solo para pedidos */}
         {vistaActual === 'pedidos' && (
           <Row style={{ marginBottom: 16 }}>
-            <Col>
-              <Space>
-                <Button 
-                  type="primary" 
+            <Col xs={24}>
+              <Space
+                direction="vertical"
+                size="small"
+                style={{ width: '100%' }}
+                align="start"
+              >
+                <Button
+                  type="primary"
                   icon={<FileAddOutlined />}
                   onClick={facturarSeleccionados}
                   disabled={selectedRowKeys.length === 0}
+                  block
+                  style={{ maxWidth: 300 }}
                 >
                   Facturar Seleccionados ({selectedRowKeys.length})
                 </Button>
                 <Text type="secondary">
-                  {pedidos.filter(p => !p.factura).length} pedidos sin facturar
+                  {pedidos.filter((p) => !p.factura).length} pedidos sin facturar
                 </Text>
               </Space>
             </Col>
@@ -612,7 +631,7 @@ const Facturas: React.FC = () => {
             rowKey="id_pedido"
             loading={loading}
             rowSelection={rowSelection}
-            scroll={{ x: 800 }}
+            scroll={{ x: 'max-content' }}
             pagination={{
               total: pedidosFiltrados.length,
               pageSize: 10,
@@ -631,7 +650,7 @@ const Facturas: React.FC = () => {
             dataSource={facturasFiltradas}
             rowKey="id_factura"
             loading={loading}
-            scroll={{ x: 800 }}
+            scroll={{ x: 'max-content' }}
             pagination={{
               total: facturasFiltradas.length,
               pageSize: 10,
@@ -668,27 +687,35 @@ const Facturas: React.FC = () => {
               </Button>
             ),
           ]}
-          width={800}
+          width="90%"
+          style={{ maxWidth: 800 }}
+          bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+          centered
+          destroyOnClose
+          maskClosable={false}
         >
           {pedidoSeleccionado && (
             <div>
               <Row gutter={[16, 8]}>
-                <Col span={12}>
-                  <strong>Cliente:</strong> {pedidoSeleccionado.cliente?.nombre || 'N/A'}
+                <Col xs={24} sm={12}>
+                  <strong>Cliente:</strong>{' '}
+                  {pedidoSeleccionado.cliente?.nombre || 'N/A'}
                 </Col>
-                <Col span={12}>
+                <Col xs={24} sm={12}>
                   <strong>Código:</strong> {pedidoSeleccionado.cod_cliente}
                 </Col>
-                <Col span={12}>
-                  <strong>Fecha:</strong> {dayjs(pedidoSeleccionado.fecha_pedido).format('DD/MM/YYYY')}
+                <Col xs={24} sm={12}>
+                  <strong>Fecha:</strong>{' '}
+                  {dayjs(pedidoSeleccionado.fecha_pedido).format('DD/MM/YYYY')}
                 </Col>
-                <Col span={12}>
-                  <strong>Subtotal:</strong> ${pedidoSeleccionado.subtotal.toFixed(2)}
+                <Col xs={24} sm={12}>
+                  <strong>Subtotal:</strong> $
+                  {pedidoSeleccionado.subtotal.toFixed(2)}
                 </Col>
-                <Col span={12}>
+                <Col xs={24} sm={12}>
                   <strong>IVA:</strong> ${pedidoSeleccionado.iva.toFixed(2)}
                 </Col>
-                <Col span={12}>
+                <Col xs={24} sm={12}>
                   <strong>Total:</strong> ${pedidoSeleccionado.total.toFixed(2)}
                 </Col>
               </Row>
@@ -701,11 +728,13 @@ const Facturas: React.FC = () => {
                   rowKey="id_detalle_pedido"
                   pagination={false}
                   size="small"
+                  scroll={{ x: 'max-content' }}
                   columns={[
                     {
                       title: 'Producto',
                       dataIndex: 'id_producto',
                       key: 'id_producto',
+                      ellipsis: true,
                     },
                     {
                       title: 'Cantidad',

@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
-import { Input, Button, Card, message } from 'antd';
-import { SearchOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { Input, Button, Card, message, Space } from 'antd';
+import { SearchOutlined, EnvironmentOutlined, CloseOutlined } from '@ant-design/icons';
 import L from 'leaflet';
 import { MapaUbicacionProps, UbicacionCliente } from '../../../types/types';
 
@@ -59,10 +59,8 @@ const MapUpdater: React.FC<{
   const map = useMap();
   
   React.useEffect(() => {
-    // Usar setTimeout para evitar problemas de renderizado
     const timer = setTimeout(() => {
       map.setView(center, zoom, { animate: true });
-      // Invalidar el tamaño para asegurar que se renderice correctamente
       map.invalidateSize();
     }, 100);
     
@@ -78,24 +76,29 @@ const MapaUbicacionCliente: React.FC<MapaUbicacionProps> = ({
   selectedLocation,
   readonly = true
 }) => {
-  // Estado para mantener búsqueda completamente independiente de clics en mapa
   const [searchResult, setSearchResult] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchValue, setSearchValue] = useState('');
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-0.22985, -78.52495]); // Centro de Quito
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-0.22985, -78.52495]);
   const [mapZoom, setMapZoom] = useState(13);
-  
-  // AGREGADO: Estado para ubicación clickeada manualmente (separada de búsqueda)
   const [clickedLocation, setClickedLocation] = useState<{ lat: number; lng: number } | null>(null);
-  
-  // SIMPLIFICADO: Solo mantener el resultado de búsqueda actual
-  const [searchPersistent, setSearchPersistent] = useState(true); // Flag para mantener búsqueda
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar el tamaño de pantalla
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const handleMapClick = useCallback((lat: number, lng: number) => {
     if (!readonly) {
       setClickedLocation({ lat, lng });
-      // MANTENER el searchResult y searchValue intactos
-      // NO llamar a ninguna función que los resetee
       if (onLocationSelect) {
         onLocationSelect(lat, lng);
       }
@@ -110,7 +113,6 @@ const MapaUbicacionCliente: React.FC<MapaUbicacionProps> = ({
 
     setSearchLoading(true);
     try {
-      // Agregar contexto de Ecuador para mejorar la búsqueda
       const searchQuery = `${value}, Quito, Ecuador`;
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5&countrycodes=ec&addressdetails=1`
@@ -128,25 +130,22 @@ const MapaUbicacionCliente: React.FC<MapaUbicacionProps> = ({
         const lng = parseFloat(result.lon);
         const displayName = result.display_name;
         
-        // CORREGIDO: Crear el objeto searchResult correctamente
         const searchResultData = {
           lat,
           lng,
           address: displayName
         };
         
-        // Actualizar estado - SIN afectar searchResult ni searchValue
         setSearchResult(searchResultData);
-        setClickedLocation(null); // Solo limpiar clic manual, no búsqueda
+        setClickedLocation(null);
         setMapCenter([lat, lng]);
-        setMapZoom(16); // Zoom más cercano para búsquedas
+        setMapZoom(16);
         
-        // Notificar al componente padre CON la dirección para que la identifique como búsqueda
         if (onLocationSelect) {
           onLocationSelect(lat, lng, displayName);
         }
         
-        message.success(`Ubicación encontrada: ${displayName}`);
+        message.success('Ubicación encontrada');
       } else {
         message.warning('No se encontró la ubicación. Intente con una dirección más específica.');
       }
@@ -158,7 +157,6 @@ const MapaUbicacionCliente: React.FC<MapaUbicacionProps> = ({
     }
   };
 
-  // MODIFICADO: Función para limpiar SOLO cuando usuario lo solicite
   const clearSearch = () => {
     setSearchValue('');
     setSearchResult(null);
@@ -166,7 +164,7 @@ const MapaUbicacionCliente: React.FC<MapaUbicacionProps> = ({
     message.info('Búsqueda limpiada');
   };
 
-  // Agrupar ubicaciones por sector para mejor visualización
+  // Agrupar ubicaciones por sector
   const ubicacionesPorSector = ubicaciones.reduce((acc, ubicacion) => {
     const sector = ubicacion.sector;
     if (!acc[sector]) {
@@ -187,16 +185,16 @@ const MapaUbicacionCliente: React.FC<MapaUbicacionProps> = ({
   };
 
   return (
-    <div style={{ height: '400px', width: '100%', position: 'relative', overflow: 'hidden' }}>
-      {/* Barra de búsqueda persistente fuera del mapa (solo en modo edición) */}
+    <div style={{ height: '100%', width: '100%', position: 'relative' }}>
+      {/* Barra de búsqueda para modo edición */}
       {!readonly && (
-        <div className="mb-3">
-          <div className="flex gap-2">
+        <div className={`mb-3 ${isMobile ? 'px-1' : ''}`}>
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex-1">
               <Search
-                placeholder="Buscar dirección en Quito... (ej: Av. Amazonas y Naciones Unidas)"
+                placeholder={isMobile ? "Buscar dirección..." : "Buscar dirección en Quito..."}
                 enterButton={
-                  <Button type="primary" loading={searchLoading}>
+                  <Button type="primary" loading={searchLoading} size={isMobile ? "large" : "middle"}>
                     <SearchOutlined />
                   </Button>
                 }
@@ -206,29 +204,36 @@ const MapaUbicacionCliente: React.FC<MapaUbicacionProps> = ({
                 loading={searchLoading}
                 allowClear
                 onClear={clearSearch}
-                size="middle"
+                size={isMobile ? "large" : "middle"}
               />
             </div>
           </div>
           
-          {/* MEJORADO: Resultados de búsqueda - SIEMPRE persistentes */}
+          {/* Resultados de búsqueda */}
           {searchResult && (
-            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <strong className="text-blue-700">📍 Ubicación de búsqueda:</strong>
-                  <div className="text-gray-700 mt-1">{searchResult.address}</div>
+            <div className={`mt-2 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded text-sm`}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <strong className="text-blue-700">📍 Ubicación encontrada:</strong>
+                  <div className="text-gray-700 mt-1 break-words text-xs sm:text-sm">
+                    {searchResult.address}
+                  </div>
                   <div className="text-gray-500 text-xs mt-1">
                     Lat: {searchResult.lat.toFixed(6)}, Lng: {searchResult.lng.toFixed(6)}
                   </div>
                 </div>
-                <Button size="small" type="text" onClick={clearSearch}>×</Button>
+                <Button 
+                  size="small" 
+                  type="text" 
+                  onClick={clearSearch}
+                  icon={<CloseOutlined />}
+                  className="shrink-0"
+                />
               </div>
               {clickedLocation && (
                 <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
                   <div className="text-green-700 text-xs">
-                    <strong>💡 Coexistencia:</strong> Tienes tanto la ubicación de búsqueda como una ubicación manual. 
-                    Ambas se mantienen visibles para tu referencia.
+                    <strong>💡 Coexistencia:</strong> Tienes búsqueda y ubicación manual activas.
                   </div>
                 </div>
               )}
@@ -237,188 +242,206 @@ const MapaUbicacionCliente: React.FC<MapaUbicacionProps> = ({
         </div>
       )}
 
-      <MapContainer 
-        center={mapCenter} 
-        zoom={mapZoom} 
-        style={{ height: '100%', width: '100%', zIndex: 1 }}
-        scrollWheelZoom={true}
-        doubleClickZoom={true}
-        attributionControl={true}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
-        
-        {/* Actualizar vista del mapa cuando cambie el centro */}
-        <MapUpdater center={mapCenter} zoom={mapZoom} />
-        
-        {/* Handler para clics en el mapa */}
-        <MapClickHandler 
-          onLocationSelect={handleMapClick}
-          readonly={readonly}
-        />
+      {/* Contenedor del mapa */}
+      <div className="relative" style={{ height: isMobile ? '300px' : '400px' }}>
+        <MapContainer 
+          center={mapCenter} 
+          zoom={mapZoom} 
+          style={{ height: '100%', width: '100%', zIndex: 1 }}
+          scrollWheelZoom={true}
+          doubleClickZoom={true}
+          attributionControl={!isMobile} // Ocultar atribución en móvil para ahorrar espacio
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution={!isMobile ? "&copy; OpenStreetMap contributors" : ""}
+          />
+          
+          <MapUpdater center={mapCenter} zoom={mapZoom} />
+          <MapClickHandler 
+            onLocationSelect={handleMapClick}
+            readonly={readonly}
+          />
 
-        {/* Marcadores de ubicaciones existentes */}
-        {ubicaciones.map((ubicacion) => {
-          const isSelected = selectedLocation && 
-            Math.abs(selectedLocation.lat - ubicacion.latitud) < 0.0001 &&
-            Math.abs(selectedLocation.lng - ubicacion.longitud) < 0.0001;
+          {/* Marcadores de ubicaciones existentes */}
+          {ubicaciones.map((ubicacion) => {
+            const isSelected = selectedLocation && 
+              Math.abs(selectedLocation.lat - ubicacion.latitud) < 0.0001 &&
+              Math.abs(selectedLocation.lng - ubicacion.longitud) < 0.0001;
 
-          return (
-            <Marker
-              key={ubicacion.id_ubicacion || `${ubicacion.latitud}-${ubicacion.longitud}`}
-              position={[ubicacion.latitud, ubicacion.longitud]}
-              icon={isSelected ? selectedIcon : defaultIcon}
-            >
-              <Popup>
-                <div className="p-2 min-w-[200px]">
-                  <h4 className="font-semibold mb-2">
-                    Cliente: {ubicacion.cod_cliente}
-                  </h4>
-                  <div className="space-y-1 text-sm">
-                    <p><strong>Dirección:</strong> {ubicacion.direccion}</p>
-                    <p><strong>Sector:</strong> 
-                      <span 
-                        className="ml-1 px-2 py-1 rounded text-white text-xs"
-                        style={{ backgroundColor: getSectorColor(ubicacion.sector) }}
-                      >
-                        {ubicacion.sector}
-                      </span>
-                    </p>
-                    {ubicacion.referencia && (
-                      <p><strong>Referencia:</strong> {ubicacion.referencia}</p>
-                    )}
-                    <p><strong>Coordenadas:</strong></p>
-                    <p className="text-xs text-gray-600">
-                      Lat: {ubicacion.latitud.toFixed(6)}<br/>
-                      Lng: {ubicacion.longitud.toFixed(6)}
-                    </p>
-                    {ubicacion.fecha_registro && (
-                      <p className="text-xs text-gray-500">
-                        Registrado: {new Date(ubicacion.fecha_registro).toLocaleDateString()}
+            return (
+              <Marker
+                key={ubicacion.id_ubicacion || `${ubicacion.latitud}-${ubicacion.longitud}`}
+                position={[ubicacion.latitud, ubicacion.longitud]}
+                icon={isSelected ? selectedIcon : defaultIcon}
+              >
+                <Popup maxWidth={isMobile ? 250 : 300}>
+                  <div className={`p-2 ${isMobile ? 'min-w-[200px]' : 'min-w-[250px]'}`}>
+                    <h4 className={`font-semibold mb-2 ${isMobile ? 'text-sm' : ''}`}>
+                      Cliente: {ubicacion.cod_cliente}
+                    </h4>
+                    <div className={`space-y-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      <p><strong>Dirección:</strong> <span className="break-words">{ubicacion.direccion}</span></p>
+                      <p><strong>Sector:</strong> 
+                        <span 
+                          className="ml-1 px-2 py-1 rounded text-white text-xs"
+                          style={{ backgroundColor: getSectorColor(ubicacion.sector) }}
+                        >
+                          {ubicacion.sector}
+                        </span>
                       </p>
-                    )}
+                      {ubicacion.referencia && (
+                        <p><strong>Referencia:</strong> <span className="break-words">{ubicacion.referencia}</span></p>
+                      )}
+                      <p><strong>Coordenadas:</strong></p>
+                      <p className="text-xs text-gray-600 font-mono">
+                        Lat: {ubicacion.latitud.toFixed(6)}<br/>
+                        Lng: {ubicacion.longitud.toFixed(6)}
+                      </p>
+                      {ubicacion.fecha_registro && (
+                        <p className="text-xs text-gray-500">
+                          Registrado: {new Date(ubicacion.fecha_registro).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+
+          {/* Marcador de búsqueda */}
+          {!readonly && searchResult && (
+            <Marker
+              position={[searchResult.lat, searchResult.lng]}
+              icon={searchResultIcon}
+            >
+              <Popup maxWidth={isMobile ? 250 : 300}>
+                <div className={`p-2 ${isMobile ? 'min-w-[200px]' : 'min-w-[250px]'}`}>
+                  <h4 className={`font-semibold mb-2 text-blue-600 ${isMobile ? 'text-sm' : ''}`}>
+                    📍 Resultado de Búsqueda
+                  </h4>
+                  <div className={`space-y-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    <p><strong>Dirección:</strong> <span className="break-words">{searchResult.address}</span></p>
+                    <p><strong>Coordenadas:</strong></p>
+                    <p className="text-xs text-gray-600 font-mono">
+                      Lat: {searchResult.lat.toFixed(6)}<br/>
+                      Lng: {searchResult.lng.toFixed(6)}
+                    </p>
+                    <div className="mt-2 p-1 bg-blue-100 rounded text-xs">
+                      <strong>🔒 Persistente:</strong> Se mantiene hasta eliminarla manualmente
+                    </div>
                   </div>
                 </div>
               </Popup>
             </Marker>
-          );
-        })}
+          )}
 
-        {/* MARCADOR DE BÚSQUEDA - SIEMPRE visible si existe searchResult */}
-        {!readonly && searchResult && (
-          <Marker
-            position={[searchResult.lat, searchResult.lng]}
-            icon={searchResultIcon}
-          >
-            <Popup>
-              <div className="p-2 min-w-[250px]">
-                <h4 className="font-semibold mb-2 text-blue-600">
-                  📍 Resultado de Búsqueda
-                </h4>
-                <div className="space-y-1 text-sm">
-                  <p><strong>Dirección:</strong> {searchResult.address}</p>
-                  <p><strong>Coordenadas:</strong></p>
-                  <p className="text-xs text-gray-600">
-                    Lat: {searchResult.lat.toFixed(6)}<br/>
-                    Lng: {searchResult.lng.toFixed(6)}
+          {/* Marcador para ubicación manual */}
+          {!readonly && clickedLocation && (
+            <Marker
+              position={[clickedLocation.lat, clickedLocation.lng]}
+              icon={newLocationIcon}
+              zIndexOffset={1000}
+            >
+              <Popup maxWidth={isMobile ? 200 : 250}>
+                <div className="p-2">
+                  <h4 className={`font-semibold mb-2 text-green-600 ${isMobile ? 'text-sm' : ''}`}>
+                    📌 Ubicación Manual
+                  </h4>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    <strong>Coordenadas:</strong><br/>
+                    <span className="font-mono">
+                      Lat: {clickedLocation.lat.toFixed(6)}<br/>
+                      Lng: {clickedLocation.lng.toFixed(6)}
+                    </span>
                   </p>
-                  <div className="mt-2 p-1 bg-blue-100 rounded text-xs">
-                    <strong>🔒 Persistente:</strong> Esta ubicación se mantiene hasta que la elimines manualmente
+                  <div className="mt-2 p-1 bg-green-100 rounded text-xs">
+                    <strong>✨ Clic en mapa:</strong> Coexiste con tu búsqueda
                   </div>
                 </div>
-              </div>
-            </Popup>
-          </Marker>
-        )}
+              </Popup>
+            </Marker>
+          )}
 
-        {/* Marcador para nueva ubicación seleccionada manualmente - NO interfiere con búsqueda */}
-        {!readonly && clickedLocation && (
-          <Marker
-            position={[clickedLocation.lat, clickedLocation.lng]}
-            icon={newLocationIcon}
-            zIndexOffset={1000} // Asegurar que aparezca encima
-          >
-            <Popup>
-              <div className="p-2">
-                <h4 className="font-semibold mb-2 text-green-600">
-                  📌 Ubicación Manual
-                </h4>
-                <p className="text-sm">
-                  <strong>Coordenadas:</strong><br/>
-                  Lat: {clickedLocation.lat.toFixed(6)}<br/>
-                  Lng: {clickedLocation.lng.toFixed(6)}
-                </p>
-                <div className="mt-2 p-1 bg-green-100 rounded text-xs">
-                  <strong>✨ Clic en mapa:</strong> Esta ubicación coexiste con tu búsqueda
+          {/* Marcador para ubicación preseleccionada */}
+          {!readonly && selectedLocation && !clickedLocation && !searchResult && (
+            <Marker
+              position={[selectedLocation.lat, selectedLocation.lng]}
+              icon={selectedIcon}
+            >
+              <Popup maxWidth={isMobile ? 200 : 250}>
+                <div className="p-2">
+                  <h4 className={`font-semibold mb-2 text-orange-600 ${isMobile ? 'text-sm' : ''}`}>
+                    🎯 Ubicación Preseleccionada
+                  </h4>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    <strong>Coordenadas:</strong><br/>
+                    <span className="font-mono">
+                      Lat: {selectedLocation.lat.toFixed(6)}<br/>
+                      Lng: {selectedLocation.lng.toFixed(6)}
+                    </span>
+                  </p>
                 </div>
+              </Popup>
+            </Marker>
+          )}
+        </MapContainer>
+
+        {/* Indicador de ubicaciones activas - adaptativo */}
+        {!readonly && (clickedLocation || searchResult) && (
+          <div className={`absolute ${isMobile ? 'bottom-1 left-1' : 'bottom-2 left-2'} bg-white p-2 rounded shadow-lg z-[1000] ${isMobile ? 'text-xs' : 'text-xs'} ${isMobile ? 'max-w-[200px]' : ''}`}>
+            <div className="font-semibold mb-1">🎯 Ubicaciones Activas:</div>
+            {searchResult && (
+              <div className="flex items-center mb-1">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2 shrink-0"></div>
+                <span className="truncate">🔍 {isMobile ? 'Búsqueda' : `Búsqueda: ${searchValue}`}</span>
               </div>
-            </Popup>
-          </Marker>
+            )}
+            {clickedLocation && (
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 shrink-0"></div>
+                <span className="truncate">📌 Manual: ({clickedLocation.lat.toFixed(4)}, {clickedLocation.lng.toFixed(4)})</span>
+              </div>
+            )}
+            {!isMobile && (
+              <div className="mt-1 text-gray-500">
+                💡 Ambas ubicaciones permanecen visibles
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Marcador para ubicación seleccionada (en modo edición) - solo si no hay otros marcadores */}
-        {!readonly && selectedLocation && !clickedLocation && !searchResult && (
-          <Marker
-            position={[selectedLocation.lat, selectedLocation.lng]}
-            icon={selectedIcon}
-          >
-            <Popup>
-              <div className="p-2">
-                <h4 className="font-semibold mb-2 text-orange-600">
-                  🎯 Ubicación Preseleccionada
-                </h4>
-                <p className="text-sm">
-                  <strong>Coordenadas:</strong><br/>
-                  Lat: {selectedLocation.lat.toFixed(6)}<br/>
-                  Lng: {selectedLocation.lng.toFixed(6)}
-                </p>
-              </div>
-            </Popup>
-          </Marker>
+        {/* Leyenda de sectores - solo desktop y modo readonly */}
+        {!isMobile && readonly && ubicaciones.length > 0 && (
+          <div className="absolute top-2 right-2 bg-white p-3 rounded shadow-lg z-[1000] max-w-[200px]">
+            <h5 className="font-semibold mb-2 text-sm">Sectores</h5>
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {Object.keys(ubicacionesPorSector).map((sector) => (
+                <div key={sector} className="flex items-center text-xs">
+                  <div 
+                    className="w-3 h-3 rounded-full mr-2 shrink-0"
+                    style={{ backgroundColor: getSectorColor(sector) }}
+                  />
+                  <span className="truncate" title={sector}>
+                    {sector} ({ubicacionesPorSector[sector].length})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
-      </MapContainer>
 
-      {/* INDICADOR SIMPLIFICADO de ubicaciones activas */}
-      {!readonly && (clickedLocation || searchResult) && (
-        <div className="absolute bottom-2 left-2 bg-white p-2 rounded shadow-lg z-[1000] text-xs">
-          <div className="font-semibold mb-1">🎯 Ubicaciones Activas:</div>
-          {searchResult && (
-            <div className="flex items-center mb-1">
-              <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-              <span>🔍 Búsqueda: {searchValue}</span>
+        {/* Leyenda simplificada para móvil */}
+        {isMobile && readonly && ubicaciones.length > 0 && (
+          <div className="absolute top-1 right-1 bg-white p-2 rounded shadow-lg z-[1000] text-xs max-w-[150px]">
+            <div className="font-semibold mb-1">{Object.keys(ubicacionesPorSector).length} Sectores</div>
+            <div className="text-gray-500">
+              {ubicaciones.length} ubicaciones
             </div>
-          )}
-          {clickedLocation && (
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-              <span>📌 Manual: ({clickedLocation.lat.toFixed(4)}, {clickedLocation.lng.toFixed(4)})</span>
-            </div>
-          )}
-          <div className="mt-1 text-gray-500">
-            💡 Ambas ubicaciones permanecen visibles
           </div>
-        </div>
-      )}
-
-      {/* Leyenda de sectores (solo si hay ubicaciones y en modo readonly) */}
-      {readonly && ubicaciones.length > 0 && (
-        <div className="absolute top-2 right-2 bg-white p-3 rounded shadow-lg z-[1000] max-w-[200px]">
-          <h5 className="font-semibold mb-2 text-sm">Sectores</h5>
-          <div className="space-y-1">
-            {Object.keys(ubicacionesPorSector).map((sector) => (
-              <div key={sector} className="flex items-center text-xs">
-                <div 
-                  className="w-3 h-3 rounded-full mr-2"
-                  style={{ backgroundColor: getSectorColor(sector) }}
-                />
-                <span>{sector} ({ubicacionesPorSector[sector].length})</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

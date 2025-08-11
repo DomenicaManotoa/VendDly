@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Button, Modal, Form, Input, Select, Table, Tag, message, Card, Space, Popconfirm, DatePicker, Checkbox } from "antd";
-import { PlusOutlined, EnvironmentOutlined, EditOutlined, DeleteOutlined, UserOutlined, CarOutlined } from "@ant-design/icons";
+import { Button, Modal, Form, Input, Select, Table, Tag, message, Card, Space, Popconfirm, DatePicker, Checkbox, Row, Col, Drawer } from "antd";
+import { PlusOutlined, EnvironmentOutlined, EditOutlined, DeleteOutlined, UserOutlined, CarOutlined, MenuOutlined } from "@ant-design/icons";
 import type { ColumnsType } from 'antd/es/table';
 import MapaClientes from "./MapaClientes";
 import { ubicacionClienteService } from "../../Admin/ubicacionCliente/ubicacionClienteService";
@@ -27,7 +27,19 @@ export default function Rutas() {
   const [editingRuta, setEditingRuta] = useState<Ruta | null>(null);
   const [usuariosDisponibles, setUsuariosDisponibles] = useState<UsuarioConRol[]>([]);
   const [loadingUsuarios, setLoadingUsuarios] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
+  // Detectar el tamaño de pantalla
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   useEffect(() => {
     cargarUbicacionesClientes();
@@ -124,28 +136,27 @@ export default function Rutas() {
     setModalVisible(true);
   };
 
-// Modificar la función handleAsignarUbicaciones
-const handleAsignarUbicaciones = async (ruta: Ruta) => {
-  setRutaParaAsignar(ruta);
-  setUbicacionesSeleccionadas([]);
-  formAsignacion.resetFields();
-  
-  // Cargar usuarios según el tipo de ruta - USAR rutaService
-  setLoadingUsuarios(true);
-  try {
-    const rolRequerido = ruta.tipo_ruta === 'venta' ? 'Vendedor' : 'Transportista';
-    const usuarios = await rutaService.getUsuariosPorRol(rolRequerido); // Cambio aquí
-    setUsuariosDisponibles(usuarios);
-  } catch (error) {
-    console.error('Error al cargar usuarios:', error);
-    message.error('Error al cargar usuarios disponibles');
-    setUsuariosDisponibles([]);
-  } finally {
-    setLoadingUsuarios(false);
-  }
-  
-  setModalAsignacionVisible(true);
-};
+  const handleAsignarUbicaciones = async (ruta: Ruta) => {
+    setRutaParaAsignar(ruta);
+    setUbicacionesSeleccionadas([]);
+    formAsignacion.resetFields();
+    
+    // Cargar usuarios según el tipo de ruta
+    setLoadingUsuarios(true);
+    try {
+      const rolRequerido = ruta.tipo_ruta === 'venta' ? 'Vendedor' : 'Transportista';
+      const usuarios = await rutaService.getUsuariosPorRol(rolRequerido);
+      setUsuariosDisponibles(usuarios);
+    } catch (error) {
+      console.error('Error al cargar usuarios:', error);
+      message.error('Error al cargar usuarios disponibles');
+      setUsuariosDisponibles([]);
+    } finally {
+      setLoadingUsuarios(false);
+    }
+    
+    setModalAsignacionVisible(true);
+  };
 
   const handleConfirmarAsignacion = async () => {
     try {
@@ -173,7 +184,6 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
           asignaciones
         });
         
-        // CAMBIO CLAVE: Recargar todas las rutas para actualizar la tabla
         await cargarRutas();
         
         message.success(`Ruta asignada correctamente a ${values.identificacion_usuario}`);
@@ -203,17 +213,121 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
     ? ubicacionesClientes.filter(u => u.sector === rutaParaAsignar.sector)
     : [];
 
+  // Componente Card para vista móvil
+  const RutaCard = ({ ruta }: { ruta: Ruta }) => {
+    const clientesEnSector = ubicacionesClientes.filter(u => u.sector === ruta.sector).length;
+    
+    return (
+      <Card 
+        className="mb-4"
+        size="small"
+        title={
+          <div className="flex justify-between items-center">
+            <span className="text-base font-medium truncate pr-2">{ruta.nombre}</span>
+            <Tag color={ruta.tipo_ruta === "venta" ? "green" : "orange"} className="shrink-0">
+              {ruta.tipo_ruta.charAt(0).toUpperCase() + ruta.tipo_ruta.slice(1)}
+            </Tag>
+          </div>
+        }
+        extra={
+          <Space size="small">
+            <Button
+              type="text"
+              size="small"
+              icon={<EnvironmentOutlined />}
+              onClick={() => setRutaSeleccionada(ruta.sector)}
+            />
+            <Button
+              type="text"
+              size="small"
+              icon={<UserOutlined />}
+              onClick={() => handleAsignarUbicaciones(ruta)}
+            />
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(ruta)}
+            />
+            <Popconfirm
+              title="¿Eliminar ruta?"
+              onConfirm={() => handleDelete(ruta.id_ruta)}
+              okText="Sí"
+              cancelText="No"
+            >
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
+          </Space>
+        }
+      >
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            <Tag color="blue">{ruta.sector}</Tag>
+            <span className="text-xs text-gray-500">
+              {clientesEnSector} ubicación{clientesEnSector !== 1 ? 'es' : ''}
+            </span>
+          </div>
+          
+          <div className="text-sm text-gray-600 break-words">
+            <strong>Dirección:</strong> {ruta.direccion}
+          </div>
+          
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <Tag color={ruta.estado === "En ejecución" ? "green" : "blue"}>
+              {ruta.estado}
+            </Tag>
+            <span className="text-xs text-gray-500">
+              {ruta.fecha_ejecucion ? new Date(ruta.fecha_ejecucion).toLocaleDateString('es-ES') : 'Sin fecha'}
+            </span>
+          </div>
+          
+          {ruta.asignaciones && ruta.asignaciones.length > 0 ? (
+            <div className="bg-gray-50 p-2 rounded">
+              <div className="text-sm font-medium">
+                {ruta.asignaciones[0].identificacion_usuario}
+              </div>
+              <div className="text-xs text-gray-500">
+                {ruta.asignaciones[0].usuario?.nombre || 'Nombre no disponible'}
+              </div>
+              <div className="text-xs text-blue-600">
+                {ruta.asignaciones[0].tipo_usuario}
+              </div>
+              {ruta.asignaciones.length > 1 && (
+                <div className="text-xs text-gray-400">
+                  +{ruta.asignaciones.length - 1} más
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-400 italic">Sin asignar</div>
+          )}
+          
+          <div className="text-center text-sm text-gray-600">
+            <strong>Asignaciones:</strong> {ruta.asignaciones?.length || 0}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   const columns: ColumnsType<Ruta> = [
     { 
       title: "Nombre", 
       dataIndex: "nombre", 
       key: "nombre",
-      ellipsis: true
+      ellipsis: true,
+      width: 150
     },
     { 
       title: "Sector", 
       dataIndex: "sector", 
       key: "sector",
+      width: 120,
       render: (sector: string) => {
         const clientesEnSector = ubicacionesClientes.filter(u => u.sector === sector).length;
         return (
@@ -232,12 +346,14 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
       title: "Dirección", 
       dataIndex: "direccion", 
       key: "direccion",
-      ellipsis: true
+      ellipsis: true,
+      responsive: ['lg']
     },
     { 
-      title: "Tipo de Ruta", 
+      title: "Tipo", 
       dataIndex: "tipo_ruta", 
       key: "tipo_ruta",
+      width: 100,
       render: (tipo: string) => (
         <Tag color={tipo === "venta" ? "green" : "orange"}>
           {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
@@ -247,7 +363,9 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
     { 
       title: "Estado", 
       dataIndex: "estado", 
-      key: "estado", 
+      key: "estado",
+      width: 110,
+      responsive: ['md'],
       render: (estado: string) => (
         <Tag color={estado === "En ejecución" ? "green" : "blue"}>
           {estado}
@@ -255,45 +373,32 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
       )
     },
     { 
-      title: "Fecha de ejecución", 
-      dataIndex: "fecha_ejecucion", 
-      key: "fecha_ejecucion",
-      render: (fecha: string) => fecha ? new Date(fecha).toLocaleDateString('es-ES') : '-'
-    },
-    { 
-      title: "Usuario Asignado", 
+      title: "Usuario", 
       key: "usuario_asignado",
+      width: 150,
+      responsive: ['lg'],
       render: (_: any, record: Ruta) => {
         if (!record.asignaciones || record.asignaciones.length === 0) {
           return <span className="text-gray-400">Sin asignar</span>;
         }
         
-        // Obtener el primer usuario asignado (puede haber múltiples)
         const primeraAsignacion = record.asignaciones[0];
         return (
           <div>
-            <div className="font-medium">
+            <div className="font-medium text-sm">
               {primeraAsignacion.identificacion_usuario}
             </div>
-            <div className="text-sm text-gray-500">
-              {primeraAsignacion.usuario?.nombre || 'Nombre no disponible'}
+            <div className="text-xs text-gray-500">
+              {primeraAsignacion.usuario?.nombre || 'N/A'}
             </div>
-            <div className="text-xs text-blue-600">
-              {primeraAsignacion.tipo_usuario}
-            </div>
-            {record.asignaciones.length > 1 && (
-              <div className="text-xs text-gray-400">
-                +{record.asignaciones.length - 1} más
-              </div>
-            )}
           </div>
         );
       }
     },
-    
     { 
-      title: "Asignaciones", 
+      title: "Asign.", 
       key: "asignaciones",
+      width: 70,
       render: (_: any, record: Ruta) => (
         <div className="text-center">
           {record.asignaciones?.length || 0}
@@ -303,35 +408,39 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
     {
       title: "Acciones",
       key: "acciones",
-      width: 200,
+      width: 140,
       render: (_: any, record: Ruta) => (
-        <Space>
+        <Space size="small">
           <Button
-            type="link"
+            type="text"
+            size="small"
             icon={<EnvironmentOutlined />}
             onClick={() => setRutaSeleccionada(record.sector)}
             title="Ver en Mapa"
           />
           <Button
-            type="link"
+            type="text"
+            size="small"
             icon={<UserOutlined />}
             onClick={() => handleAsignarUbicaciones(record)}
-            title="Asignar Ubicaciones"
+            title="Asignar"
           />
           <Button
-            type="link"
+            type="text"
+            size="small"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
             title="Editar"
           />
           <Popconfirm
-            title="¿Estás seguro de eliminar esta ruta?"
+            title="¿Eliminar?"
             onConfirm={() => handleDelete(record.id_ruta)}
             okText="Sí"
             cancelText="No"
           >
             <Button
-              type="link"
+              type="text"
+              size="small"
               danger
               icon={<DeleteOutlined />}
               title="Eliminar"
@@ -343,40 +452,66 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
   ];
 
   return (
-    <div className="p-6">
+    <div className="p-2 sm:p-4 lg:p-6">
       <Card>
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
           <div>
-            <h2 className="text-xl font-semibold">Gestión de Rutas</h2>
-              <p className="text-gray-600">
-                Total de rutas: {rutas.length} • Total de ubicaciones: {ubicacionesClientes.length}
-                {sectoresDisponibles.length > 0 && ` • Sectores disponibles: ${sectoresDisponibles.length}`}
-              </p>
+            <h2 className="text-lg sm:text-xl font-semibold">Gestión de Rutas</h2>
+            <p className="text-sm text-gray-600">
+              Total: {rutas.length} rutas • {ubicacionesClientes.length} ubicaciones
+              {sectoresDisponibles.length > 0 && (
+                <span className="hidden sm:inline"> • {sectoresDisponibles.length} sectores</span>
+              )}
+            </p>
           </div>
           <Button 
             type="primary" 
             icon={<PlusOutlined />} 
             onClick={handleCreate}
+            size={isMobile ? "middle" : "middle"}
+            className="w-full sm:w-auto"
           >
             Crear Ruta
           </Button>
         </div>
 
-        <Table 
-          dataSource={rutas} 
-          columns={columns} 
-          rowKey="id_ruta"
-          loading={loadingRutas}
-          pagination={{ 
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total, range) => 
-              `${range[0]}-${range[1]} de ${total} rutas`
-          }}
-          locale={{
-            emptyText: 'No hay rutas registradas. Crea tu primera ruta usando el botón "Crear Ruta".'
-          }}
-        />
+        {/* Vista de tabla para desktop y tablet */}
+        {!isMobile ? (
+          <Table 
+            dataSource={rutas} 
+            columns={columns} 
+            rowKey="id_ruta"
+            loading={loadingRutas}
+            scroll={{ x: 'max-content' }}
+            pagination={{ 
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total, range) => 
+                `${range[0]}-${range[1]} de ${total} rutas`,
+              responsive: true,
+              size: 'small'
+            }}
+            locale={{
+              emptyText: 'No hay rutas registradas. Crea tu primera ruta usando el botón "Crear Ruta".'
+            }}
+            size="small"
+          />
+        ) : (
+          /* Vista de cards para móvil */
+          <div className="space-y-3">
+            {loadingRutas ? (
+              <div className="text-center py-8">Cargando rutas...</div>
+            ) : rutas.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No hay rutas registradas. Crea tu primera ruta usando el botón "Crear Ruta".
+              </div>
+            ) : (
+              rutas.map((ruta) => (
+                <RutaCard key={ruta.id_ruta} ruta={ruta} />
+              ))
+            )}
+          </div>
+        )}
 
         {/* Modal para crear/editar ruta */}
         <Modal
@@ -390,7 +525,8 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
           onOk={handleCreateEdit}
           okText={editingRuta ? "Actualizar" : "Crear"}
           cancelText="Cancelar"
-          width={600}
+          width={isMobile ? '95%' : 600}
+          centered={isMobile}
         >
           <Form form={form} layout="vertical">
             <Form.Item 
@@ -401,39 +537,54 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
               <Input placeholder="Ej: Ruta Centro Mañana" />
             </Form.Item>
 
-            <Form.Item 
-              name="sector" 
-              label="Sector" 
-              rules={[{ required: true, message: 'Por favor seleccione un sector' }]}
-            >
-              <Select 
-                placeholder="Seleccione un sector"
-                showSearch
-                filterOption={(input, option) => {
-                  if (!option?.children) return false;
-                  return option.children.toString().toLowerCase().includes(input.toLowerCase());
-                }}
-              >
-                {/* Sectores con clientes registrados */}
-                {sectoresDisponibles.map((sector) => {
-                  const clientesEnSector = ubicacionesClientes.filter(u => u.sector === sector).length;
-                  return (
-                    <Option key={sector} value={sector}>
-                      {sector} ({clientesEnSector} ubicación{clientesEnSector !== 1 ? 'es' : ''})
-                    </Option>
-                  );
-                })}
-                
-                {/* Sectores adicionales predefinidos */}
-                {['Este', 'Oeste', 'Centro Norte', 'Centro Sur', 'Periferia', 'Industrial', 'Comercial'].map(sector => 
-                  !sectoresDisponibles.includes(sector) && (
-                    <Option key={sector} value={sector}>
-                      {sector}
-                    </Option>
-                  )
-                )}
-              </Select>
-            </Form.Item>
+            <Row gutter={[16, 0]}>
+              <Col xs={24} sm={12}>
+                <Form.Item 
+                  name="sector" 
+                  label="Sector" 
+                  rules={[{ required: true, message: 'Por favor seleccione un sector' }]}
+                >
+                  <Select 
+                    placeholder="Seleccione un sector"
+                    showSearch
+                    filterOption={(input, option) => {
+                      if (!option?.children) return false;
+                      return option.children.toString().toLowerCase().includes(input.toLowerCase());
+                    }}
+                  >
+                    {sectoresDisponibles.map((sector) => {
+                      const clientesEnSector = ubicacionesClientes.filter(u => u.sector === sector).length;
+                      return (
+                        <Option key={sector} value={sector}>
+                          {sector} ({clientesEnSector})
+                        </Option>
+                      );
+                    })}
+                    
+                    {['Este', 'Oeste', 'Centro Norte', 'Centro Sur', 'Periferia', 'Industrial', 'Comercial'].map(sector => 
+                      !sectoresDisponibles.includes(sector) && (
+                        <Option key={sector} value={sector}>
+                          {sector}
+                        </Option>
+                      )
+                    )}
+                  </Select>
+                </Form.Item>
+              </Col>
+              
+              <Col xs={24} sm={12}>
+                <Form.Item 
+                  name="tipo_ruta" 
+                  label="Tipo de Ruta" 
+                  rules={[{ required: true, message: 'Por favor seleccione el tipo de ruta' }]}
+                >
+                  <Select placeholder="Seleccione tipo">
+                    <Option value="venta">Venta</Option>
+                    <Option value="entrega">Entrega</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
             
             <Form.Item 
               name="direccion" 
@@ -442,17 +593,6 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
             >
               <Input placeholder="Dirección principal de la ruta" />
             </Form.Item>
-            
-            <Form.Item 
-              name="tipo_ruta" 
-              label="Tipo de Ruta" 
-              rules={[{ required: true, message: 'Por favor seleccione el tipo de ruta' }]}
-            >
-              <Select placeholder="Seleccione tipo de ruta">
-                <Option value="venta">Venta</Option>
-                <Option value="entrega">Entrega</Option>
-              </Select>
-            </Form.Item>
 
             <Form.Item 
               name="fecha_ejecucion" 
@@ -460,7 +600,7 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
             >
               <DatePicker 
                 style={{ width: '100%' }}
-                placeholder="Seleccione fecha de ejecución"
+                placeholder="Seleccione fecha"
                 disabledDate={(current) => current && current < dayjs().startOf('day')}
               />
             </Form.Item>
@@ -469,7 +609,7 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
 
         {/* Modal para asignar ubicaciones */}
         <Modal
-          title={`Asignar Ubicaciones - ${rutaParaAsignar?.nombre}`}
+          title={`Asignar - ${rutaParaAsignar?.nombre}`}
           open={modalAsignacionVisible}
           onCancel={() => {
             setModalAsignacionVisible(false);
@@ -478,9 +618,10 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
             formAsignacion.resetFields();
           }}
           onOk={handleConfirmarAsignacion}
-          okText="Asignar Ubicaciones"
+          okText="Asignar"
           cancelText="Cancelar"
-          width={800}
+          width={isMobile ? '95%' : 800}
+          centered={isMobile}
         >
           <Form form={formAsignacion} layout="vertical">
             <Form.Item 
@@ -526,9 +667,8 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
               rules={[{ required: true, message: 'Por favor seleccione el tipo de usuario' }]}
             >
               <Select 
-                placeholder="Seleccione tipo de usuario"
+                placeholder="Seleccione tipo"
                 onChange={(value) => {
-                  // Validar que el tipo coincida con el tipo de ruta
                   const tipoEsperado = rutaParaAsignar?.tipo_ruta === 'venta' ? 'vendedor' : 'transportista';
                   if (value !== tipoEsperado) {
                     message.warning(`Para rutas de ${rutaParaAsignar?.tipo_ruta} debe seleccionar "${tipoEsperado}"`);
@@ -539,21 +679,21 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
                   value="vendedor" 
                   disabled={rutaParaAsignar?.tipo_ruta !== 'venta'}
                 >
-                  <UserOutlined /> Vendedor {rutaParaAsignar?.tipo_ruta !== 'venta' && '(Solo para rutas de venta)'}
+                  <UserOutlined /> Vendedor
                 </Option>
                 <Option 
                   value="transportista"
                   disabled={rutaParaAsignar?.tipo_ruta !== 'entrega'}
                 >
-                  <CarOutlined /> Transportista {rutaParaAsignar?.tipo_ruta !== 'entrega' && '(Solo para rutas de entrega)'}
+                  <CarOutlined /> Transportista
                 </Option>
               </Select>
             </Form.Item>
           </Form>
 
           <div className="mt-4">
-            <h4 className="font-semibold mb-2">
-              Ubicaciones Disponibles en {rutaParaAsignar?.sector} ({ubicacionesParaAsignar.length})
+            <h4 className="font-semibold mb-2 text-sm">
+              Ubicaciones en {rutaParaAsignar?.sector} ({ubicacionesParaAsignar.length})
             </h4>
             <div className="max-h-60 overflow-y-auto">
               {ubicacionesParaAsignar.map((ubicacion) => (
@@ -571,8 +711,8 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
                     }}
                   >
                     <div className="ml-2">
-                      <div className="font-medium">Cliente: {ubicacion.cod_cliente}</div>
-                      <div className="text-sm text-gray-600">{ubicacion.direccion}</div>
+                      <div className="font-medium text-sm">Cliente: {ubicacion.cod_cliente}</div>
+                      <div className="text-xs text-gray-600">{ubicacion.direccion}</div>
                       {ubicacion.referencia && (
                         <div className="text-xs text-gray-500">{ubicacion.referencia}</div>
                       )}
@@ -585,7 +725,7 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
             {ubicacionesSeleccionadas.length > 0 && (
               <div className="mt-2 p-2 bg-blue-50 rounded">
                 <div className="text-sm text-blue-600">
-                  Seleccionadas: {ubicacionesSeleccionadas.length} ubicación{ubicacionesSeleccionadas.length !== 1 ? 'es' : ''}
+                  Seleccionadas: {ubicacionesSeleccionadas.length}
                 </div>
               </div>
             )}
@@ -593,21 +733,26 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
         </Modal>
       </Card>
 
-      <Card className="mt-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">
+      <Card className="mt-4 lg:mt-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+          <h3 className="text-base sm:text-lg font-semibold">
             Mapa de Ubicaciones
-            {rutaSeleccionada && ` - Sector: ${rutaSeleccionada}`}
+            {rutaSeleccionada && (
+              <span className="block sm:inline text-sm font-normal text-gray-600">
+                {isMobile ? '' : ' - '}Sector: {rutaSeleccionada}
+              </span>
+            )}
           </h3>
           
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Select
-              placeholder="Filtrar por sector"
+              placeholder="Filtrar sector"
               allowClear
-              style={{ width: 200 }}
+              style={{ width: isMobile ? '100%' : 200 }}
               onChange={setRutaSeleccionada}
               value={rutaSeleccionada}
               loading={loadingUbicaciones}
+              size={isMobile ? "middle" : "middle"}
             >
               {sectoresDisponibles.map((sector) => (
                 <Option key={sector} value={sector}>
@@ -619,6 +764,8 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
             <Button 
               onClick={() => setRutaSeleccionada(null)}
               disabled={!rutaSeleccionada}
+              size={isMobile ? "middle" : "middle"}
+              className="w-full sm:w-auto"
             >
               Mostrar Todos
             </Button>
@@ -631,17 +778,19 @@ const handleAsignarUbicaciones = async (ruta: Ruta) => {
           </div>
         ) : (
           <>
-            <div className="mb-2 text-sm text-gray-600">
+            <div className="mb-2 text-xs sm:text-sm text-gray-600">
               Mostrando {ubicacionesFiltradas.length} de {ubicacionesClientes.length} ubicaciones
-              {rutaSeleccionada && ` en el sector ${rutaSeleccionada}`}
+              {rutaSeleccionada && ` en ${rutaSeleccionada}`}
             </div>
             
-            <MapaClientes 
-              sectorSeleccionado={rutaSeleccionada}
-              ubicacionesReales={ubicacionesFiltradas}
-              rutaSeleccionada={rutas.find(r => r.sector === rutaSeleccionada) || null}
-              mostrarRuta={!!rutaSeleccionada}
-            />
+            <div className="h-64 sm:h-80 lg:h-96">
+              <MapaClientes 
+                sectorSeleccionado={rutaSeleccionada}
+                ubicacionesReales={ubicacionesFiltradas}
+                rutaSeleccionada={rutas.find(r => r.sector === rutaSeleccionada) || null}
+                mostrarRuta={!!rutaSeleccionada}
+              />
+            </div>
           </>
         )}
       </Card>

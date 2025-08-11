@@ -8,7 +8,6 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
 
   useEffect(() => {
     if (userToEdit) {
-      // Mapear los datos del usuario para el formulario
       const formData = {
         ...userToEdit,
         id_rol: typeof userToEdit.rol === 'object' && userToEdit.rol ? userToEdit.rol.id_rol : userToEdit.id_rol,
@@ -17,7 +16,6 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
       form.setFieldsValue(formData);
     } else {
       form.resetFields();
-      // Establecer valores por defecto para nuevo usuario
       form.setFieldsValue({
         estado: 'Activo',
         fecha_actualizacion: dayjs()
@@ -28,17 +26,17 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
   const handleOk = () => {
     form.validateFields()
       .then(values => {
-        // Formatear los datos antes de enviar
         const formattedValues = {
           ...values,
-          fecha_actualizacion: values.fecha_actualizacion ? values.fecha_actualizacion.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD')
+          fecha_actualizacion: values.fecha_actualizacion
+            ? values.fecha_actualizacion.format('YYYY-MM-DD')
+            : dayjs().format('YYYY-MM-DD')
         };
-        
-        // Si es edición, no enviar la contraseña vacía
+
         if (userToEdit && !values.contrasena) {
           delete formattedValues.contrasena;
         }
-        
+
         onSubmit(formattedValues);
         form.resetFields();
       })
@@ -64,23 +62,23 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
       destroyOnClose
     >
       <Form form={form} layout="vertical">
-        <Form.Item 
-          name="identificacion" 
-          label="Identificación" 
+        <Form.Item
+          name="identificacion"
+          label="Identificación"
           rules={[
             { required: true, message: 'La identificación es requerida' },
             { min: 10, message: 'La identificación debe tener al menos 10 caracteres' }
           ]}
         >
-          <Input 
-            disabled={!!userToEdit} 
+          <Input
+            disabled={!!userToEdit}
             placeholder="Ingrese la identificación"
             maxLength={50}
           />
         </Form.Item>
-        
-        <Form.Item 
-          name="rucempresarial" 
+
+        <Form.Item
+          name="rucempresarial"
           label="RUC Empresarial"
           rules={[
             { min: 10, message: 'El RUC debe tener al menos 10 caracteres' }
@@ -88,10 +86,10 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
         >
           <Input placeholder="Ingrese el RUC empresarial" maxLength={50} />
         </Form.Item>
-        
-        <Form.Item 
-          name="nombre" 
-          label="Nombre" 
+
+        <Form.Item
+          name="nombre"
+          label="Nombre"
           rules={[
             { required: true, message: 'El nombre es requerido' },
             { min: 2, message: 'El nombre debe tener al menos 2 caracteres' }
@@ -99,10 +97,10 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
         >
           <Input placeholder="Ingrese el nombre completo" maxLength={100} />
         </Form.Item>
-        
-        <Form.Item 
-          name="correo" 
-          label="Correo" 
+
+        <Form.Item
+          name="correo"
+          label="Correo"
           rules={[
             { required: true, message: 'El correo es requerido' },
             { type: 'email', message: 'Ingrese un correo válido' }
@@ -110,10 +108,10 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
         >
           <Input placeholder="correo@ejemplo.com" maxLength={100} />
         </Form.Item>
-        
-        <Form.Item 
-          name="celular" 
-          label="Celular" 
+
+        <Form.Item
+          name="celular"
+          label="Celular"
           rules={[
             { required: true, message: 'El celular es requerido' },
             { min: 10, message: 'El celular debe tener al menos 10 dígitos' }
@@ -121,38 +119,38 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
         >
           <Input placeholder="Ingrese el número de celular" maxLength={20} />
         </Form.Item>
-        
-        <Form.Item 
-          name="contrasena" 
-          label={userToEdit ? "Nueva Contraseña (opcional)" : "Contraseña"} 
+
+        <Form.Item
+          name="contrasena"
+          label={userToEdit ? "Nueva Contraseña (opcional)" : "Contraseña"}
           rules={userToEdit ? [] : [
             { required: true, message: 'La contraseña es requerida' },
             { min: 8, message: 'La contraseña debe tener al menos 8 caracteres' }
           ]}
         >
-          <Input.Password 
-            placeholder={userToEdit ? "Dejar vacío para mantener la actual" : "Ingrese la contraseña"} 
+          <Input.Password
+            placeholder={userToEdit ? "Dejar vacío para mantener la actual" : "Ingrese la contraseña"}
             maxLength={100}
           />
         </Form.Item>
-        
-        <Form.Item 
-          name="estado" 
-          label="Estado" 
+
+        <Form.Item
+          name="estado"
+          label="Estado"
           rules={[{ required: true, message: 'El estado es requerido' }]}
         >
-          <Select 
+          <Select
             placeholder="Seleccione el estado"
             options={[
               { value: 'activo', label: 'activo' },
               { value: 'inactivo', label: 'inactivo' }
-            ]} 
+            ]}
           />
         </Form.Item>
-        
-        <Form.Item 
-          name="id_rol" 
-          label="Rol" 
+
+        <Form.Item
+          name="id_rol"
+          label="Rol"
           rules={[{ required: true, message: 'El rol es requerido' }]}
         >
           <Select
@@ -163,12 +161,12 @@ export const UsuarioModal: React.FC<Props> = ({ visible, onCancel, onSubmit, use
             }))}
           />
         </Form.Item>
-        
-        <Form.Item 
-          name="fecha_actualizacion" 
+
+        <Form.Item
+          name="fecha_actualizacion"
           label="Fecha de Actualización"
         >
-          <DatePicker 
+          <DatePicker
             style={{ width: '100%' }}
             format="YYYY-MM-DD"
             disabled

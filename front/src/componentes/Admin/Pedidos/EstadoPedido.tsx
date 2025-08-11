@@ -2,19 +2,18 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { EditOutlined } from "@ant-design/icons";
 import { Pedido, EstadoPedido } from "types/types";
-import { Table, Select, Button, Tag, message, Modal, Typography, Card } from "antd";
+import { Table, Select, Button, Tag, message, Modal, Typography, Card, Row, Col, Grid } from "antd";
 
 const { Option } = Select;
-const { Title } = Typography;
+const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
-// Estados disponibles para los pedidos
 const ESTADOS_PEDIDO = ["Facturado", "Despachado", "Enviado", "Entregado"];
 
-// Función para obtener color del estado
 const getColorEstado = (estado: string) => {
   const colores: { [key: string]: string } = {
     "Facturado": "orange",
-    "Despachado": "blue", 
+    "Despachado": "blue",
     "Enviado": "purple",
     "Entregado": "green",
     "Sin estado": "default"
@@ -38,7 +37,12 @@ const EstadoPedidos = () => {
   const [nuevoEstadoSeleccionado, setNuevoEstadoSeleccionado] = useState<string>("");
   const [actualizandoEstado, setActualizandoEstado] = useState(false);
 
-  // Cargar pedidos al montar el componente
+  // Hook para breakpoints responsivos
+  const screens = useBreakpoint();
+
+  // Definir cuando es pantalla móvil
+  const esMovil = !screens.md; // md es ≥ 768px, así que si es false, estamos en móvil
+
   useEffect(() => {
     cargarPedidos();
   }, []);
@@ -49,10 +53,7 @@ const EstadoPedidos = () => {
       const token = localStorage.getItem('access_token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      // Obtener todos los pedidos
       const responsePedidos = await axios.get("http://127.0.0.1:8000/pedidos", { headers });
-      console.log("Pedidos obtenidos:", responsePedidos.data);
-
       if (!responsePedidos.data || !Array.isArray(responsePedidos.data)) {
         message.warning("No hay pedidos disponibles");
         setPedidos([]);
@@ -61,19 +62,18 @@ const EstadoPedidos = () => {
 
       const responseEstados = await axios.get("http://127.0.0.1:8000/estados_pedido", { headers });
       const todosLosEstados = responseEstados.data || [];
-      
-      // Crear mapa de último estado por pedido
+
       const ultimoEstadoPorPedido: { [key: number]: string } = {};
-      
-      // Agrupar estados por pedido y encontrar el más reciente
       todosLosEstados.forEach((estado: EstadoPedido) => {
-        if (!ultimoEstadoPorPedido[estado.id_estado_pedido] || 
-            new Date(estado.fecha_actualizada) > new Date(ultimoEstadoPorPedido[estado.id_estado_pedido])) {
+        // Mejor comparar fechas reales para obtener el último estado (asumiendo que fecha_actualizada es string ISO)
+        if (
+          !ultimoEstadoPorPedido[estado.id_estado_pedido] || 
+          new Date(estado.fecha_actualizada) > new Date(ultimoEstadoPorPedido[estado.id_estado_pedido])
+        ) {
           ultimoEstadoPorPedido[estado.id_estado_pedido] = estado.descripcion;
         }
       });
 
-      // Combinar pedidos con sus estados
       const pedidosConEstado = responsePedidos.data.map((pedido: Pedido) => ({
         ...pedido,
         estado_actual: ultimoEstadoPorPedido[pedido.id_pedido] || "Sin estado"
@@ -101,14 +101,11 @@ const EstadoPedidos = () => {
       message.warning("Debe seleccionar un estado");
       return;
     }
-
     setActualizandoEstado(true);
-    
     try {
       const token = localStorage.getItem('access_token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      // Crear nuevo registro en estado_pedido
       await axios.post("http://127.0.0.1:8000/estados_pedido", {
         id_pedido: pedidoSeleccionado.id_pedido,
         descripcion: nuevoEstadoSeleccionado,
@@ -116,17 +113,14 @@ const EstadoPedidos = () => {
       }, { headers });
 
       message.success(`Estado actualizado a: ${nuevoEstadoSeleccionado}`);
-      
-      // Actualizar el estado en la tabla local sin recargar todo
-      setPedidos(prevPedidos => 
-        prevPedidos.map(pedido => 
-          pedido.id_pedido === pedidoSeleccionado.id_pedido 
-            ? { ...pedido, estado_actual: nuevoEstadoSeleccionado }
-            : pedido
+
+      setPedidos(prev =>
+        prev.map(p => p.id_pedido === pedidoSeleccionado.id_pedido
+          ? { ...p, estado_actual: nuevoEstadoSeleccionado }
+          : p
         )
       );
 
-      // Cerrar modal
       setModalEditarVisible(false);
       setNuevoEstadoSeleccionado("");
       setPedidoSeleccionado(null);
@@ -139,111 +133,99 @@ const EstadoPedidos = () => {
     }
   };
 
-  const verHistorialEstados = async (pedido: PedidoConEstado) => {
-    try {
-      const token = localStorage.getItem('access_token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-      // Obtener todos los estados y filtrar por el pedido específico
-      const response = await axios.get("http://127.0.0.1:8000/estados_pedido", { headers });
-      const todosLosEstados = response.data || [];
-      
-      // Filtrar estados del pedido específico
-      const estadosPedido = todosLosEstados.filter(
-        (estado: EstadoPedido) => estado.id_estado_pedido === pedido.id_pedido
-      );
-
-      setPedidoSeleccionado(pedido);
-
-    } catch (error: any) {
-      console.error("Error al cargar historial:", error);
-      message.error("Error al cargar el historial de estados");
-    }
-  };
-
   const columns = [
-    {
-      title: "N° Pedido",
-      dataIndex: "numero_pedido",
-      key: "numero_pedido",
-      width: 120,
+    { title: "N° Pedido", dataIndex: "numero_pedido", key: "numero_pedido", width: 120 },
+    { 
+      title: "Cliente", key: "cliente", width: 200,
+      render: (record: PedidoConEstado) => record.cliente?.nombre || record.cod_cliente || "Sin cliente",
+    },
+    { 
+      title: "Fecha", dataIndex: "fecha_pedido", key: "fecha_pedido", width: 120,
+      render: (fecha: string) => fecha ? new Date(fecha).toLocaleDateString() : "-"
     },
     {
-      title: "Cliente",
-      key: "cliente",
-      width: 200,
-      render: (record: PedidoConEstado) => 
-        record.cliente?.nombre || record.cod_cliente || "Sin cliente",
+      title: "Total", dataIndex: "total", key: "total", width: 100,
+      render: (total: number) => `${total?.toFixed(2) || '0.00'}`
     },
     {
-      title: "Fecha",
-      dataIndex: "fecha_pedido",
-      key: "fecha_pedido", 
-      width: 120,
-      render: (fecha: string) => 
-        fecha ? new Date(fecha).toLocaleDateString() : "-",
-    },
-    {
-      title: "Total",
-      dataIndex: "total",
-      key: "total",
-      width: 100,
-      render: (total: number) => `${total?.toFixed(2) || '0.00'}`,
-    },
-    {
-      title: "Estado Actual",
-      dataIndex: "estado_actual",
-      key: "estado_actual",
-      width: 130,
+      title: "Estado Actual", dataIndex: "estado_actual", key: "estado_actual", width: 130,
       render: (estado: string) => (
         <Tag color={getColorEstado(estado)}>
           {estado || "Sin estado"}
         </Tag>
-      ),
+      )
     },
     {
-      title: "Acciones",
-      key: "acciones",
-      width: 120,
+      title: "Acciones", key: "acciones", width: 120,
       render: (_: any, record: PedidoConEstado) => (
-        <Button 
-          icon={<EditOutlined />}
-          size="small"
-          onClick={() => abrirModalEditar(record)}
-        >
+        <Button icon={<EditOutlined />} size="small" onClick={() => abrirModalEditar(record)}>
           Editar Estado
         </Button>
-      ),
+      )
     },
   ];
 
   return (
     <div style={{ padding: '24px' }}>
       <Card>
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Title level={2} style={{ margin: 0 }}>
-            Estados de Pedidos
-          </Title>
-          <span>Total: {pedidos.length} pedidos</span>
-        </div>
+        <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+          <Col>
+            <Title level={2} style={{ margin: 0 }}>Estados de Pedidos</Title>
+          </Col>
+          <Col>
+            <Text>Total: {pedidos.length} pedidos</Text>
+          </Col>
+        </Row>
 
-        <Table
-          rowKey="id_pedido"
-          columns={columns}
-          dataSource={pedidos}
-          loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} pedidos`,
-          }}
-          scroll={{ x: 1000 }}
-          size="middle"
-        />
+        {/* Si es móvil, mostrar cards */}
+        {esMovil ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {pedidos.map(pedido => (
+              <Card
+                key={pedido.id_pedido}
+                size="small"
+                title={`Pedido #${pedido.numero_pedido}`}
+                extra={
+                  <Button
+                    icon={<EditOutlined />}
+                    size="small"
+                    onClick={() => abrirModalEditar(pedido)}
+                  >
+                    Editar
+                  </Button>
+                }
+              >
+                <p><b>Cliente:</b> {pedido.cliente?.nombre || pedido.cod_cliente || "Sin cliente"}</p>
+                <p><b>Fecha:</b> {pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toLocaleDateString() : "-"}</p>
+                <p><b>Total:</b> ${pedido.total?.toFixed(2) || "0.00"}</p>
+                <p>
+                  <b>Estado Actual:</b>{" "}
+                  <Tag color={getColorEstado(pedido.estado_actual || "")}>
+                    {pedido.estado_actual || "Sin estado"}
+                  </Tag>
+                </p>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          // Si no es móvil, mostrar tabla
+          <Table
+            rowKey="id_pedido"
+            columns={columns}
+            dataSource={pedidos}
+            loading={loading}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} pedidos`,
+            }}
+            scroll={{ x: 1000 }}
+            size="middle"
+          />
+        )}
       </Card>
 
-      {/* Modal para editar estado */}
       <Modal
         title={`Editar Estado - Pedido #${pedidoSeleccionado?.numero_pedido}`}
         visible={modalEditarVisible}
@@ -259,9 +241,10 @@ const EstadoPedidos = () => {
         width={500}
       >
         <div style={{ marginBottom: 16 }}>
-          <p><strong>Cliente:</strong> {pedidoSeleccionado?.cliente?.nombre || pedidoSeleccionado?.cod_cliente}</p>
-          <p><strong>Total:</strong> ${pedidoSeleccionado?.total?.toFixed(2) || '0.00'}</p>
-          <p><strong>Estado Actual:</strong> 
+          <p><b>Cliente:</b> {pedidoSeleccionado?.cliente?.nombre || pedidoSeleccionado?.cod_cliente}</p>
+          <p><b>Total:</b> ${pedidoSeleccionado?.total?.toFixed(2) || "0.00"}</p>
+          <p>
+            <b>Estado Actual:</b>{" "}
             <Tag color={getColorEstado(pedidoSeleccionado?.estado_actual || "")} style={{ marginLeft: 8 }}>
               {pedidoSeleccionado?.estado_actual || "Sin estado"}
             </Tag>
@@ -269,10 +252,10 @@ const EstadoPedidos = () => {
         </div>
 
         <div>
-          <p style={{ marginBottom: 8 }}><strong>Nuevo Estado:</strong></p>
+          <p style={{ marginBottom: 8 }}><b>Nuevo Estado:</b></p>
           <Select
             placeholder="Seleccionar nuevo estado"
-            style={{ width: '100%' }}
+            style={{ width: "100%" }}
             value={nuevoEstadoSeleccionado}
             onChange={setNuevoEstadoSeleccionado}
             size="large"

@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Layout, 
-  Button, 
-  Card, 
-  Col, 
-  Row, 
-  Typography, 
-  Input, 
-  Select, 
-  message, 
-  Spin, 
+import {
+  Layout,
+  Button,
+  Card,
+  Col,
+  Row,
+  Typography,
+  Input,
+  Select,
+  message,
+  Spin,
   Image,
   Tag,
   Space,
   Divider,
   Modal
 } from 'antd';
-import { 
-  SearchOutlined, 
-  FilePdfOutlined, 
+import {
+  SearchOutlined,
+  FilePdfOutlined,
   EyeOutlined
 } from '@ant-design/icons';
 import axios from '../../../utils/axiosConfig';
@@ -52,7 +52,7 @@ const Catalogo = () => {
     try {
       const response = await axios.get('/productos');
       // Filtrar solo productos activos
-      const productosActivos = response.data.filter((producto: Producto) => 
+      const productosActivos = response.data.filter((producto: Producto) =>
         producto.estado === 'activo'
       );
       setProductos(productosActivos);
@@ -85,22 +85,22 @@ const Catalogo = () => {
   // Función para construir la URL de la imagen
   const getImageUrl = (imagePath: string | null) => {
     if (!imagePath) return 'https://via.placeholder.com/300x200?text=Sin+Imagen';
-    
+
     if (imagePath.startsWith('http')) return imagePath;
-    
+
     const baseUrl = 'http://127.0.0.1:8000'; // Usando la misma URL que tu axiosConfig
     return imagePath.startsWith('/') ? `${baseUrl}${imagePath}` : `${baseUrl}/${imagePath}`;
   };
 
   // Filtrar productos basado en los criterios de búsqueda
   const filteredProductos = productos.filter(producto => {
-    const matchesSearch = searchText === '' || 
+    const matchesSearch = searchText === '' ||
       producto.nombre.toLowerCase().includes(searchText.toLowerCase()) ||
       (producto.marca?.descripcion.toLowerCase().includes(searchText.toLowerCase()) ?? false) ||
       (producto.categoria?.descripcion.toLowerCase().includes(searchText.toLowerCase()) ?? false);
 
     const matchesMarca = selectedMarca === undefined || producto.id_marca === selectedMarca;
-    
+
     const matchesCategoria = selectedCategoria === undefined || producto.id_categoria === selectedCategoria;
 
     const matchesPriceRange = (() => {
@@ -127,22 +127,22 @@ const Catalogo = () => {
   const exportToPDF = async () => {
     try {
       message.loading({ content: 'Generando PDF...', key: 'pdf' });
-      
+
       // Preparar parámetros de filtro
       const params = new URLSearchParams();
-      
+
       if (searchText) params.append('search', searchText);
       if (selectedMarca) params.append('marca_id', selectedMarca.toString());
       if (selectedCategoria) params.append('categoria_id', selectedCategoria.toString());
       if (priceRange !== 'all') params.append('price_range', priceRange);
-      
+
       // Construir URL con filtros
       const baseUrl = 'http://127.0.0.1:8000';
       const url = `${baseUrl}/api/catalogo/export/pdf${params.toString() ? '?' + params.toString() : ''}`;
-      
+
       // Obtener token de autenticación
       const token = localStorage.getItem('token'); // Ajusta según tu implementación de auth
-      
+
       // Realizar petición
       const response = await fetch(url, {
         method: 'GET',
@@ -151,45 +151,45 @@ const Catalogo = () => {
           'Content-Type': 'application/pdf'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      
+
       // Obtener el blob del PDF
       const blob = await response.blob();
-      
+
       // Crear URL temporal para descargar
       const downloadUrl = window.URL.createObjectURL(blob);
-      
+
       // Crear elemento de descarga
       const link = document.createElement('a');
       link.href = downloadUrl;
-      
+
       // Generar nombre del archivo con timestamp
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
       link.download = `catalogo_productos_${timestamp}.pdf`;
-      
+
       // Trigger descarga
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // Limpiar URL temporal
       window.URL.revokeObjectURL(downloadUrl);
-      
-      message.success({ 
-        content: 'PDF descargado exitosamente', 
+
+      message.success({
+        content: 'PDF descargado exitosamente',
         key: 'pdf',
-        duration: 3 
+        duration: 3
       });
-      
+
     } catch (error) {
       console.error('Error al exportar PDF:', error);
-      message.error({ 
-        content: 'Error al generar el PDF. Inténtalo de nuevo.', 
+      message.error({
+        content: 'Error al generar el PDF. Inténtalo de nuevo.',
         key: 'pdf',
-        duration: 5 
+        duration: 5
       });
     }
   };
@@ -208,25 +208,40 @@ const Catalogo = () => {
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
       <Content style={{ padding: '24px' }}>
         {/* Título y botón de exportar */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: 24,
-          padding: '16px 0'
-        }}>
-          <Title level={2} style={{ margin: 0, color: '#ABD904' }}>
-            Catálogo de Productos
-          </Title>
-          <Button 
-            type="primary" 
-            icon={<FilePdfOutlined />}
-            onClick={exportToPDF}
-            style={{ background: '#F12525', borderColor: '#F12525' }}
-          >
-            Exportar PDF
-          </Button>
-        </div>
+        <Row
+          gutter={[16, 16]}
+          align="middle"
+          justify="space-between"
+          style={{ marginBottom: 24 }}
+        >
+          <Col xs={24} sm={16}>
+            <Title
+              level={2}
+              style={{
+                margin: 0,
+                color: '#ABD904',
+                textAlign: 'left'
+              }}
+            >
+              Catálogo de Productos
+            </Title>
+          </Col>
+          <Col xs={24} sm={8} style={{ textAlign: 'right' }}>
+            <Button
+              type="primary"
+              icon={<FilePdfOutlined />}
+              onClick={exportToPDF}
+              style={{
+                background: '#F12525',
+                borderColor: '#F12525',
+                width: '100%',
+                maxWidth: 180
+              }}
+            >
+              Exportar PDF
+            </Button>
+          </Col>
+        </Row>
 
         {/* Filtros */}
         <Card style={{ marginBottom: 24 }}>
@@ -241,7 +256,7 @@ const Catalogo = () => {
                 allowClear
               />
             </Col>
-            
+
             <Col xs={24} sm={12} md={5}>
               <Select
                 placeholder="Filtrar por marca"
@@ -302,8 +317,8 @@ const Catalogo = () => {
             Mostrando {filteredProductos.length} de {productos.length} productos
           </Text>
           {(searchText || selectedMarca || selectedCategoria || priceRange !== 'all') && (
-            <Tag 
-              color="blue" 
+            <Tag
+              color="blue"
               style={{ marginLeft: 8 }}
               closable
               onClose={clearFilters}
@@ -316,8 +331,8 @@ const Catalogo = () => {
         {/* Grid de productos */}
         <Spin spinning={loading}>
           {filteredProductos.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
+            <div style={{
+              textAlign: 'center',
               padding: '60px 0',
               background: '#fff',
               borderRadius: 8
@@ -339,8 +354,8 @@ const Catalogo = () => {
                     hoverable
                     style={{ height: '100%' }}
                     cover={
-                      <div style={{ 
-                        height: 200, 
+                      <div style={{
+                        height: 200,
                         overflow: 'hidden',
                         display: 'flex',
                         alignItems: 'center',
@@ -350,7 +365,7 @@ const Catalogo = () => {
                         <Image
                           src={getImageUrl(producto.imagen)}
                           alt={producto.nombre}
-                          style={{ 
+                          style={{
                             width: '100%',
                             height: '100%',
                             objectFit: 'cover'
@@ -360,8 +375,8 @@ const Catalogo = () => {
                       </div>
                     }
                     actions={[
-                      <Button 
-                        type="text" 
+                      <Button
+                        type="text"
                         icon={<EyeOutlined />}
                         onClick={() => handleViewDetails(producto)}
                         style={{ color: '#1890ff' }}
@@ -386,9 +401,9 @@ const Catalogo = () => {
                                 {producto.marca?.descripcion} • {producto.categoria?.descripcion}
                               </Text>
                             </div>
-                            
+
                             <Divider style={{ margin: '8px 0' }} />
-                            
+
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div>
                                 <Text strong style={{ color: '#f5222d', fontSize: 16 }}>
@@ -442,7 +457,7 @@ const Catalogo = () => {
                   <Image
                     src={getImageUrl(selectedProduct.imagen)}
                     alt={selectedProduct.nombre}
-                    style={{ 
+                    style={{
                       width: '100%',
                       height: 250,
                       objectFit: 'cover',
@@ -458,45 +473,45 @@ const Catalogo = () => {
                         {selectedProduct.nombre}
                       </Title>
                     </div>
-                    
+
                     <div>
                       <Text strong>Marca: </Text>
                       <Text>{selectedProduct.marca?.descripcion}</Text>
                     </div>
-                    
+
                     <div>
                       <Text strong>Categoría: </Text>
                       <Text>{selectedProduct.categoria?.descripcion}</Text>
                     </div>
-                    
+
                     <div>
                       <Text strong>Stock disponible: </Text>
                       <Tag color={Number(selectedProduct.stock) > 10 ? 'green' : Number(selectedProduct.stock) > 0 ? 'orange' : 'red'}>
                         {selectedProduct.stock} unidades
                       </Tag>
                     </div>
-                    
+
                     <Divider />
-                    
+
                     <div>
                       <Text strong style={{ fontSize: 16 }}>Precio Minorista: </Text>
                       <Text strong style={{ color: '#f5222d', fontSize: 18 }}>
                         ${selectedProduct.precio_minorista.toFixed(2)}
                       </Text>
                     </div>
-                    
+
                     <div>
                       <Text strong>Precio Mayorista: </Text>
                       <Text style={{ color: '#52c41a', fontSize: 16 }}>
                         ${selectedProduct.precio_mayorista.toFixed(2)}
                       </Text>
                     </div>
-                    
+
                     <div>
                       <Text strong>IVA: </Text>
                       <Text>{(selectedProduct.iva * 100).toFixed(0)}%</Text>
                     </div>
-                    
+
                     <div>
                       <Text strong>Estado: </Text>
                       <Tag color={selectedProduct.estado === 'activo' ? 'green' : 'red'}>

@@ -1,28 +1,30 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  Button, 
-  Table, 
-  message, 
-  Popconfirm, 
-  Modal, 
-  Input, 
-  Typography, 
-  Card, 
-  Row, 
+import {
+  Button,
+  Table,
+  message,
+  Popconfirm,
+  Modal,
+  Input,
+  Typography,
+  Card,
+  Row,
   Col,
-  Space 
+  Space,
+  Grid
 } from 'antd';
-import { 
-  DeleteOutlined, 
-  EditOutlined, 
-  PlusOutlined, 
-  SearchOutlined 
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  SearchOutlined
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import Categoria_Form from './Categorias_Form';
 import axios from '../../../utils/axiosConfig';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 interface Categoria {
   id_categoria: number;
@@ -30,24 +32,14 @@ interface Categoria {
 }
 
 const Categorias_Admin = () => {
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
   const [open, setOpen] = useState(false);
   const [editarCategoria, setEditarCategoria] = useState<Categoria | null>(null);
   const [dataSource, setDataSource] = useState<Categoria[]>([]);
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Detectar si es móvil
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const fetchCategorias = useCallback(async () => {
     try {
@@ -119,16 +111,7 @@ const Categorias_Admin = () => {
       key: 'descripcion',
       sorter: (a, b) => a.descripcion.localeCompare(b.descripcion),
       ellipsis: true,
-      render: (text: string, record: Categoria) => (
-        <div>
-          <div>{text}</div>
-          {isMobile && (
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              ID: {record.id_categoria}
-            </div>
-          )}
-        </div>
-      ),
+      render: (text: string) => <span>{text}</span>,
     },
     {
       title: 'Acciones',
@@ -168,10 +151,10 @@ const Categorias_Admin = () => {
   const renderMobileCards = () => (
     <Row gutter={[16, 16]}>
       {filteredData.map((categoria) => (
-        <Col xs={24} sm={12} key={categoria.id_categoria}>
+        <Col xs={24} sm={24} md={12} lg={8} key={categoria.id_categoria}>
           <Card
             size="small"
-            title={categoria.descripcion}
+            title={<Text ellipsis>{categoria.descripcion}</Text>}
             extra={
               <Space>
                 <Button
@@ -196,11 +179,7 @@ const Categorias_Admin = () => {
                 </Popconfirm>
               </Space>
             }
-          >
-            <div style={{ fontSize: '12px', lineHeight: '1.5' }}>
-              <div><strong>ID:</strong> {categoria.id_categoria}</div>
-            </div>
-          </Card>
+          />
         </Col>
       ))}
     </Row>
@@ -212,9 +191,8 @@ const Categorias_Admin = () => {
         Gestión de Categorías
       </Title>
 
-      {/* Barra de búsqueda y acciones */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} md={8}>
+        <Col xs={24} sm={24} md={8}>
           <Input
             placeholder="Buscar categorías..."
             value={searchText}
@@ -223,10 +201,10 @@ const Categorias_Admin = () => {
             allowClear
           />
         </Col>
-        <Col xs={24} sm={12} md={16}>
+        <Col xs={24} sm={24} md={16}>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               icon={<PlusOutlined />}
               onClick={() => {
                 setEditarCategoria(null);
@@ -241,32 +219,28 @@ const Categorias_Admin = () => {
       </Row>
 
       {isMobile ? (
-        // Vista móvil con cards
-        <>
-          {loading ? (
+        loading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            Cargando categorías...
+          </div>
+        ) : filteredData.length > 0 ? (
+          renderMobileCards()
+        ) : (
+          <Card>
             <div style={{ textAlign: 'center', padding: '50px' }}>
-              Cargando categorías...
-            </div>
-          ) : filteredData.length > 0 ? (
-            renderMobileCards()
-          ) : (
-            <Card>
-              <div style={{ textAlign: 'center', padding: '50px' }}>
-                <div style={{ marginTop: '16px' }}>
-                  No se encontraron categorías
-                </div>
+              <div style={{ marginTop: '16px' }}>
+                No se encontraron categorías
               </div>
-            </Card>
-          )}
-        </>
+            </div>
+          </Card>
+        )
       ) : (
-        // Vista desktop con tabla
         <Table
           columns={columns}
           dataSource={filteredData}
           rowKey="id_categoria"
           loading={loading}
-          scroll={{ x: 500 }}
+          scroll={{ x: 'max-content' }}
           locale={{
             emptyText: 'No hay categorías disponibles'
           }}
@@ -274,10 +248,11 @@ const Categorias_Admin = () => {
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total, range) => 
+            showTotal: (total, range) =>
               `${range[0]}-${range[1]} de ${total} categorías`,
             responsive: true,
           }}
+          style={{ width: '100%' }}
         />
       )}
 
@@ -287,15 +262,19 @@ const Categorias_Admin = () => {
         footer={null}
         destroyOnClose
         title={editarCategoria ? 'Editar Categoría' : 'Agregar Categoría'}
-        width="90%"
-        style={{ maxWidth: 500 }}
+        width={isMobile ? '100%' : 500}
+        style={{ maxWidth: isMobile ? '100%' : 500 }}
       >
         <Categoria_Form
           onClose={cerrarModal}
-          initialValues={editarCategoria ? { 
-            key: editarCategoria.id_categoria.toString(),
-            nombre: editarCategoria.descripcion 
-          } : undefined}
+          initialValues={
+            editarCategoria
+              ? {
+                  key: editarCategoria.id_categoria.toString(),
+                  nombre: editarCategoria.descripcion,
+                }
+              : undefined
+          }
           onSave={handleSave}
         />
       </Modal>
