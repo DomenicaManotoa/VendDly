@@ -26,6 +26,59 @@ def listar_pedidos(
     except Exception as e:
         logger.error(f"Error al listar pedidos: {e}")
         raise HTTPException(status_code=500, detail="Error interno del servidor")
+    
+@router.get("/pedidos/disponibles-para-ruta")
+def obtener_pedidos_disponibles_para_ruta(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtiene pedidos que pueden ser asignados a rutas de entrega"""
+    try:
+        logger.info(f"Usuario {current_user.identificacion} solicita pedidos disponibles para ruta")
+        
+        # Obtener pedidos que no están asignados a ninguna ruta de entrega
+        from models.models import Pedido, Ruta
+        
+        # Subconsulta para obtener pedidos ya asignados a rutas
+        pedidos_asignados = db.query(Ruta.id_pedido).filter(
+            Ruta.id_pedido.isnot(None),
+            Ruta.tipo_ruta == 'entrega'
+        ).subquery()
+        
+        # Obtener pedidos no asignados
+        pedidos_disponibles = db.query(Pedido).filter(
+            ~Pedido.id_pedido.in_(pedidos_asignados)
+        ).all()
+        
+        result = []
+        for pedido in pedidos_disponibles:
+            # Obtener información del cliente
+            cliente_info = None
+            if pedido.cliente:
+                cliente_info = {
+                    "nombre": pedido.cliente.nombre,
+                    "direccion": pedido.cliente.direccion,
+                    "sector": pedido.cliente.sector
+                }
+            
+            pedido_dict = {
+                "id_pedido": pedido.id_pedido,
+                "numero_pedido": pedido.numero_pedido,
+                "fecha_pedido": pedido.fecha_pedido,
+                "cod_cliente": pedido.cod_cliente,
+                "total": pedido.total,
+                "subtotal": pedido.subtotal,
+                "iva": pedido.iva,
+                "cliente_info": cliente_info
+            }
+            result.append(pedido_dict)
+        
+        logger.info(f"Se encontraron {len(result)} pedidos disponibles para ruta")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error al obtener pedidos disponibles para ruta: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @router.get("/pedidos/{id_pedido}")
 def obtener_pedido(

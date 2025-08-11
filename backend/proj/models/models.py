@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, Float, Text, DECIMAL, TIMESTAMP, Enum
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Session
 from database import Base  
 from pydantic import BaseModel, validator
 from datetime import datetime
@@ -146,10 +146,27 @@ class Ruta(Base):
     fecha_creacion = Column(TIMESTAMP, server_default=func.now())
     fecha_ejecucion = Column(Date)
     poligono_geojson = Column(Text)
+    # CAMPO PARA PEDIDO ESPECÍFICO EN RUTAS DE ENTREGA:
+    id_pedido = Column(Integer, ForeignKey('pedido.id_pedido'), nullable=True)
     
     # Relaciones
-    asignaciones = relationship("AsignacionRuta", back_populates="ruta")
+    asignaciones = relationship("AsignacionRuta", back_populates="ruta", cascade="all, delete-orphan")
+    # RELACIÓN CORREGIDA CON PEDIDO:
+    pedido = relationship("Pedido", foreign_keys=[id_pedido], post_update=True)
 
+# También AGREGAR al final de models.py una función helper:
+
+def get_ultimo_estado_pedido_helper(db: Session, id_pedido: int) -> str:
+    """Helper function para obtener el último estado de un pedido"""
+    try:
+        ultimo_estado = db.query(EstadoPedido).filter(
+            EstadoPedido.id_pedido == id_pedido
+        ).order_by(EstadoPedido.fecha_actualizada.desc()).first()
+        
+        return ultimo_estado.descripcion if ultimo_estado else 'Sin estado'
+    except Exception:
+        return 'Sin estado'
+    
 class AsignacionRuta(Base):
     __tablename__ = 'asignacion_ruta'
     
@@ -181,7 +198,6 @@ class Pedido(Base):
     iva = Column(Float)
     total = Column(Float)
     cod_cliente = Column(String(50), ForeignKey('cliente.cod_cliente'))
-
         
     # Relaciones
     cliente = relationship("Cliente", back_populates="pedidos")

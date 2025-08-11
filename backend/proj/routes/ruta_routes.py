@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Body, HTTPException
 from sqlalchemy.orm import Session
 from dependencias.auth import get_db, get_current_user, require_admin
 from controllers import ruta_controller
-from models.models import Usuario, AsignacionRuta, Ruta, Rol
-from sqlalchemy import and_
+from models.models import Usuario, AsignacionRuta, Ruta, Rol, Pedido
+from sqlalchemy import and_, or_
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -260,4 +260,167 @@ def actualizar_estado_ruta(
     except Exception as e:
         db.rollback()
         logger.error(f"Error al actualizar estado de ruta {id_ruta}: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
+
+# NUEVO endpoint para asignar pedido a ruta:
+@router.post("/rutas/{id_ruta}/asignar-pedido")
+def asignar_pedido_ruta(
+    id_ruta: int,
+    pedido_data: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin())
+):
+    """Asignar un pedido específico a una ruta de entrega"""
+    try:
+        id_pedido = pedido_data.get('id_pedido')
+        
+        logger.info(f"=== INICIO ASIGNACIÓN ===")
+        logger.info(f"Usuario: {current_user.identificacion}")
+        logger.info(f"Ruta ID: {id_ruta}")
+        logger.info(f"Pedido ID: {id_pedido}")
+        logger.info(f"Datos recibidos: {pedido_data}")
+        
+        if not id_pedido:
+            logger.error("ID de pedido no proporcionado")
+            raise HTTPException(status_code=400, detail="Debe proporcionar el ID del pedido")
+        
+        # Validar que id_pedido sea un entero válido
+        try:
+            id_pedido = int(id_pedido)
+        except (ValueError, TypeError):
+            logger.error(f"ID de pedido inválido: {id_pedido}")
+            raise HTTPException(status_code=400, detail="El ID del pedido debe ser un número entero válido")
+        
+        logger.info(f"Llamando a controlador con ruta {id_ruta} y pedido {id_pedido}")
+        resultado = ruta_controller.asignar_pedido_a_ruta_entrega(db, id_ruta, id_pedido)
+        logger.info(f"Resultado del controlador: {resultado}")
+        
+        return resultado
+        
+    except HTTPException as he:
+        logger.error(f"HTTPException en asignación: {he.detail}")
+        raise he
+    except Exception as e:
+        logger.error(f"Error inesperado al asignar pedido a ruta {id_ruta}: {str(e)}")
+        logger.error(f"Tipo de error: {type(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+    
+# NUEVO endpoint para desasignar pedido:
+@router.delete("/rutas/{id_ruta}/desasignar-pedido")
+def desasignar_pedido_ruta(
+    id_ruta: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin())
+):
+    """Desasignar pedido de una ruta de entrega"""
+    try:
+        return ruta_controller.desasignar_pedido_de_ruta_entrega(db, id_ruta)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error al desasignar pedido de ruta {id_ruta}: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
+
+@router.get("/pedidos/disponibles-para-ruta")
+def obtener_pedidos_disponibles(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtener pedidos disponibles para asignar a rutas de entrega"""
+    try:
+        # Obtener pedidos que no están asignados a ninguna ruta
+        pedidos = db.query(Pedido).outerjoin(Ruta, Ruta.id_pedido == Pedido.id_pedido).filter(
+            Ruta.id_pedido.is_(None)
+        ).all()
+        
+        resultado = []
+        for pedido in pedidos:
+            ultimo_estado = ruta_controller.get_ultimo_estado_pedido(db, pedido.id_pedido)
+            
+            # Solo incluir pedidos con estados válidos
+            if ultimo_estado in ['Pendiente', 'Confirmado']:
+                pedido_info = {
+                    "id_pedido": pedido.id_pedido,
+                    "numero_pedido": pedido.numero_pedido,
+                    "fecha_pedido": pedido.fecha_pedido.strftime('%Y-%m-%d') if pedido.fecha_pedido else None,
+                    "cod_cliente": pedido.cod_cliente,
+                    "total": float(pedido.total) if pedido.total else 0,
+                    "subtotal": float(pedido.subtotal) if pedido.subtotal else 0,
+                    "iva": float(pedido.iva) if pedido.iva else 0,
+                    "estado": ultimo_estado,
+                    "cliente_info": {
+                        "nombre": pedido.cliente.nombre if pedido.cliente else None,
+                        "direccion": pedido.cliente.direccion if pedido.cliente else None,
+                        "sector": pedido.cliente.sector if pedido.cliente else None
+                    }
+                }
+                resultado.append(pedido_info)
+        
+        return resultado
+        
+    except Exception as e:
+        logger.error(f"Error al obtener pedidos disponibles: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
+
+@router.get("/rutas/{id_ruta}/estadisticas")
+def obtener_estadisticas_ruta(
+    id_ruta: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtener estadísticas de una ruta específica"""
+    try:
+        return ruta_controller.get_estadisticas_ruta(db, id_ruta)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error al obtener estadísticas de ruta {id_ruta}: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
+    
+@router.get("/rutas/{id_ruta}/pedido")
+def obtener_pedido_ruta(
+    id_ruta: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtener el pedido asignado a una ruta de entrega"""
+    try:
+        ruta = db.query(Ruta).filter(Ruta.id_ruta == id_ruta).first()
+        if not ruta:
+            raise HTTPException(status_code=404, detail="Ruta no encontrada")
+        
+        if not ruta.id_pedido:
+            return {"mensaje": "No hay pedido asignado a esta ruta"}
+        
+        pedido = db.query(Pedido).filter(Pedido.id_pedido == ruta.id_pedido).first()
+        if not pedido:
+            return {"mensaje": "Pedido no encontrado"}
+        
+        ultimo_estado = ruta_controller.get_ultimo_estado_pedido(db, pedido.id_pedido)
+        
+        pedido_info = {
+            "id_pedido": pedido.id_pedido,
+            "numero_pedido": pedido.numero_pedido,
+            "fecha_pedido": pedido.fecha_pedido.strftime('%Y-%m-%d') if pedido.fecha_pedido else None,
+            "cod_cliente": pedido.cod_cliente,
+            "total": float(pedido.total) if pedido.total else 0,
+            "subtotal": float(pedido.subtotal) if pedido.subtotal else 0,
+            "iva": float(pedido.iva) if pedido.iva else 0,
+            "estado": ultimo_estado,
+            "cliente_info": {
+                "nombre": pedido.cliente.nombre if pedido.cliente else None,
+                "direccion": pedido.cliente.direccion if pedido.cliente else None,
+                "sector": pedido.cliente.sector if pedido.cliente else None
+            }
+        }
+        
+        return pedido_info
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error al obtener pedido de ruta {id_ruta}: {e}")
         raise HTTPException(status_code=500, detail="Error interno del servidor")

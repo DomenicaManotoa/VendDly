@@ -19,6 +19,7 @@ import {
   UserSwitchOutlined,
   LoadingOutlined,
   EnvironmentOutlined,
+  DollarOutlined, 
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -42,6 +43,7 @@ const mainItems: MenuItem[] = [
     ],
   },
   { key: '/entregas', icon: <TruckOutlined />, label: 'Entregas' },
+  { key: '/venta', icon: <DollarOutlined />, label: 'Ventas' }, // ✅ AGREGAR ITEM DE VENTAS
   { key: '/categorias', icon: <ShopOutlined />, label: 'Categorías' },
   { key: '/marcas', icon: <TagsOutlined />, label: 'Marcas' },
   { key: '/roles', icon: <UserSwitchOutlined />, label: 'Roles' },

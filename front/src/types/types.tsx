@@ -157,9 +157,6 @@ export interface Pedido {
   iva: number;
   total: number;
   cod_cliente: string;
-  id_ubicacion_entrega?: number | null;
-  id_ruta_venta?: number | null;
-  id_ruta_entrega?: number | null;
   detalles?: DetallePedido[];
 }
 
@@ -279,7 +276,6 @@ export interface MapaUbicacionProps {
   readonly?: boolean;
 }
 
-// Interface para asignación de ruta
 export interface AsignacionRuta {
   id_asignacion?: number;
   identificacion_usuario?: string;
@@ -287,7 +283,6 @@ export interface AsignacionRuta {
   cod_cliente?: string;
   id_ubicacion?: number;
   orden_visita?: number;
-  // Información adicional de la ubicación
   ubicacion_info?: {
     direccion: string;
     sector: string;
@@ -295,55 +290,19 @@ export interface AsignacionRuta {
     longitud: number;
     referencia?: string;
   };
+  usuario?: {
+    nombre: string;
+    correo?: string;
+  };
 }
 
-// Props para selector de ubicaciones
-export interface SelectorUbicacionesProps {
-  ubicaciones: UbicacionClienteRuta[];
-  ubicacionesSeleccionadas: number[];
-  onChange: (ubicaciones: number[]) => void;
-  tipoRuta: 'venta' | 'entrega';
-}
 
-// Interface para mapa de rutas
-export interface MapaRutasProps {
-  ruta?: Ruta;
-  ubicaciones: UbicacionClienteRuta[];
-  onUbicacionSelect?: (ubicacion: UbicacionClienteRuta) => void;
-  mostrarRuta?: boolean;
-}
-
-// Interface para ubicación de cliente en rutas
-export interface UbicacionClienteRuta {
-  id_ubicacion: number;
-  cod_cliente: string;
-  direccion: string;
-  sector: string;
-  latitud: number;
-  longitud: number;
-  referencia?: string;
-  selected?: boolean; // Para marcar si está seleccionada en la ruta
-  orden_visita?: number; // Orden de visita en la ruta
-}
-
-// Interface para crear/editar ruta
-export interface CrearRutaRequest {
-  nombre: string;
-  tipo_ruta: 'venta' | 'entrega';
-  sector: string;
-  direccion: string;
-  fecha_ejecucion?: string;
-  asignaciones?: Omit<AsignacionRuta, 'id_asignacion' | 'ubicacion_info'>[];
-}
-
-// Alternativa: Interface específica para creación (sin estado)
 export interface CrearRutaData {
   nombre: string;
   tipo_ruta: 'venta' | 'entrega';
   sector: string;
   direccion: string;
   fecha_ejecucion?: string;
-  asignaciones?: Omit<AsignacionRuta, 'id_asignacion' | 'ubicacion_info'>[];
 }
 
 // Interface para actualizar ruta (todos los campos opcionales)
@@ -374,7 +333,75 @@ export interface Ruta {
   estado: string;
   fecha_creacion: string;
   fecha_ejecucion?: string;
+  id_pedido?: number | null;  
+  pedido_info?: PedidoRuta | null;  
   asignaciones?: AsignacionRuta[];
+}
+
+export interface PedidoRuta {
+  id_pedido: number;
+  numero_pedido: string;
+  fecha_pedido: string;
+  cod_cliente: string;
+  total: number;
+  estado: string;
+  subtotal?: number;
+  iva?: number;
+  cliente_info?: {
+    nombre: string;
+    direccion?: string;
+    sector?: string;
+  };
+}
+
+
+// Interface para estadísticas de entregas
+export interface EstadisticasEntregas {
+  totalRutasEntrega: number;
+  rutasEnEjecucion: number;
+  rutasCompletadas: number;
+  rutasPlanificadas: number;
+  rutasCanceladas: number;
+  totalParadas: number;
+  transportistasAsignados: number;
+  sectoresConEntregas: number;
+  promedioParadasPorRuta: number;
+}
+
+// Interface para resumen de entrega por transportista
+export interface ResumenEntregaTransportista {
+  identificacion_usuario: string;
+  nombre_usuario: string;
+  rutasAsignadas: number;
+  rutasCompletadas: number;
+  rutasEnEjecucion: number;
+  totalParadas: number;
+  sectoresAtendidos: string[];
+}
+
+// Interface para estadísticas de ventas
+export interface EstadisticasVentas {
+  totalRutasVenta: number;
+  rutasEnEjecucion: number;
+  rutasCompletadas: number;
+  rutasPlanificadas: number;
+  rutasCanceladas: number;
+  totalVisitasProgramadas: number;
+  vendedoresAsignados: number;
+  sectoresConVentas: number;
+  promedioVisitasPorRuta: number;
+}
+
+// Interface para resumen de ventas por vendedor
+export interface ResumenVentaVendedor {
+  identificacion_usuario: string;
+  nombre_usuario: string;
+  rutasAsignadas: number;
+  rutasCompletadas: number;
+  rutasEnEjecucion: number;
+  totalVisitasProgramadas: number;
+  sectoresAtendidos: string[];
+  clientesAsignados: string[];
 }
 
 // Interface para estadísticas de ubicaciones
@@ -455,28 +482,7 @@ export interface OpcionesExportacion {
   filtros?: FiltrosUbicaciones;
 }
 
-// Actualizar la interface AsignacionRuta existente para incluir información del usuario
-export interface AsignacionRuta {
-  id_asignacion?: number;
-  identificacion_usuario?: string;
-  tipo_usuario?: 'vendedor' | 'transportista';
-  cod_cliente?: string;
-  id_ubicacion?: number;
-  orden_visita?: number;
-  // Información adicional de la ubicación
-  ubicacion_info?: {
-    direccion: string;
-    sector: string;
-    latitud: number;
-    longitud: number;
-    referencia?: string;
-  };
-  // AGREGAR: Información del usuario asignado
-  usuario?: {
-    nombre: string;
-    correo?: string;
-  };
-}
+
 
 // Interface para facturas
 export interface Factura {

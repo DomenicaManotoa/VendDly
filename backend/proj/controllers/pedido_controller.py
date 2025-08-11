@@ -74,10 +74,7 @@ def get_pedido(db: Session, id_pedido: int):
 def create_pedido(db: Session, pedido_data: Dict[str, Any]):
     """Crea un nuevo pedido con sus detalles"""
     try:
-        # Crear una copia para no modificar el original
         data_copy = pedido_data.copy()
-        
-        # Extraer detalles del pedido_data
         detalles_data = data_copy.get('detalle_pedido', [])
         
         fecha_pedido = data_copy.get("fecha_pedido")
