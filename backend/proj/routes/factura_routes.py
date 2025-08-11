@@ -4,6 +4,8 @@ from dependencias.auth import get_db, get_current_user, require_role, require_ad
 from controllers import factura_controller
 from models.models import Usuario
 import logging
+from fastapi.responses import FileResponse
+
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -92,3 +94,8 @@ def eliminar_factura(
     except Exception as e:
         logger.error(f"Error al eliminar factura {id_factura}: {e}")
         raise
+
+@router.get("/facturas/{id_factura}/pdf")
+def descargar_factura_pdf(id_factura: int, db: Session = Depends(get_db)):
+    pdf_path = factura_controller.generate_factura_pdf(db, id_factura)
+    return FileResponse(pdf_path, filename=f"factura_{id_factura}.pdf", media_type="application/pdf")

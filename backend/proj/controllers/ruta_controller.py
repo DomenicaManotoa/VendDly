@@ -1,10 +1,10 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from models.models import Ruta, AsignacionRuta, UbicacionCliente, Usuario, Rol
+from models.models import Ruta, AsignacionRuta, UbicacionCliente, Usuario, Rol, Pedido, EstadoPedido, Cliente  # Agregar Cliente aquí  
 from sqlalchemy import and_, func, or_
 from datetime import datetime
 
-# Reemplazar la función validate_user_role existente
+# En ruta_controller.py - Corregir validate_user_role (línea ~8)
 def validate_user_role(db: Session, user_id: str, required_role: str):
     """Valida que el usuario tenga el rol requerido (por descripción exacta)"""
     user = db.query(Usuario).filter(Usuario.identificacion == user_id).first()
@@ -15,14 +15,23 @@ def validate_user_role(db: Session, user_id: str, required_role: str):
     if not role:
         raise HTTPException(status_code=404, detail="Rol del usuario no encontrado")
     
-    # Comparación exacta de roles (case-insensitive)
-    if role.descripcion.lower().strip() != required_role.lower().strip():
+    # Hacer la comparación más flexible - buscar por palabras clave
+    role_desc = role.descripcion.lower().strip()
+    required_role_lower = required_role.lower().strip()
+    
+    # Permitir coincidencias por palabras clave
+    if required_role_lower == 'vendedor' and 'vendedor' in role_desc:
+        return True
+    elif required_role_lower == 'transportista' and ('transportista' in role_desc or 'transporte' in role_desc):
+        return True
+    elif role_desc == required_role_lower:
+        return True
+    else:
         raise HTTPException(
             status_code=400, 
             detail=f"El usuario debe tener rol de {required_role}. Rol actual: {role.descripcion}"
         )
-    return True
-
+    
 # Agregar nueva función para validar asignaciones
 def validate_assignment_constraints(db: Session, ruta_data: dict, asignaciones_data: list):
     """Validar restricciones específicas de asignación según tipo de ruta"""
@@ -33,7 +42,7 @@ def validate_assignment_constraints(db: Session, ruta_data: dict, asignaciones_d
         if not usuario_id:
             continue
             
-        # Validar rol según tipo de ruta
+        # Validar rol según tipo de ruta - usar nombres más flexibles
         if tipo_ruta == 'venta':
             required_role = 'vendedor'
         elif tipo_ruta == 'entrega':
@@ -42,21 +51,6 @@ def validate_assignment_constraints(db: Session, ruta_data: dict, asignaciones_d
             raise HTTPException(status_code=400, detail="Tipo de ruta inválido")
         
         validate_user_role(db, usuario_id, required_role)
-        
-        # Verificar que el usuario no tenga otra ruta activa del mismo tipo
-        rutas_activas = db.query(Ruta).join(AsignacionRuta).filter(
-            and_(
-                AsignacionRuta.identificacion_usuario == usuario_id,
-                Ruta.estado.in_(['Planificada', 'En ejecución']),
-                Ruta.tipo_ruta == tipo_ruta
-            )
-        ).count()
-        
-        if rutas_activas > 0:
-            raise HTTPException(
-                status_code=400,
-                detail=f"El usuario {usuario_id} ya tiene una ruta {tipo_ruta} activa"
-            )
 
 def get_rutas(db: Session):
     return db.query(Ruta).all()
@@ -184,6 +178,7 @@ def delete_ruta(db: Session, id_ruta: int):
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error al eliminar ruta: {str(e)}")
 
+# REEMPLAZAR la función get_rutas_con_asignaciones:
 def get_rutas_con_asignaciones(db: Session):
     """Obtener rutas con sus asignaciones incluidas"""
     rutas = db.query(Ruta).all()
@@ -199,8 +194,28 @@ def get_rutas_con_asignaciones(db: Session):
             "estado": ruta.estado,
             "fecha_creacion": ruta.fecha_creacion,
             "fecha_ejecucion": ruta.fecha_ejecucion,
+            "id_pedido": ruta.id_pedido,  # NUEVO CAMPO
+            "pedido_info": None,  # NUEVO CAMPO
             "asignaciones": []
         }
+        
+        # Si tiene pedido asignado, obtener información del pedido
+        if ruta.id_pedido and ruta.pedido:
+            ruta_dict["pedido_info"] = {
+                "id_pedido": ruta.pedido.id_pedido,
+                "numero_pedido": ruta.pedido.numero_pedido,
+                "fecha_pedido": ruta.pedido.fecha_pedido.strftime('%Y-%m-%d') if ruta.pedido.fecha_pedido else None,
+                "total": float(ruta.pedido.total) if ruta.pedido.total else 0,
+                "subtotal": float(ruta.pedido.subtotal) if ruta.pedido.subtotal else 0,
+                "iva": float(ruta.pedido.iva) if ruta.pedido.iva else 0,
+                "cod_cliente": ruta.pedido.cod_cliente,
+                "estado": get_ultimo_estado_pedido(db, ruta.pedido.id_pedido),
+                "cliente_info": {
+                    "nombre": ruta.pedido.cliente.nombre if ruta.pedido.cliente else None,
+                    "direccion": ruta.pedido.cliente.direccion if ruta.pedido.cliente else None,
+                    "sector": ruta.pedido.cliente.sector if ruta.pedido.cliente else None
+                }
+            }
         
         for asignacion in ruta.asignaciones:
             asignacion_dict = {
@@ -213,8 +228,7 @@ def get_rutas_con_asignaciones(db: Session):
                 "usuario": {
                     "nombre": asignacion.usuario.nombre if asignacion.usuario else None,
                     "correo": asignacion.usuario.correo if asignacion.usuario else None
-                } if asignacion.usuario else None,
-                "pedidos": []  # Nuevo campo para pedidos
+                } if asignacion.usuario else None
             }
             
             # Agregar información de la ubicación si existe
@@ -227,32 +241,123 @@ def get_rutas_con_asignaciones(db: Session):
                     "referencia": asignacion.ubicacion.referencia
                 }
             
-            # Si es ruta de entrega y hay cliente, obtener pedidos con sus estados
-            if ruta.tipo_ruta == 'entrega' and asignacion.cod_cliente:
-                from models.models import Pedido
-                pedidos_cliente = db.query(Pedido).filter(
-                    Pedido.cod_cliente == asignacion.cod_cliente,
-                    Pedido.id_ruta_entrega == ruta.id_ruta
-                ).all()
-                
-                pedidos_info = []
-                for pedido in pedidos_cliente:
-                    pedidos_info.append({
-                        "id_pedido": pedido.id_pedido,
-                        "numero_pedido": pedido.numero_pedido,
-                        "fecha_pedido": pedido.fecha_pedido.strftime('%Y-%m-%d') if pedido.fecha_pedido else None,
-                        "total": float(pedido.total) if pedido.total else 0,
-                        "estado": get_ultimo_estado_pedido(db, pedido.id_pedido),
-                        "cod_cliente": pedido.cod_cliente
-                    })
-                
-                asignacion_dict["pedidos"] = pedidos_info
-            
             ruta_dict["asignaciones"].append(asignacion_dict)
         
         resultado.append(ruta_dict)
     
     return resultado
+
+# NUEVA función para asignar pedido a ruta de entrega:
+def asignar_pedido_a_ruta_entrega(db: Session, id_ruta: int, id_pedido: int):
+    """Asignar un pedido específico a una ruta de entrega"""
+    try:
+        # Verificar que la ruta existe y es de tipo entrega
+        ruta = db.query(Ruta).filter(Ruta.id_ruta == id_ruta).first()
+        if not ruta:
+            raise HTTPException(status_code=404, detail="Ruta no encontrada")
+        
+        if ruta.tipo_ruta != 'entrega':
+            raise HTTPException(status_code=400, detail="Solo se pueden asignar pedidos a rutas de entrega")
+        
+        # Verificar que el pedido existe
+        pedido = db.query(Pedido).filter(Pedido.id_pedido == id_pedido).first()
+        if not pedido:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        
+        # Verificar estado del pedido
+        ultimo_estado = get_ultimo_estado_pedido(db, id_pedido)
+        estados_validos = ['Facturado', 'Despachado', 'Enviado']
+        if ultimo_estado not in estados_validos:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"El pedido no está en un estado válido para asignación. Estado actual: {ultimo_estado}"
+            )
+        
+        # Verificar que el pedido no esté ya asignado a otra ruta
+        ruta_existente = db.query(Ruta).filter(
+            and_(
+                Ruta.id_pedido == id_pedido,
+                Ruta.id_ruta != id_ruta
+            )
+        ).first()
+        if ruta_existente:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"El pedido ya está asignado a la ruta: {ruta_existente.nombre}"
+            )
+        
+        # Verificar que la ruta no tenga ya un pedido asignado (a menos que sea el mismo)
+        if ruta.id_pedido and ruta.id_pedido != id_pedido:
+            pedido_actual = db.query(Pedido).filter(Pedido.id_pedido == ruta.id_pedido).first()
+            numero_pedido_actual = pedido_actual.numero_pedido if pedido_actual else str(ruta.id_pedido)
+            raise HTTPException(
+                status_code=400,
+                detail=f"La ruta ya tiene el pedido {numero_pedido_actual} asignado. Primero debe desasignarlo."
+            )
+        
+        # Asignar pedido a la ruta
+        ruta.id_pedido = id_pedido
+        
+        # Actualizar estado del pedido
+        nuevo_estado = EstadoPedido(
+            id_pedido=id_pedido,
+            fecha_actualizada=datetime.now().date(),
+            descripcion="Asignado a ruta de entrega"
+        )
+        db.add(nuevo_estado)
+        
+        db.commit()
+        db.refresh(ruta)
+        
+        return {
+            "mensaje": "Pedido asignado a ruta de entrega correctamente",
+            "id_ruta": id_ruta,
+            "id_pedido": id_pedido,
+            "ruta": ruta.nombre,
+            "pedido": pedido.numero_pedido,
+            "estado_ruta": ruta.estado
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error detallado en asignación: {str(e)}")  # Para debugging
+        raise HTTPException(status_code=500, detail=f"Error interno al asignar pedido: {str(e)}")
+    
+# NUEVA función para desasignar pedido de ruta:
+def desasignar_pedido_de_ruta_entrega(db: Session, id_ruta: int):
+    """Desasignar pedido de una ruta de entrega"""
+    try:
+        ruta = db.query(Ruta).filter(Ruta.id_ruta == id_ruta).first()
+        if not ruta:
+            raise HTTPException(status_code=404, detail="Ruta no encontrada")
+        
+        if not ruta.id_pedido:
+            raise HTTPException(status_code=400, detail="La ruta no tiene pedido asignado")
+        
+        id_pedido = ruta.id_pedido
+        ruta.id_pedido = None
+        
+        # Actualizar estado del pedido
+        nuevo_estado = EstadoPedido(
+            id_pedido=id_pedido,
+            fecha_actualizada=datetime.now().date(),
+            descripcion="Disponible"
+        )
+        db.add(nuevo_estado)
+        
+        db.commit()
+        
+        return {"mensaje": "Pedido desasignado de la ruta correctamente"}
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error al desasignar pedido: {str(e)}")
 
 def get_ubicaciones_por_sector(db: Session, sector: str):
     """Obtener ubicaciones de clientes por sector para crear rutas"""
@@ -325,31 +430,34 @@ def get_ultimo_estado_pedido(db: Session, id_pedido: int):
     
     return ultimo_estado.descripcion if ultimo_estado else 'Sin estado'
 
-def asignar_pedidos_a_ruta_entrega(db: Session, id_ruta: int, pedidos_ids: list):
-    """Asignar pedidos a una ruta de entrega"""
-    from models.models import Pedido, EstadoPedido
-    from datetime import date
-    
+def get_estadisticas_ruta(db: Session, id_ruta: int):
+    """Obtener estadísticas de una ruta"""
     try:
-        # Actualizar los pedidos con la ruta de entrega
-        db.query(Pedido).filter(
-            Pedido.id_pedido.in_(pedidos_ids)
-        ).update({
-            Pedido.id_ruta_entrega: id_ruta
-        }, synchronize_session=False)
+        ruta = db.query(Ruta).filter(Ruta.id_ruta == id_ruta).first()
+        if not ruta:
+            raise HTTPException(status_code=404, detail="Ruta no encontrada")
         
-        # Crear estados "En ruta" para cada pedido
-        for pedido_id in pedidos_ids:
-            nuevo_estado = EstadoPedido(
-                id_pedido=pedido_id,
-                fecha_actualizada=date.today(),
-                descripcion="En ruta"
-            )
-            db.add(nuevo_estado)
+        estadisticas = {
+            "total_asignaciones": len(ruta.asignaciones),
+            "total_pedidos": 0,
+            "valor_total_pedidos": 0,
+            "estados_pedidos": {},
+            "clientes_unicos": set()
+        }
         
-        db.commit()
-        return {"mensaje": f"{len(pedidos_ids)} pedidos asignados a la ruta"}
+        if ruta.tipo_ruta == 'entrega' and ruta.id_pedido:
+            # Para rutas de entrega con pedido específico
+            pedido = db.query(Pedido).filter(Pedido.id_pedido == ruta.id_pedido).first()
+            if pedido:
+                estadisticas["total_pedidos"] = 1
+                estadisticas["valor_total_pedidos"] = float(pedido.total or 0)
+                estadisticas["clientes_unicos"].add(pedido.cod_cliente)
+                
+                estado = get_ultimo_estado_pedido(db, pedido.id_pedido)
+                estadisticas["estados_pedidos"][estado] = 1
+        
+        estadisticas["clientes_unicos"] = len(estadisticas["clientes_unicos"])
+        return estadisticas
         
     except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=f"Error al asignar pedidos: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al obtener estadísticas: {str(e)}")

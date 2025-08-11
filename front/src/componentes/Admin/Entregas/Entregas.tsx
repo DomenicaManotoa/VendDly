@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Table, Tag, Card, Select, message, Space, Button } from "antd";
-import { EnvironmentOutlined, UserOutlined, TruckOutlined } from "@ant-design/icons";
+import { Table, Tag, Card, Select, message, Space, Button, Modal, Descriptions, Divider } from "antd";
+import { EnvironmentOutlined, UserOutlined, TruckOutlined, ShoppingOutlined } from "@ant-design/icons";
 import type { ColumnsType } from 'antd/es/table';
 import MapaClientes from "../Rutas/MapaClientes";
 import { rutaService } from "../Rutas/rutaService";
@@ -16,6 +16,8 @@ export default function Entregas() {
   const [ubicacionesClientes, setUbicacionesClientes] = useState<UbicacionCliente[]>([]);
   const [loadingRutas, setLoadingRutas] = useState(false);
   const [loadingUbicaciones, setLoadingUbicaciones] = useState(false);
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<any | null>(null);
+  const [modalDetallesVisible, setModalDetallesVisible] = useState(false);
 
   useEffect(() => {
     cargarRutasEntrega();
@@ -53,27 +55,27 @@ export default function Entregas() {
   // Obtener sectores únicos de las rutas de entrega
   const sectoresDisponibles = Array.from(new Set(rutasEntrega.map(r => r.sector)));
 
-// Reemplazar la función ubicacionesFiltradas (línea aproximada 54-63)
-const ubicacionesFiltradas = rutaSeleccionada 
-  ? ubicacionesClientes.filter(u => {
+  // Reemplazar la función ubicacionesFiltradas (línea aproximada 54-63)
+  const ubicacionesFiltradas = rutaSeleccionada
+    ? ubicacionesClientes.filter(u => {
       // Mostrar ubicaciones que están en las asignaciones de la ruta seleccionada
       return rutaSeleccionada.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion);
     })
-  : sectorSeleccionado
-  ? // Solo ubicaciones que están en rutas de entrega del sector seleccionado
-    ubicacionesClientes.filter(u => {
-      return u.sector === sectorSeleccionado && 
-        rutasEntrega.some(ruta => 
-          ruta.sector === sectorSeleccionado &&
+    : sectorSeleccionado
+      ? // Solo ubicaciones que están en rutas de entrega del sector seleccionado
+      ubicacionesClientes.filter(u => {
+        return u.sector === sectorSeleccionado &&
+          rutasEntrega.some(ruta =>
+            ruta.sector === sectorSeleccionado &&
+            ruta.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion)
+          );
+      })
+      : // Mostrar solo ubicaciones que están asignadas a alguna ruta de entrega
+      ubicacionesClientes.filter(u =>
+        rutasEntrega.some(ruta =>
           ruta.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion)
-        );
-    })
-  : // Mostrar solo ubicaciones que están asignadas a alguna ruta de entrega
-    ubicacionesClientes.filter(u => 
-      rutasEntrega.some(ruta => 
-        ruta.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion)
-      )
-    );
+        )
+      );
 
   const handleVerEnMapa = (ruta: Ruta) => {
     setRutaSeleccionada(ruta);
@@ -85,10 +87,33 @@ const ubicacionesFiltradas = rutaSeleccionada
     setRutaSeleccionada(null);
   };
 
+  const handleVerDetallesPedido = async (ruta: Ruta) => {
+    if (!ruta.pedido_info) {
+      message.warning('Esta ruta no tiene pedido asignado');
+      return;
+    }
+
+    try {
+      const detallesPedido = await rutaService.getPedidoRuta(ruta.id_ruta);
+      setPedidoSeleccionado({
+        ...detallesPedido,
+        ruta_info: {
+          nombre: ruta.nombre,
+          sector: ruta.sector,
+          estado: ruta.estado
+        }
+      });
+      setModalDetallesVisible(true);
+    } catch (error) {
+      console.error('Error al cargar detalles del pedido:', error);
+      message.error('Error al cargar los detalles del pedido');
+    }
+  };
+
   const columns: ColumnsType<Ruta> = [
-    { 
-      title: "Nombre de la Ruta", 
-      dataIndex: "nombre", 
+    {
+      title: "Nombre de la Ruta",
+      dataIndex: "nombre",
       key: "nombre",
       ellipsis: true,
       render: (text: string, record: Ruta) => (
@@ -98,9 +123,9 @@ const ubicacionesFiltradas = rutaSeleccionada
         </div>
       )
     },
-    { 
-      title: "Sector", 
-      dataIndex: "sector", 
+    {
+      title: "Sector",
+      dataIndex: "sector",
       key: "sector",
       render: (sector: string) => {
         const rutasEnSector = rutasEntrega.filter(r => r.sector === sector).length;
@@ -115,16 +140,16 @@ const ubicacionesFiltradas = rutaSeleccionada
         );
       }
     },
-    { 
-      title: "Dirección Principal", 
-      dataIndex: "direccion", 
+    {
+      title: "Dirección Principal",
+      dataIndex: "direccion",
       key: "direccion",
       ellipsis: true
     },
-    { 
-      title: "Estado", 
-      dataIndex: "estado", 
-      key: "estado", 
+    {
+      title: "Estado",
+      dataIndex: "estado",
+      key: "estado",
       render: (estado: string) => {
         const getColor = () => {
           switch (estado) {
@@ -138,22 +163,22 @@ const ubicacionesFiltradas = rutaSeleccionada
         return <Tag color={getColor()}>{estado}</Tag>;
       }
     },
-    { 
-      title: "Fecha de Ejecución", 
-      dataIndex: "fecha_ejecucion", 
+    {
+      title: "Fecha de Ejecución",
+      dataIndex: "fecha_ejecucion",
       key: "fecha_ejecucion",
       render: (fecha: string) => fecha ? new Date(fecha).toLocaleDateString('es-ES') : '-'
     },
-    { 
-      title: "Transportista Asignado", 
+    {
+      title: "Transportista Asignado",
       key: "transportista_asignado",
       render: (_: any, record: Ruta) => {
         const transportista = record.asignaciones?.find(asig => asig.tipo_usuario === 'transportista');
-        
+
         if (!transportista) {
           return <span className="text-gray-400">Sin asignar</span>;
         }
-        
+
         return (
           <div>
             <div className="font-medium flex items-center gap-1">
@@ -167,8 +192,8 @@ const ubicacionesFiltradas = rutaSeleccionada
         );
       }
     },
-    { 
-      title: "Paradas Programadas", 
+    {
+      title: "Paradas Programadas",
       key: "paradas",
       align: 'center',
       render: (_: any, record: Ruta) => {
@@ -182,18 +207,65 @@ const ubicacionesFiltradas = rutaSeleccionada
       }
     },
     {
+      title: "Pedido Asignado",
+      key: "pedido_asignado",
+      render: (_: any, record: Ruta) => {
+        if (!record.pedido_info) {
+          return <span className="text-gray-400">Sin pedido</span>;
+        }
+
+        return (
+          <div>
+            <div className="font-medium flex items-center gap-1">
+              <ShoppingOutlined className="text-green-500" />
+              {record.pedido_info.numero_pedido}
+            </div>
+            <div className="text-sm text-gray-500">
+              Cliente: {record.pedido_info.cod_cliente}
+            </div>
+            <div className="text-sm text-green-600 font-medium">
+              ${record.pedido_info.total.toFixed(2)}
+            </div>
+            <Tag
+              color={
+                record.pedido_info.estado === 'Facturado' ? 'blue' :
+                  record.pedido_info.estado === 'Despachado' ? 'orange' :
+                    record.pedido_info.estado === 'Enviado' ? 'purple' :
+                      'default'
+              }
+            >
+              {record.pedido_info.estado}
+            </Tag>
+          </div>
+        );
+      }
+    },
+    {
       title: "Acciones",
       key: "acciones",
-      width: 120,
+      width: 180,
       render: (_: any, record: Ruta) => (
-        <Space>
+        <Space direction="horizontal" size="small">
           <Button
             type="link"
             icon={<EnvironmentOutlined />}
             onClick={() => handleVerEnMapa(record)}
             title="Ver Ruta en Mapa"
             className="text-blue-500 hover:text-blue-700"
-          />
+            size="small"
+          >
+          </Button>
+          {record.pedido_info && (
+            <Button
+              type="link"
+              icon={<ShoppingOutlined />}
+              onClick={() => handleVerDetallesPedido(record)}
+              title="Ver Detalles del Pedido"
+              className="text-green-500 hover:text-green-700"
+              size="small"
+            >
+            </Button>
+          )}
         </Space>
       )
     }
@@ -209,8 +281,8 @@ const ubicacionesFiltradas = rutaSeleccionada
               Gestión de Entregas
             </h2>
             <p className="text-gray-600">
-              Total de rutas de entrega: {rutasEntrega.length} • 
-              Sectores disponibles: {sectoresDisponibles.length} • 
+              Total de rutas de entrega: {rutasEntrega.length} •
+              Sectores disponibles: {sectoresDisponibles.length} •
               Total ubicaciones: {ubicacionesClientes.length}
             </p>
           </div>
@@ -235,9 +307,9 @@ const ubicacionesFiltradas = rutaSeleccionada
               );
             })}
           </Select>
-          
+
           {(rutaSeleccionada || sectorSeleccionado) && (
-            <Button 
+            <Button
               onClick={() => {
                 setRutaSeleccionada(null);
                 setSectorSeleccionado(null);
@@ -260,15 +332,15 @@ const ubicacionesFiltradas = rutaSeleccionada
           </div>
         )}
 
-        <Table 
-          dataSource={rutasEntrega} 
-          columns={columns} 
+        <Table
+          dataSource={rutasEntrega}
+          columns={columns}
           rowKey="id_ruta"
           loading={loadingRutas}
-          pagination={{ 
+          pagination={{
             pageSize: 10,
             showSizeChanger: true,
-            showTotal: (total, range) => 
+            showTotal: (total, range) =>
               `${range[0]}-${range[1]} de ${total} rutas de entrega`
           }}
           locale={{
@@ -283,7 +355,7 @@ const ubicacionesFiltradas = rutaSeleccionada
               </div>
             )
           }}
-          rowClassName={(record) => 
+          rowClassName={(record) =>
             rutaSeleccionada?.id_ruta === record.id_ruta ? 'bg-orange-50' : ''
           }
         />
@@ -311,8 +383,8 @@ const ubicacionesFiltradas = rutaSeleccionada
               {sectorSeleccionado && !rutaSeleccionada && ` en rutas de entrega del sector ${sectorSeleccionado}`}
               {!rutaSeleccionada && !sectorSeleccionado && ` (solo ubicaciones asignadas a rutas de entrega)`}
             </div>
-            
-            <MapaClientes 
+
+            <MapaClientes
               sectorSeleccionado={sectorSeleccionado}
               ubicacionesReales={ubicacionesFiltradas}
               rutaSeleccionada={rutaSeleccionada}
@@ -321,6 +393,108 @@ const ubicacionesFiltradas = rutaSeleccionada
           </>
         )}
       </Card>
+
+      {/* Modal para detalles del pedido - MOVIDO AQUÍ AL FINAL */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <ShoppingOutlined className="text-green-500" />
+            Detalles del Pedido
+            {pedidoSeleccionado?.ruta_info && (
+              <Tag color="orange">Ruta: {pedidoSeleccionado.ruta_info.nombre}</Tag>
+            )}
+          </div>
+        }
+        open={modalDetallesVisible}
+        onCancel={() => {
+          setModalDetallesVisible(false);
+          setPedidoSeleccionado(null);
+        }}
+        footer={[
+          <Button key="cerrar" onClick={() => {
+            setModalDetallesVisible(false);
+            setPedidoSeleccionado(null);
+          }}>
+            Cerrar
+          </Button>
+        ]}
+        width={800}
+      >
+        {pedidoSeleccionado && (
+          <div>
+            <Descriptions bordered column={2} size="small">
+              <Descriptions.Item label="Número de Pedido" span={1}>
+                <strong>{pedidoSeleccionado.numero_pedido}</strong>
+              </Descriptions.Item>
+              <Descriptions.Item label="Estado" span={1}>
+                <Tag
+                  color={
+                    pedidoSeleccionado.estado === 'Facturado' ? 'blue' :
+                      pedidoSeleccionado.estado === 'Despachado' ? 'orange' :
+                        pedidoSeleccionado.estado === 'Enviado' ? 'purple' :
+                          'default'
+                  }
+                >
+                  {pedidoSeleccionado.estado}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Fecha del Pedido">
+                {new Date(pedidoSeleccionado.fecha_pedido).toLocaleDateString('es-ES')}
+              </Descriptions.Item>
+              <Descriptions.Item label="Cliente">
+                <div>
+                  <div><strong>{pedidoSeleccionado.cliente_info?.nombre || 'N/A'}</strong></div>
+                  <div className="text-sm text-gray-500">Código: {pedidoSeleccionado.cod_cliente}</div>
+                </div>
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Divider>Información de Entrega</Divider>
+
+            <Descriptions bordered column={2} size="small">
+              <Descriptions.Item label="Ruta de Entrega">
+                {pedidoSeleccionado.ruta_info?.nombre}
+              </Descriptions.Item>
+              <Descriptions.Item label="Sector">
+                {pedidoSeleccionado.ruta_info?.sector || pedidoSeleccionado.cliente_info?.sector}
+              </Descriptions.Item>
+              <Descriptions.Item label="Dirección de Entrega" span={2}>
+                {pedidoSeleccionado.cliente_info?.direccion || 'No especificada'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Estado de la Ruta">
+                <Tag color={
+                  pedidoSeleccionado.ruta_info?.estado === 'Planificada' ? 'blue' :
+                    pedidoSeleccionado.ruta_info?.estado === 'En ejecución' ? 'green' :
+                      pedidoSeleccionado.ruta_info?.estado === 'Completada' ? 'success' :
+                        'default'
+                }>
+                  {pedidoSeleccionado.ruta_info?.estado}
+                </Tag>
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Divider>Resumen Financiero</Divider>
+
+            <Descriptions bordered column={3} size="small">
+              <Descriptions.Item label="Subtotal">
+                <span className="text-blue-600 font-medium">
+                  ${pedidoSeleccionado.subtotal?.toFixed(2) || '0.00'}
+                </span>
+              </Descriptions.Item>
+              <Descriptions.Item label="IVA">
+                <span className="text-orange-600 font-medium">
+                  ${pedidoSeleccionado.iva?.toFixed(2) || '0.00'}
+                </span>
+              </Descriptions.Item>
+              <Descriptions.Item label="Total">
+                <span className="text-green-600 font-bold text-lg">
+                  ${pedidoSeleccionado.total?.toFixed(2) || '0.00'}
+                </span>
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

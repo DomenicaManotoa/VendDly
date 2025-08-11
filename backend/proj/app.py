@@ -72,6 +72,7 @@ app.include_router(catalogo_pdf_router, prefix="/api", tags=["Catálogo PDF"])
 app.include_router(ubicacion_cliente_router)
 app.include_router(ruta_router)
 
+
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,

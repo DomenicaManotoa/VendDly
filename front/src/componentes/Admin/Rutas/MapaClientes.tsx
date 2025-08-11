@@ -10,8 +10,7 @@ type Props = {
   mostrarRuta?: boolean; // Nueva prop para controlar si mostrar líneas de ruta
 };
 
-// Actualiza la función getIconBySector:
-const getIconBySector = (sector: string, tipoRuta?: string, orden?: number) => {
+const getIconBySector = (sector: string, tipoRuta?: string, orden?: number, tienePedido?: boolean) => {
   const sectorColors: Record<string, string> = {
     'Centro': '#1890ff',
     'Norte': '#52c41a',
@@ -23,23 +22,24 @@ const getIconBySector = (sector: string, tipoRuta?: string, orden?: number) => {
 
   let color = sectorColors[sector] || sectorColors.default;
   let icon = '📍';
-  
+
   if (tipoRuta) {
     if (tipoRuta === 'venta') {
-      color = '#52c41a'; // Verde para ventas
+      color = '#52c41a';
       icon = '💰';
     } else {
-      color = '#fa8c16'; // Naranja para entregas
-      icon = '🚚';
+      // Para rutas de entrega, mostrar diferente si tiene pedido asignado
+      color = tienePedido ? '#fa8c16' : '#d9d9d9';
+      icon = tienePedido ? '🚚📦' : '🚚';
     }
   }
-  
+
   return L.divIcon({
     html: `
       <div style="
         background-color: ${color};
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         border: 3px solid white;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -47,7 +47,7 @@ const getIconBySector = (sector: string, tipoRuta?: string, orden?: number) => {
         align-items: center;
         justify-content: center;
         position: relative;
-        font-size: 14px;
+        font-size: 12px;
       ">
         ${icon}
         ${orden ? `<div style="
@@ -57,8 +57,8 @@ const getIconBySector = (sector: string, tipoRuta?: string, orden?: number) => {
           background-color: #ff4d4f;
           color: white;
           border-radius: 50%;
-          width: 16px;
-          height: 16px;
+          width: 18px;
+          height: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -68,17 +68,17 @@ const getIconBySector = (sector: string, tipoRuta?: string, orden?: number) => {
       </div>
     `,
     className: 'custom-div-icon',
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -14]
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16]
   });
 };
 
-const MapaClientes = ({ 
-  sectorSeleccionado, 
-  ubicacionesReales = [], 
+const MapaClientes = ({
+  sectorSeleccionado,
+  ubicacionesReales = [],
   rutaSeleccionada = null,
-  mostrarRuta = false 
+  mostrarRuta = false
 }: Props) => {
   // Solo usar ubicaciones reales
   const ubicacionesParaUsar: UbicacionCliente[] = ubicacionesReales;
@@ -93,7 +93,7 @@ const MapaClientes = ({
             No hay ubicaciones disponibles
           </h3>
           <p className="text-gray-500">
-            {sectorSeleccionado 
+            {sectorSeleccionado
               ? `No se encontraron clientes en el sector "${sectorSeleccionado}"`
               : "No hay ubicaciones de clientes registradas"
             }
@@ -114,10 +114,10 @@ const MapaClientes = ({
   // Calcular el centro del mapa basado en todas las ubicaciones filtradas
   const calcularCentro = (): [number, number] => {
     if (clientesFiltrados.length === 0) return posicionInicial;
-    
+
     const latSum = clientesFiltrados.reduce((sum: number, cliente: UbicacionCliente) => sum + cliente.latitud, 0);
     const lngSum = clientesFiltrados.reduce((sum: number, cliente: UbicacionCliente) => sum + cliente.longitud, 0);
-    
+
     return [
       latSum / clientesFiltrados.length,
       lngSum / clientesFiltrados.length
@@ -139,29 +139,29 @@ const MapaClientes = ({
   };
 
   // Preparar datos para la ruta si se está mostrando una ruta específica
-  const ubicacionesRuta = rutaSeleccionada && rutaSeleccionada.asignaciones 
+  const ubicacionesRuta = rutaSeleccionada && rutaSeleccionada.asignaciones
     ? rutaSeleccionada.asignaciones
-        .filter(asig => asig.id_ubicacion && asig.ubicacion_info)
-        .sort((a, b) => (a.orden_visita || 0) - (b.orden_visita || 0))
-        .map(asig => ({
-          lat: asig.ubicacion_info!.latitud,
-          lng: asig.ubicacion_info!.longitud,
-          orden: asig.orden_visita,
-          cliente: asig.cod_cliente,
-          direccion: asig.ubicacion_info!.direccion
-        }))
+      .filter(asig => asig.id_ubicacion && asig.ubicacion_info)
+      .sort((a, b) => (a.orden_visita || 0) - (b.orden_visita || 0))
+      .map(asig => ({
+        lat: asig.ubicacion_info!.latitud,
+        lng: asig.ubicacion_info!.longitud,
+        orden: asig.orden_visita,
+        cliente: asig.cod_cliente,
+        direccion: asig.ubicacion_info!.direccion
+      }))
     : [];
 
   // Crear líneas de la ruta
-  const lineasRuta = mostrarRuta && ubicacionesRuta.length > 1 
+  const lineasRuta = mostrarRuta && ubicacionesRuta.length > 1
     ? ubicacionesRuta.map(ub => [ub.lat, ub.lng] as [number, number])
     : [];
 
   return (
     <div style={{ position: 'relative' }}>
-      <MapContainer 
-        center={centroMapa} 
-        zoom={clientesFiltrados.length > 1 ? 12 : 13} 
+      <MapContainer
+        center={centroMapa}
+        zoom={clientesFiltrados.length > 1 ? 12 : 13}
         style={{ height: "400px", width: "100%" }}
         key={`${sectorSeleccionado}-${clientesFiltrados.length}-${rutaSeleccionada?.id_ruta}`}
       >
@@ -169,22 +169,26 @@ const MapaClientes = ({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="&copy; OpenStreetMap contributors"
         />
-        
+
         {/* Mostrar todas las ubicaciones filtradas */}
         {clientesFiltrados.map((ubicacion: UbicacionCliente, idx: number) => {
-          // Verificar si esta ubicación es parte de la ruta seleccionada
           const ubicacionEnRuta = rutaSeleccionada?.asignaciones?.find(
             asig => asig.id_ubicacion === ubicacion.id_ubicacion
           );
-          
+
+          const tienePedido = rutaSeleccionada?.tipo_ruta === 'entrega' && 
+            rutaSeleccionada.pedido_info !== null && 
+            rutaSeleccionada.pedido_info !== undefined;
+
           return (
             <Marker
               key={ubicacion.id_ubicacion || idx}
               position={[ubicacion.latitud, ubicacion.longitud]}
               icon={getIconBySector(
-                ubicacion.sector, 
-                rutaSeleccionada?.tipo_ruta, 
-                ubicacionEnRuta?.orden_visita
+                ubicacion.sector,
+                rutaSeleccionada?.tipo_ruta,
+                ubicacionEnRuta?.orden_visita,
+                rutaSeleccionada?.pedido_info !== null && rutaSeleccionada?.pedido_info !== undefined
               )}
             >
               <Popup>
@@ -192,6 +196,7 @@ const MapaClientes = ({
                   <h4 className="font-semibold mb-2 text-blue-600">
                     Cliente: {ubicacion.cod_cliente}
                   </h4>
+
                   {rutaSeleccionada && ubicacionEnRuta && (
                     <div className="mb-2 p-2 bg-green-50 rounded">
                       <div className="text-sm font-medium text-green-700">
@@ -208,14 +213,29 @@ const MapaClientes = ({
                           Asignado a: {ubicacionEnRuta.identificacion_usuario}
                         </div>
                       )}
+
+                      {/* Mostrar información del pedido si es ruta de entrega */}
+                      {rutaSeleccionada.tipo_ruta === 'entrega' && rutaSeleccionada.pedido_info && (
+                        <div className="mt-2 pt-2 border-t border-green-200">
+                          <div className="text-sm font-medium text-orange-700">
+                            📦 Pedido de la ruta
+                          </div>
+                          <div className="text-xs mt-1 p-1 bg-orange-50 rounded">
+                            <div className="font-medium">{rutaSeleccionada.pedido_info.numero_pedido}</div>
+                            <div className="text-green-600">${rutaSeleccionada.pedido_info.total.toFixed(2)}</div>
+                            <div className="text-gray-500">{rutaSeleccionada.pedido_info.estado}</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
+
                   <div className="space-y-1 text-sm">
-                    <p><strong>📍 Dirección:</strong><br/>
-                       <span className="text-gray-700">{ubicacion.direccion}</span>
+                    <p><strong>📍 Dirección:</strong><br />
+                      <span className="text-gray-700">{ubicacion.direccion}</span>
                     </p>
-                    <p><strong>🏘️ Sector:</strong> 
-                      <span 
+                    <p><strong>🏘️ Sector:</strong>
+                      <span
                         className="ml-1 px-2 py-1 rounded text-white text-xs"
                         style={{ backgroundColor: getSectorColor(ubicacion.sector) }}
                       >
@@ -223,14 +243,14 @@ const MapaClientes = ({
                       </span>
                     </p>
                     {ubicacion.referencia && (
-                      <p><strong>📝 Referencia:</strong><br/>
-                         <span className="text-gray-600">{ubicacion.referencia}</span>
+                      <p><strong>📝 Referencia:</strong><br />
+                        <span className="text-gray-600">{ubicacion.referencia}</span>
                       </p>
                     )}
                     <div className="pt-2 border-t border-gray-200">
                       <p className="text-xs text-gray-500">
-                        <strong>Coordenadas:</strong><br/>
-                        Lat: {ubicacion.latitud.toFixed(6)}<br/>
+                        <strong>Coordenadas:</strong><br />
+                        Lat: {ubicacion.latitud.toFixed(6)}<br />
                         Lng: {ubicacion.longitud.toFixed(6)}
                       </p>
                       {ubicacion.fecha_registro && (
@@ -298,10 +318,10 @@ const MapaClientes = ({
             {Array.from(new Set(clientesFiltrados.map((c: UbicacionCliente) => c.sector))).map((sector: string) => {
               const clientesEnSector = clientesFiltrados.filter((c: UbicacionCliente) => c.sector === sector).length;
               const color = getSectorColor(sector);
-              
+
               return (
                 <div key={sector} className="flex items-center text-xs">
-                  <div 
+                  <div
                     className="w-3 h-3 rounded-full mr-2 border border-white"
                     style={{ backgroundColor: color }}
                   />
@@ -321,7 +341,7 @@ const MapaClientes = ({
           </h5>
           <div className="space-y-1 text-xs">
             <div className="flex items-center">
-              <div 
+              <div
                 className="w-3 h-3 rounded-full mr-2 border border-white"
                 style={{ backgroundColor: rutaSeleccionada.tipo_ruta === 'venta' ? '#52c41a' : '#fa8c16' }}
               />

@@ -25,7 +25,7 @@ export const rutaService = {
       throw error;
     }
   },
-    // Obtener solo rutas de entrega
+  // Obtener solo rutas de entrega
   getRutasEntrega: async (): Promise<Ruta[]> => {
     try {
       const todasLasRutas = await rutaService.getRutas();
@@ -36,7 +36,7 @@ export const rutaService = {
     }
   },
 
-    // Obtener solo rutas de venta
+  // Obtener solo rutas de venta
   getRutasVenta: async (): Promise<Ruta[]> => {
     try {
       const todasLasRutas = await rutaService.getRutas();
@@ -47,38 +47,6 @@ export const rutaService = {
     }
   },
 
-  // Agregar al final del objeto rutaService, antes del cierre
-getPedidosRuta: async (idRuta: number): Promise<PedidoRuta[]> => {
-  try {
-    const response = await axios.get(`/rutas/${idRuta}/pedidos`);
-    return response.data;
-  } catch (error) {
-    console.error('Error al obtener pedidos de la ruta:', error);
-    throw error;
-  }
-},
-
-asignarPedidosRuta: async (idRuta: number, pedidosIds: number[]): Promise<void> => {
-  try {
-    await axios.post(`/rutas/${idRuta}/asignar-pedidos`, {
-      pedidos_ids: pedidosIds
-    });
-  } catch (error) {
-    console.error('Error al asignar pedidos a la ruta:', error);
-    throw error;
-  }
-},
-
-getPedidosClienteDisponibles: async (codCliente: string): Promise<PedidoRuta[]> => {
-  try {
-    // Este endpoint necesitarás crearlo en el backend si quieres obtener pedidos disponibles por cliente
-    const response = await axios.get(`/pedidos/cliente/${codCliente}/disponibles`);
-    return response.data;
-  } catch (error) {
-    console.error('Error al obtener pedidos disponibles del cliente:', error);
-    throw error;
-  }
-},
 
   // Crear nueva ruta
   createRuta: async (ruta: CrearRutaData): Promise<Ruta> => {
@@ -122,29 +90,6 @@ getPedidosClienteDisponibles: async (codCliente: string): Promise<PedidoRuta[]> 
     }
   },
 
-  // Obtener rutas por sector
-  getRutasPorSector: async (sector: string): Promise<Ruta[]> => {
-    try {
-      const rutas = await rutaService.getRutas();
-      return rutas.filter(r => r.sector.toLowerCase() === sector.toLowerCase());
-    } catch (error) {
-      console.error('Error al obtener rutas por sector:', error);
-      throw error;
-    }
-  },
-
-  // Obtener rutas por tipo
-  getRutasPorTipo: async (tipo: string): Promise<Ruta[]> => {
-    try {
-      const rutas = await rutaService.getRutas();
-      return rutas.filter(r => r.tipo_ruta.toLowerCase() === tipo.toLowerCase());
-    } catch (error) {
-      console.error('Error al obtener rutas por tipo:', error);
-      throw error;
-    }
-  },
-
-
   // Obtener rutas asignadas a un usuario específico
   getRutasUsuario: async (userId: string): Promise<Ruta[]> => {
     try {
@@ -156,20 +101,109 @@ getPedidosClienteDisponibles: async (codCliente: string): Promise<PedidoRuta[]> 
     }
   },
 
-  // Validar asignación de usuario a ruta
-  validarAsignacionUsuario: async (userId: string, tipoRuta: string): Promise<boolean> => {
+  // Método para obtener estadísticas de ruta
+  getEstadisticasRuta: async (idRuta: number): Promise<any> => {
     try {
-      // Verificar rol del usuario
-      const userResponse = await axios.get(`/usuarios/${userId}`);
-      const usuario = userResponse.data;
-      
-      const rolRequerido = tipoRuta === 'venta' ? 'Vendedor' : 'Transportista';
-      const rolUsuario = typeof usuario.rol === 'object' ? usuario.rol.descripcion : usuario.rol;
-      
-      return rolUsuario === rolRequerido;
+      const response = await axios.get(`/rutas/${idRuta}/estadisticas`);
+      return response.data;
     } catch (error) {
-      console.error('Error al validar asignación:', error);
-      return false;
+      console.error('Error al obtener estadísticas de ruta:', error);
+      throw error;
+    }
+  },
+
+  // Obtener pedido de una ruta de entrega
+  getPedidoRuta: async (idRuta: number): Promise<PedidoRuta | null> => {
+    try {
+      const response = await axios.get(`/rutas/${idRuta}/pedido`);
+      // Si la respuesta contiene un mensaje, significa que no hay pedido
+      if (response.data.mensaje) {
+        return null;
+      }
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null;
+      }
+      console.error('Error al obtener pedido de la ruta:', error);
+      throw error;
+    }
+  },
+
+  // Asignar pedido específico a ruta de entrega
+  asignarPedidoRuta: async (idRuta: number, idPedido: number): Promise<any> => {
+    try {
+      console.log('Enviando solicitud de asignación:', {
+        url: `/rutas/${idRuta}/asignar-pedido`,
+        data: { id_pedido: idPedido },
+        idRuta,
+        idPedido
+      });
+
+      const response = await axios.post(`/rutas/${idRuta}/asignar-pedido`, {
+        id_pedido: idPedido
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Respuesta exitosa del servidor:', response.data);
+      return response.data;
+      
+    } catch (error: any) {
+      console.error('Error detallado en asignación:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        requestData: error.config?.data
+      });
+      
+      // Mejorar el manejo de errores específicos
+      if (error.response?.status === 400) {
+        const errorDetail = error.response.data?.detail || 'Error de validación en el servidor';
+        throw new Error(errorDetail);
+      } else if (error.response?.status === 404) {
+        throw new Error('Ruta o pedido no encontrado');
+      } else if (error.response?.status === 403) {
+        throw new Error('No tienes permisos para realizar esta acción');
+      } else {
+        throw new Error(error.response?.data?.detail || error.message || 'Error desconocido');
+      }
+    }
+  },
+
+  // Desasignar pedido de ruta de entrega
+  desasignarPedidoRuta: async (idRuta: number): Promise<void> => {
+    try {
+      console.log('Desasignando pedido de ruta:', idRuta);
+      const response = await axios.delete(`/rutas/${idRuta}/desasignar-pedido`);
+      console.log('Pedido desasignado exitosamente:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al desasignar pedido:', error.response?.data || error.message);
+      
+      if (error.response?.status === 400) {
+        throw new Error(error.response.data?.detail || 'Error de validación');
+      } else if (error.response?.status === 404) {
+        throw new Error('Ruta no encontrada');
+      } else {
+        throw new Error(error.response?.data?.detail || error.message || 'Error desconocido');
+      }
+    }
+  },
+
+  // Obtener pedidos disponibles para asignar a rutas
+  getPedidosDisponibles: async (): Promise<PedidoRuta[]> => {
+    try {
+      const response = await axios.get('/pedidos/disponibles-para-ruta');
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener pedidos disponibles:', error);
+      throw error;
     }
   },
 

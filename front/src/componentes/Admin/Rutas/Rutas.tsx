@@ -5,8 +5,8 @@ import type { ColumnsType } from 'antd/es/table';
 import MapaClientes from "./MapaClientes";
 import { ubicacionClienteService } from "../../Admin/ubicacionCliente/ubicacionClienteService";
 import { rutaService } from "./rutaService";
-import { UbicacionCliente, Ruta, AsignacionRuta, CrearRutaData, UsuarioConRol } from "../../../types/types";
-import { usuarioService } from "./usuarioService"; // Ajustar ruta según donde lo pongas
+import { UbicacionCliente, Ruta, AsignacionRuta, CrearRutaData, UsuarioConRol, PedidoRuta } from "../../../types/types";
+import { usuarioService } from "./usuarioService";
 import dayjs from 'dayjs';
 import { ShoppingOutlined } from "@ant-design/icons";
 
@@ -27,7 +27,12 @@ export default function Rutas() {
   const [editingRuta, setEditingRuta] = useState<Ruta | null>(null);
   const [usuariosDisponibles, setUsuariosDisponibles] = useState<UsuarioConRol[]>([]);
   const [loadingUsuarios, setLoadingUsuarios] = useState(false);
-
+  const [pedidosSeleccionados, setPedidosSeleccionados] = useState<{ [key: string]: number[] }>({});
+  const [loadingPedidos, setLoadingPedidos] = useState(false);
+  const [pedidosPorUbicacion, setPedidosPorUbicacion] = useState<{ [key: number]: PedidoRuta[] }>({});
+  const [modalPedidoVisible, setModalPedidoVisible] = useState(false);
+  const [pedidosDisponibles, setPedidosDisponibles] = useState<PedidoRuta[]>([]);
+  const [rutaParaPedido, setRutaParaPedido] = useState<Ruta | null>(null);
 
   useEffect(() => {
     cargarUbicacionesClientes();
@@ -124,17 +129,16 @@ export default function Rutas() {
     setModalVisible(true);
   };
 
-  // Modificar la función handleAsignarUbicaciones
   const handleAsignarUbicaciones = async (ruta: Ruta) => {
     setRutaParaAsignar(ruta);
     setUbicacionesSeleccionadas([]);
     formAsignacion.resetFields();
 
-    // Cargar usuarios según el tipo de ruta - USAR rutaService
+    // Cargar usuarios según el tipo de ruta
     setLoadingUsuarios(true);
     try {
       const rolRequerido = ruta.tipo_ruta === 'venta' ? 'Vendedor' : 'Transportista';
-      const usuarios = await rutaService.getUsuariosPorRol(rolRequerido); // Cambio aquí
+      const usuarios = await rutaService.getUsuariosPorRol(rolRequerido);
       setUsuariosDisponibles(usuarios);
     } catch (error) {
       console.error('Error al cargar usuarios:', error);
@@ -169,14 +173,12 @@ export default function Rutas() {
         });
 
       if (rutaParaAsignar) {
-        const rutaActualizada = await rutaService.updateRuta(rutaParaAsignar.id_ruta, {
+        await rutaService.updateRuta(rutaParaAsignar.id_ruta, {
           asignaciones
         });
 
-        // CAMBIO CLAVE: Recargar todas las rutas para actualizar la tabla
+        message.success('Ubicaciones asignadas correctamente');
         await cargarRutas();
-
-        message.success(`Ruta asignada correctamente a ${values.identificacion_usuario}`);
         setModalAsignacionVisible(false);
         setRutaParaAsignar(null);
         setUbicacionesSeleccionadas([]);
@@ -184,61 +186,111 @@ export default function Rutas() {
         formAsignacion.resetFields();
       }
     } catch (error: any) {
-      console.error('Error al asignar ubicaciones:', error);
+      console.error('Error al asignar:', error);
       const errorMessage = error.response?.data?.detail || 'Error al asignar ubicaciones a la ruta';
       message.error(errorMessage);
     }
   };
 
-  const handleVerPedidos = async (ruta: Ruta) => {
+  // NUEVA función para manejar asignación de pedido:
+  const handleAsignarPedido = async (ruta: Ruta) => {
     if (ruta.tipo_ruta !== 'entrega') {
-      message.info('Solo las rutas de entrega tienen pedidos asociados');
+      message.warning('Solo se pueden asignar pedidos a rutas de entrega');
+      return;
+    }
+
+    setRutaParaPedido(ruta);
+
+    try {
+      const pedidos = await rutaService.getPedidosDisponibles();
+      setPedidosDisponibles(pedidos);
+      setModalPedidoVisible(true);
+    } catch (error) {
+      message.error('Error al cargar pedidos disponibles');
+    }
+  };
+
+  const handleConfirmarAsignacionPedido = async (idPedido: number) => {
+    if (!rutaParaPedido) {
+      message.error('No hay ruta seleccionada');
+      return;
+    }
+
+    // Verificar si la ruta ya tiene un pedido asignado
+    if (rutaParaPedido.pedido_info) {
+      message.warning(`La ruta ya tiene el pedido ${rutaParaPedido.pedido_info.numero_pedido} asignado. Primero debe desasignarlo.`);
       return;
     }
 
     try {
-      const pedidos = await rutaService.getPedidosRuta(ruta.id_ruta);
-
-      Modal.info({
-        title: `Pedidos de la Ruta: ${ruta.nombre}`,
-        width: 700,
-        content: (
-          <div className="mt-4">
-            {pedidos.length === 0 ? (
-              <p>No hay pedidos asignados a esta ruta</p>
-            ) : (
-              <div className="space-y-3">
-                {pedidos.map((pedido) => (
-                  <div key={pedido.id_pedido} className="border rounded p-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium">{pedido.numero_pedido}</div>
-                        <div className="text-sm text-gray-600">Cliente: {pedido.cod_cliente}</div>
-                        {pedido.cliente_info && (
-                          <div className="text-sm text-gray-600">{pedido.cliente_info.nombre}</div>
-                        )}
-                        <div className="text-xs text-gray-500">
-                          Fecha: {new Date(pedido.fecha_pedido).toLocaleDateString('es-ES')}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">${pedido.total.toFixed(2)}</div>
-                        <Tag color={pedido.estado === 'En ruta' ? 'blue' : 'orange'}>
-                          {pedido.estado}
-                        </Tag>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )
+      console.log('Iniciando asignación de pedido:', {
+        idPedido,
+        rutaId: rutaParaPedido.id_ruta,
+        rutaNombre: rutaParaPedido.nombre,
+        rutaTipo: rutaParaPedido.tipo_ruta
       });
-    } catch (error) {
-      message.error('Error al cargar los pedidos de la ruta');
+
+      // Mostrar loading
+      const hide = message.loading('Asignando pedido a la ruta...', 0);
+
+      const resultado = await rutaService.asignarPedidoRuta(rutaParaPedido.id_ruta, idPedido);
+
+      // Ocultar loading
+      hide();
+
+      console.log('Asignación exitosa:', resultado);
+
+      message.success('Pedido asignado correctamente a la ruta');
+
+      // Recargar rutas para mostrar cambios
+      await cargarRutas();
+
+      // Cerrar modal y limpiar estado
+      setModalPedidoVisible(false);
+      setRutaParaPedido(null);
+      setPedidosDisponibles([]);
+
+    } catch (error: any) {
+      console.error('Error completo en asignación:', error);
+
+      let errorMessage = 'Error desconocido al asignar pedido';
+
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
+      message.error(`Error: ${errorMessage}`);
     }
   };
+
+
+    const handleDesasignarPedido = async (ruta: Ruta) => {
+    if (!ruta.pedido_info) {
+      message.warning('Esta ruta no tiene pedido asignado');
+      return;
+    }
+
+    try {
+      const hide = message.loading('Desasignando pedido...', 0);
+      
+      await rutaService.desasignarPedidoRuta(ruta.id_ruta);
+      
+      hide();
+      message.success('Pedido desasignado correctamente');
+      
+      // Recargar rutas
+      await cargarRutas();
+      
+    } catch (error: any) {
+      console.error('Error al desasignar pedido:', error);
+      message.error(`Error: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
 
   // Obtener sectores únicos de las ubicaciones reales de clientes
   const sectoresDisponibles = Array.from(new Set(ubicacionesClientes.map(u => u.sector)));
@@ -342,22 +394,28 @@ export default function Rutas() {
     },
 
     {
-      title: "Asignaciones",
-      key: "asignaciones",
+      title: "Pedido Asignado",
+      key: "pedido_asignado",
       render: (_: any, record: Ruta) => {
-        const totalAsignaciones = record.asignaciones?.length || 0;
-        const totalPedidos = record.tipo_ruta === 'entrega' 
-          ? record.asignaciones?.reduce((acc, asig) => acc + ((asig as any).pedidos?.length || 0), 0) || 0 
-          : 0;
+        if (record.tipo_ruta !== 'entrega') {
+          return <span className="text-gray-400">-</span>;
+        }
+
+        if (!record.pedido_info) {
+          return <span className="text-gray-400">Sin pedido</span>;
+        }
 
         return (
           <div className="text-center">
-            <div>{totalAsignaciones} ubicación{totalAsignaciones !== 1 ? 'es' : ''}</div>
-            {record.tipo_ruta === 'entrega' && totalPedidos > 0 && (
-              <div className="text-xs text-blue-600">
-                {totalPedidos} pedido{totalPedidos !== 1 ? 's' : ''}
-              </div>
-            )}
+            <div className="font-medium text-blue-600">
+              {record.pedido_info.numero_pedido}
+            </div>
+            <div className="text-sm text-green-600">
+              ${record.pedido_info.total.toFixed(2)}
+            </div>
+            <div className="text-xs text-gray-500">
+              {record.pedido_info.cliente_info?.nombre}
+            </div>
           </div>
         );
       }
@@ -365,34 +423,60 @@ export default function Rutas() {
     {
       title: "Acciones",
       key: "acciones",
-      width: 200,
+      width: 300,
       render: (_: any, record: Ruta) => (
-        <Space>
+        <Space wrap>
           <Button
             type="link"
             icon={<EnvironmentOutlined />}
             onClick={() => setRutaSeleccionada(record.sector)}
             title="Ver en Mapa"
+            size="small"
           />
           <Button
             type="link"
             icon={<UserOutlined />}
             onClick={() => handleAsignarUbicaciones(record)}
             title="Asignar Ubicaciones"
+            size="small"
           />
           {record.tipo_ruta === 'entrega' && (
-            <Button
-              type="link"
-              icon={<ShoppingOutlined />}
-              onClick={() => handleVerPedidos(record)}
-              title="Ver Pedidos"
-            />
+            <>
+              {!record.pedido_info ? (
+                <Button
+                  type="link"
+                  icon={<ShoppingOutlined />}
+                  onClick={() => handleAsignarPedido(record)}
+                  title="Asignar Pedido"
+                  size="small"
+                >
+                </Button>
+              ) : (
+                <Popconfirm
+                  title={`¿Desasignar el pedido ${record.pedido_info.numero_pedido}?`}
+                  description="El pedido volverá a estar disponible para otras rutas"
+                  onConfirm={() => handleDesasignarPedido(record)}
+                  okText="Sí, desasignar"
+                  cancelText="Cancelar"
+                >
+                  <Button
+                    type="link"
+                    danger
+                    icon={<ShoppingOutlined />}
+                    title="Desasignar Pedido"
+                    size="small"
+                  >
+                  </Button>
+                </Popconfirm>
+              )}
+            </>
           )}
           <Button
             type="link"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
             title="Editar"
+            size="small"
           />
           <Popconfirm
             title="¿Estás seguro de eliminar esta ruta?"
@@ -405,6 +489,7 @@ export default function Rutas() {
               danger
               icon={<DeleteOutlined />}
               title="Eliminar"
+              size="small"
             />
           </Popconfirm>
         </Space>
@@ -656,6 +741,142 @@ export default function Rutas() {
               <div className="mt-2 p-2 bg-blue-50 rounded">
                 <div className="text-sm text-blue-600">
                   Seleccionadas: {ubicacionesSeleccionadas.length} ubicación{ubicacionesSeleccionadas.length !== 1 ? 'es' : ''}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+
+        <Modal
+          title={`Asignar Pedido - ${rutaParaPedido?.nombre}`}
+          open={modalPedidoVisible}
+          onCancel={() => {
+            setModalPedidoVisible(false);
+            setRutaParaPedido(null);
+            setPedidosDisponibles([]);
+          }}
+          footer={null}
+          width={900}
+        >
+          <div className="space-y-4">
+            <div className="bg-blue-50 p-3 rounded">
+              <p className="text-sm text-blue-700">
+                <strong>Ruta:</strong> {rutaParaPedido?.nombre} - {rutaParaPedido?.sector}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                Seleccione un pedido para asignar a esta ruta de entrega.
+                Solo se puede asignar un pedido por ruta.
+              </p>
+              {rutaParaPedido?.pedido_info && (
+                <div className="mt-2 p-2 bg-orange-100 rounded border-l-4 border-orange-400">
+                  <p className="text-sm text-orange-800">
+                    ⚠️ Esta ruta ya tiene el pedido <strong>{rutaParaPedido.pedido_info.numero_pedido}</strong> asignado.
+                    Debe desasignarlo antes de asignar otro.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {pedidosDisponibles.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-400 text-4xl mb-2">📦</div>
+                <p className="text-gray-500">No hay pedidos disponibles</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Todos los pedidos ya están asignados a otras rutas o no están en estado válido
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Pedidos Disponibles ({pedidosDisponibles.length})</h4>
+                  <div className="text-sm text-gray-500">
+                    Haga clic en "Asignar" para seleccionar un pedido
+                  </div>
+                </div>
+
+                <div className="max-h-96 overflow-y-auto space-y-3">
+                  {pedidosDisponibles.map((pedido) => (
+                    <div
+                      key={pedido.id_pedido}
+                      className="border rounded-lg p-4 hover:shadow-md transition-all duration-200 hover:border-blue-300 bg-white"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="font-semibold text-lg text-blue-600">
+                              {pedido.numero_pedido}
+                            </div>
+                            <Tag color={
+                              pedido.estado === 'Confirmado' ? 'green' :
+                                pedido.estado === 'Pendiente' ? 'orange' : 'blue'
+                            }>
+                              {pedido.estado}
+                            </Tag>
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="text-gray-600">
+                              <strong>Cliente:</strong> {pedido.cod_cliente}
+                            </div>
+                            {pedido.cliente_info && (
+                              <>
+                                <div className="text-sm text-gray-600">
+                                  <strong>Nombre:</strong> {pedido.cliente_info.nombre}
+                                </div>
+                                {pedido.cliente_info.sector && (
+                                  <div className="text-xs text-gray-500">
+                                    <strong>Sector:</strong> {pedido.cliente_info.sector}
+                                    {pedido.cliente_info.sector === rutaParaPedido?.sector && (
+                                      <span className="ml-2 text-green-600">✓ Mismo sector de la ruta</span>
+                                    )}
+                                  </div>
+                                )}
+                                {pedido.cliente_info.direccion && (
+                                  <div className="text-xs text-gray-500">
+                                    <strong>Dirección:</strong> {pedido.cliente_info.direccion}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-right ml-4">
+                          <div className="font-bold text-xl text-green-600 mb-2">
+                            ${pedido.total.toFixed(2)}
+                          </div>
+
+                          <Button
+                            type="primary"
+                            size="small"
+                            onClick={() => handleConfirmarAsignacionPedido(pedido.id_pedido)}
+                            className="mb-2"
+                          >
+                            Asignar Pedido
+                          </Button>
+
+                          <div className="text-sm text-gray-500 space-y-1">
+                            <div>📅 {new Date(pedido.fecha_pedido).toLocaleDateString('es-ES')}</div>
+                            {pedido.subtotal && (
+                              <div>💰 Subtotal: ${pedido.subtotal.toFixed(2)}</div>
+                            )}
+                            {pedido.iva && (
+                              <div>🏛️ IVA: ${pedido.iva.toFixed(2)}</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Indicador visual si el sector coincide */}
+                      {pedido.cliente_info?.sector === rutaParaPedido?.sector && (
+                        <div className="mt-3 p-2 bg-green-50 rounded border border-green-200">
+                          <div className="text-xs text-green-700 flex items-center">
+                            ✅ <strong className="ml-1">Recomendado:</strong> El cliente está en el mismo sector que la ruta
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
