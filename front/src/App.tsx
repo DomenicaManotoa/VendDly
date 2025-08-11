@@ -56,7 +56,7 @@ export default function App() {
         
         {/* ✅ CAMBIO: Envolver LayoutConSidebar con ProtectedRoute */}
         <Route element={
-          <ProtectedRoute requiredRole="Admin"> {/* Agregar requiredRole */}
+          <ProtectedRoute requiredRole="Admin">
             <LayoutConSidebar />
           </ProtectedRoute>
         }>
@@ -92,7 +92,7 @@ export default function App() {
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarFacturador con ProtectedRoute */}
         <Route element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="Cajero">
             <LayoutConSidebarFacturador />
           </ProtectedRoute>
         }>
@@ -105,7 +105,7 @@ export default function App() {
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarTransportista con ProtectedRoute */}
         <Route element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="Transportista">
             <LayoutConSidebarTransportista />
           </ProtectedRoute>
         }>
@@ -113,12 +113,11 @@ export default function App() {
           <Route path="/transportista/clientes" element={<ClientesTransportista />} />
           <Route path="/transportista/pedidos" element={<PedidosTransportista />} />
           <Route path="/transportista/rutas" element={<RutasTransportista />} />
-
         </Route>
         
         {/* ✅ CAMBIO: Envolver LayoutConSidebarVendedor con ProtectedRoute */}
         <Route element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="Vendedor">
             <LayoutConSidebarVendedor />
           </ProtectedRoute>
         }>

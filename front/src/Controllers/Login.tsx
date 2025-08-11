@@ -14,12 +14,12 @@ export const Login = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const message_param = urlParams.get('message');
-    
+
     if (message_param === 'logout') {
       // Limpiar cualquier notificación previa
       notification.destroy();
       message.destroy();
-      
+
       // Esperar un momento para que el componente se monte completamente
       setTimeout(() => {
         // Notificación principal
@@ -38,11 +38,11 @@ export const Login = () => {
 
         // Message adicional como respaldo
         message.success('🔓 Sesión cerrada correctamente', 4);
-        
+
         // Limpiar URL
         window.history.replaceState({}, document.title, window.location.pathname);
       }, 300);
-      
+
     } else if (message_param === 'access-denied') {
       setTimeout(() => {
         notification.warning({
@@ -59,7 +59,7 @@ export const Login = () => {
         });
         window.history.replaceState({}, document.title, window.location.pathname);
       }, 300);
-      
+
     } else if (message_param === 'token-expired') {
       setTimeout(() => {
         notification.error({
@@ -81,17 +81,17 @@ export const Login = () => {
 
   const handleSubmit = async (values: any) => {
     setLoading(true);
-    
+
     try {
       const { rucempresarial, email, password } = values;
       console.log('Datos del formulario:', { rucempresarial, email, password: '****' });
-      
+
       const result = await authService.login(rucempresarial, email, password);
       console.log('Resultado del login:', result);
 
       if (result.success) {
         // ✅ Notificación de bienvenida
-        notification.success({ 
+        notification.success({
           message: `🎉 ¡Bienvenido de vuelta!`,
           description: `Hola ${result.usuario}, accediendo al sistema...`,
           duration: 3,
@@ -108,22 +108,58 @@ export const Login = () => {
 
         // Obtener el usuario actual para verificar el rol
         const user = authService.getCurrentUser();
-        let isBodeguero = false;
+        let redirectPath = '/home'; // Default para Admin
+
         if (user?.rol) {
-          if (typeof user.rol === "object" && user.rol.descripcion?.toLowerCase() === "bodeguero") {
-            isBodeguero = true;
-          }
-          if (typeof user.rol === "string" && user.rol.toLowerCase() === "bodeguero") {
-            isBodeguero = true;
+          if (typeof user.rol === "object" && user.rol.descripcion) {
+            const rolDescripcion = user.rol.descripcion.toLowerCase();
+
+            switch (rolDescripcion) {
+              case 'admin':
+                redirectPath = '/home';
+                break;
+              case 'bodeguero':
+                redirectPath = '/bodega/home';
+                break;
+              case 'facturador':
+                redirectPath = '/facturador/home';
+                break;
+              case 'transportista':
+                redirectPath = '/transportista/home';
+                break;
+              case 'vendedor':
+                redirectPath = '/vendedor/home';
+                break;
+              default:
+                redirectPath = '/home'; // Default para Admin
+            }
+          } else if (typeof user.rol === "string") {
+            const rolString = user.rol.toLowerCase();
+
+            switch (rolString) {
+              case 'admin':
+                redirectPath = '/home';
+                break;
+              case 'bodeguero':
+                redirectPath = '/bodega/home';
+                break;
+              case 'facturador':
+                redirectPath = '/facturador/home';
+                break;
+              case 'transportista':
+                redirectPath = '/transportista/home';
+                break;
+              case 'vendedor':
+                redirectPath = '/vendedor/home';
+                break;
+              default:
+                redirectPath = '/home'; // Default para Admin
+            }
           }
         }
 
         setTimeout(() => {
-          if (isBodeguero) {
-            navigate('/bodega/home', { replace: true });
-          } else {
-            navigate('/home', { replace: true });
-          }
+          navigate(redirectPath, { replace: true });
         }, 1000);
 
       } else {
@@ -133,10 +169,10 @@ export const Login = () => {
         }
 
         // Notificaciones de error
-        if (result.error?.includes('Credenciales incorrectas') || 
-            result.error?.includes('Usuario no encontrado') ||
-            result.error?.includes('Contraseña incorrecta')) {
-          notification.error({ 
+        if (result.error?.includes('Credenciales incorrectas') ||
+          result.error?.includes('Usuario no encontrado') ||
+          result.error?.includes('Contraseña incorrecta')) {
+          notification.error({
             message: '❌ Credenciales Incorrectas',
             description: 'RUC, email o contraseña incorrectos. Verifica e intenta nuevamente.',
             duration: 6,
@@ -148,7 +184,7 @@ export const Login = () => {
             }
           });
         } else {
-          notification.error({ 
+          notification.error({
             message: '❌ Error de Autenticación',
             description: result.error || 'Error durante el inicio de sesión.',
             duration: 6,
@@ -163,13 +199,13 @@ export const Login = () => {
       }
     } catch (error) {
       console.error('Error en handleSubmit:', error);
-      
+
       if (formRef.current?.incrementFailedAttempts) {
         formRef.current.incrementFailedAttempts();
       }
-      
-      notification.error({ 
-        message: '💥 Error Inesperado', 
+
+      notification.error({
+        message: '💥 Error Inesperado',
         description: 'Error inesperado. Recarga la página e intenta nuevamente.',
         duration: 8,
         placement: 'topRight',
