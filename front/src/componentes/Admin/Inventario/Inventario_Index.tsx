@@ -291,7 +291,7 @@ const Inventario_Index: React.FC = () => {
         width: '100%'
       }}
     >
-      <Typography.Title level={1} style={{ textAlign: 'center', marginBottom: 24 }}>
+      <Typography.Title level={2}>
         Inventario de Productos
       </Typography.Title>
 

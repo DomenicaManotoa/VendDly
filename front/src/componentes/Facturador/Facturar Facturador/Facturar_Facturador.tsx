@@ -1,8 +1,10 @@
+import Facturas from "componentes/Admin/Facturas/Facturas";
+
 const FacturarFacturador = () => {
   return (
-    <div>
-      <h1>Facturar Facturador</h1>
-    </div>
+    <>
+      <Facturas />
+    </>
   );
 };
 

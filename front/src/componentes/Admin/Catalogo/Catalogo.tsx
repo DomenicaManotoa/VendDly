@@ -206,8 +206,6 @@ const Catalogo = () => {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-      <Content style={{ padding: '24px' }}>
-        {/* Título y botón de exportar */}
         <Row
           gutter={[16, 16]}
           align="middle"
@@ -215,16 +213,9 @@ const Catalogo = () => {
           style={{ marginBottom: 24 }}
         >
           <Col xs={24} sm={16}>
-            <Title
-              level={2}
-              style={{
-                margin: 0,
-                color: '#ABD904',
-                textAlign: 'left'
-              }}
-            >
+            <Typography.Title level={2}>
               Catálogo de Productos
-            </Title>
+            </Typography.Title>
           </Col>
           <Col xs={24} sm={8} style={{ textAlign: 'right' }}>
             <Button
@@ -243,7 +234,6 @@ const Catalogo = () => {
           </Col>
         </Row>
 
-        {/* Filtros */}
         <Card style={{ marginBottom: 24 }}>
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} sm={12} md={6}>
@@ -311,7 +301,6 @@ const Catalogo = () => {
           </Row>
         </Card>
 
-        {/* Información de resultados */}
         <div style={{ marginBottom: 16 }}>
           <Text type="secondary">
             Mostrando {filteredProductos.length} de {productos.length} productos
@@ -429,7 +418,6 @@ const Catalogo = () => {
           )}
         </Spin>
 
-        {/* Botón para ver más productos (si es necesario) */}
         {filteredProductos.length > 0 && filteredProductos.length < productos.length && (
           <div style={{ textAlign: 'center', marginTop: 32 }}>
             <Button type="primary" size="large" onClick={clearFilters}>
@@ -438,7 +426,6 @@ const Catalogo = () => {
           </div>
         )}
 
-        {/* Modal de detalles del producto */}
         <Modal
           title={selectedProduct?.nombre}
           visible={isModalVisible}
@@ -524,7 +511,6 @@ const Catalogo = () => {
             </div>
           )}
         </Modal>
-      </Content>
     </div>
   );
 };

@@ -1,8 +1,10 @@
+import { Typography } from "antd";
+
 const HomeBodeguero = () => {
   return (
     <div>
-      <h1>Inicio Bodeguero</h1>
-      <p>Bienvenido a la sección de bodeguero.</p>
+      <Typography.Title level={1}>Inicio Bodeguero</Typography.Title>
+      <Typography.Paragraph>Bienvenido a la sección de bodeguero</Typography.Paragraph>
     </div>
   );
 };

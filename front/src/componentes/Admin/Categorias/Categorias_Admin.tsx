@@ -187,7 +187,7 @@ const Categorias_Admin = () => {
 
   return (
     <div style={{ padding: isMobile ? '12px' : '24px' }}>
-      <Title level={2} style={{ marginBottom: '24px' }}>
+      <Title level={2}>
         Gestión de Categorías
       </Title>
 

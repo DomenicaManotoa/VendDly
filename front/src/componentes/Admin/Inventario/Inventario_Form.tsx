@@ -48,10 +48,6 @@ const Inventario_Form: React.FC<InventarioFormProps> = ({
       });
     }
   }, [initialValues, form]);
-
-  // handleFinish, handleImageChange y demás se mantienen igual
-
-  // Aquí solo cambio el estilo del layout para que sea responsive
   return (
     <Form
       form={form}
@@ -91,7 +87,6 @@ const Inventario_Form: React.FC<InventarioFormProps> = ({
           setPreview(null);
 
         } catch (error: unknown) {
-          // Manejo de errores igual
           message.error('Error al guardar el producto');
         } finally {
           setLoading(false);
@@ -99,7 +94,6 @@ const Inventario_Form: React.FC<InventarioFormProps> = ({
       }}
       style={{ marginTop: 8 }}
     >
-      {/* Contenedor flexible que envuelve imagen y formulario, con wrap para responsividad */}
       <div style={{ 
         display: 'flex', 
         flexWrap: 'wrap', 
@@ -110,7 +104,7 @@ const Inventario_Form: React.FC<InventarioFormProps> = ({
         <div style={{ 
           flex: '1 1 180px', 
           maxWidth: 180, 
-          minWidth: 140, 
+          minWidth: 1, 
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'flex-start' 

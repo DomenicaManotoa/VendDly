@@ -1,8 +1,10 @@
+import Pedidos from "componentes/Admin/Pedidos/Index";
+
 const PedidosVendedor = () => {
   return (
-    <div>
-      <h1>Pedidos Vendedor</h1>
-    </div>
+    <>
+      <Pedidos />
+    </>
   );
 };
 

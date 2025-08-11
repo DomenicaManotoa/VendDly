@@ -1,8 +1,10 @@
+import UbicacionClientePage from "componentes/Admin/ubicacionCliente/UbicacionCliente";
+
 const ClientesTransportista = () => {
   return (
-    <div>
-      <h1>Clientes Transportista</h1>
-    </div>
+    <>
+      <UbicacionClientePage />
+    </>
   );
 };
 

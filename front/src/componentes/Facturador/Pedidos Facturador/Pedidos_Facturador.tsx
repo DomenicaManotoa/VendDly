@@ -1,8 +1,10 @@
+import Pedidos from "componentes/Admin/Pedidos/Index";
+
 const PedidosFacturador = () => {
   return (
-    <div>
-      <h1>Pedidos Facturador</h1>
-    </div>
+    <>
+      <Pedidos />
+    </>
   );
 };
 

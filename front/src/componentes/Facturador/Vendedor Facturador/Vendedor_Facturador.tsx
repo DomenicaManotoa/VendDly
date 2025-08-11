@@ -1,8 +1,10 @@
+import Facturas from "componentes/Admin/Facturas/Facturas";
+
 const VendedorFacturador = () => {
   return (
-    <div>
-      <h1>Vendedor Facturador</h1>
-    </div>
+    <>
+      <Facturas />
+    </>
   );
 };
 

@@ -1,8 +1,10 @@
+import Clientes from "componentes/Admin/Clientes/IndexClientes";
+
 const ClientesFacturador = () => {
   return (
-    <div>
-      <h1>Clientes Facturador</h1>
-    </div>
+    <>
+      <Clientes />
+    </>
   );
 };
 

@@ -6,8 +6,8 @@ import { UbicacionCliente, Ruta } from "../../../types/types";
 type Props = {
   sectorSeleccionado: string | null;
   ubicacionesReales?: UbicacionCliente[];
-  rutaSeleccionada?: Ruta | null; // Nueva prop para mostrar ruta específica
-  mostrarRuta?: boolean; // Nueva prop para controlar si mostrar líneas de ruta
+  rutaSeleccionada?: Ruta | null;
+  mostrarRuta?: boolean;
 };
 
 const getIconBySector = (sector: string, tipoRuta?: string, orden?: number, tienePedido?: boolean) => {
@@ -28,7 +28,6 @@ const getIconBySector = (sector: string, tipoRuta?: string, orden?: number, tien
       color = '#52c41a';
       icon = '💰';
     } else {
-      // Para rutas de entrega, mostrar diferente si tiene pedido asignado
       color = tienePedido ? '#fa8c16' : '#d9d9d9';
       icon = tienePedido ? '🚚📦' : '🚚';
     }
@@ -80,19 +79,17 @@ const MapaClientes = ({
   rutaSeleccionada = null,
   mostrarRuta = false
 }: Props) => {
-  // Solo usar ubicaciones reales
   const ubicacionesParaUsar: UbicacionCliente[] = ubicacionesReales;
 
-  // Mostrar mensaje si no hay datos
   if (!ubicacionesParaUsar || ubicacionesParaUsar.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-        <div className="text-center">
-          <div className="text-gray-400 text-6xl mb-4">📍</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+      <div className="flex items-center justify-center h-64 sm:h-80 md:h-96 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <div className="text-center px-4">
+          <div className="text-gray-400 text-4xl sm:text-5xl md:text-6xl mb-4">📍</div>
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
             No hay ubicaciones disponibles
           </h3>
-          <p className="text-gray-500">
+          <p className="text-sm sm:text-base text-gray-500 text-center">
             {sectorSeleccionado
               ? `No se encontraron clientes en el sector "${sectorSeleccionado}"`
               : "No hay ubicaciones de clientes registradas"
@@ -103,15 +100,12 @@ const MapaClientes = ({
     );
   }
 
-  // Filtrar por sector si está seleccionado
   const clientesFiltrados: UbicacionCliente[] = sectorSeleccionado
     ? ubicacionesParaUsar.filter((ubicacion: UbicacionCliente) => ubicacion.sector === sectorSeleccionado)
     : ubicacionesParaUsar;
 
-  // Posición inicial del mapa (Quito, Ecuador por defecto)
   const posicionInicial: [number, number] = [-0.22985, -78.52495];
 
-  // Calcular el centro del mapa basado en todas las ubicaciones filtradas
   const calcularCentro = (): [number, number] => {
     if (clientesFiltrados.length === 0) return posicionInicial;
 
@@ -126,7 +120,6 @@ const MapaClientes = ({
 
   const centroMapa = calcularCentro();
 
-  // Función para obtener color por sector
   const getSectorColor = (sector: string): string => {
     const sectorColors: Record<string, string> = {
       'Centro': '#1890ff',
@@ -138,7 +131,6 @@ const MapaClientes = ({
     return sectorColors[sector] || '#8c8c8c';
   };
 
-  // Preparar datos para la ruta si se está mostrando una ruta específica
   const ubicacionesRuta = rutaSeleccionada && rutaSeleccionada.asignaciones
     ? rutaSeleccionada.asignaciones
       .filter(asig => asig.id_ubicacion && asig.ubicacion_info)
@@ -152,17 +144,17 @@ const MapaClientes = ({
       }))
     : [];
 
-  // Crear líneas de la ruta
   const lineasRuta = mostrarRuta && ubicacionesRuta.length > 1
     ? ubicacionesRuta.map(ub => [ub.lat, ub.lng] as [number, number])
     : [];
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <MapContainer
         center={centroMapa}
         zoom={clientesFiltrados.length > 1 ? 12 : 13}
-        style={{ height: "400px", width: "100%" }}
+        style={{ height: "300px", width: "100%" }}
+        className="sm:!h-80 md:!h-96 lg:!h-[500px]"
         key={`${sectorSeleccionado}-${clientesFiltrados.length}-${rutaSeleccionada?.id_ruta}`}
       >
         <TileLayer
@@ -170,7 +162,6 @@ const MapaClientes = ({
           attribution="&copy; OpenStreetMap contributors"
         />
 
-        {/* Mostrar todas las ubicaciones filtradas */}
         {clientesFiltrados.map((ubicacion: UbicacionCliente, idx: number) => {
           const ubicacionEnRuta = rutaSeleccionada?.asignaciones?.find(
             asig => asig.id_ubicacion === ubicacion.id_ubicacion
@@ -192,14 +183,14 @@ const MapaClientes = ({
               )}
             >
               <Popup>
-                <div className="p-2 min-w-[200px]">
-                  <h4 className="font-semibold mb-2 text-blue-600">
+                <div className="p-2 min-w-[180px] sm:min-w-[220px] md:min-w-[250px]">
+                  <h4 className="font-semibold mb-2 text-blue-600 text-sm sm:text-base">
                     Cliente: {ubicacion.cod_cliente}
                   </h4>
 
                   {rutaSeleccionada && ubicacionEnRuta && (
                     <div className="mb-2 p-2 bg-green-50 rounded">
-                      <div className="text-sm font-medium text-green-700">
+                      <div className="text-xs sm:text-sm font-medium text-green-700">
                         🚗 Ruta: {rutaSeleccionada.nombre}
                       </div>
                       <div className="text-xs text-green-600">
@@ -214,10 +205,9 @@ const MapaClientes = ({
                         </div>
                       )}
 
-                      {/* Mostrar información del pedido si es ruta de entrega */}
                       {rutaSeleccionada.tipo_ruta === 'entrega' && rutaSeleccionada.pedido_info && (
                         <div className="mt-2 pt-2 border-t border-green-200">
-                          <div className="text-sm font-medium text-orange-700">
+                          <div className="text-xs sm:text-sm font-medium text-orange-700">
                             📦 Pedido de la ruta
                           </div>
                           <div className="text-xs mt-1 p-1 bg-orange-50 rounded">
@@ -230,13 +220,14 @@ const MapaClientes = ({
                     </div>
                   )}
 
-                  <div className="space-y-1 text-sm">
+                  <div className="space-y-1 text-xs sm:text-sm">
                     <p><strong>📍 Dirección:</strong><br />
                       <span className="text-gray-700">{ubicacion.direccion}</span>
                     </p>
-                    <p><strong>🏘️ Sector:</strong>
+                    <p className="flex flex-wrap items-center gap-1">
+                      <strong>🏘️ Sector:</strong>
                       <span
-                        className="ml-1 px-2 py-1 rounded text-white text-xs"
+                        className="px-2 py-1 rounded text-white text-xs"
                         style={{ backgroundColor: getSectorColor(ubicacion.sector) }}
                       >
                         {ubicacion.sector}
@@ -266,7 +257,6 @@ const MapaClientes = ({
           );
         })}
 
-        {/* Mostrar líneas de ruta si está habilitado */}
         {mostrarRuta && lineasRuta.length > 1 && (
           <Polyline
             positions={lineasRuta}
@@ -280,23 +270,24 @@ const MapaClientes = ({
         )}
       </MapContainer>
 
-      {/* Estadísticas en el mapa */}
-      <div className="absolute top-2 right-2 bg-white p-3 rounded-lg shadow-lg z-[1000] max-w-[250px]">
-        <h5 className="font-semibold mb-2 text-sm">
+      {/* Panel de resumen - Responsive */}
+      <div className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-white p-2 sm:p-3 rounded-lg shadow-lg z-[1000] 
+                    max-w-[140px] sm:max-w-[180px] md:max-w-[220px] lg:max-w-[250px]">
+        <h5 className="font-semibold mb-1 sm:mb-2 text-xs sm:text-sm">
           📊 Resumen
         </h5>
-        <div className="space-y-1 text-xs">
+        <div className="space-y-0.5 sm:space-y-1 text-xs">
           <p>
-            <strong>Total clientes:</strong> {clientesFiltrados.length}
+            <strong>Clientes:</strong> {clientesFiltrados.length}
           </p>
           {sectorSeleccionado && (
-            <p>
+            <p className="truncate">
               <strong>Sector:</strong> {sectorSeleccionado}
             </p>
           )}
           {rutaSeleccionada && (
-            <div className="mt-2 pt-2 border-t border-gray-200">
-              <p className="font-medium text-green-700">
+            <div className="mt-1 sm:mt-2 pt-1 sm:pt-2 border-t border-gray-200">
+              <p className="font-medium text-green-700 text-xs truncate">
                 🚗 {rutaSeleccionada.nombre}
               </p>
               <p>
@@ -310,11 +301,12 @@ const MapaClientes = ({
         </div>
       </div>
 
-      {/* Leyenda de sectores */}
+      {/* Leyenda de sectores - Responsive */}
       {!sectorSeleccionado && clientesFiltrados.length > 0 && !rutaSeleccionada && (
-        <div className="absolute bottom-2 left-2 bg-white p-3 rounded-lg shadow-lg z-[1000] max-w-[200px]">
-          <h5 className="font-semibold mb-2 text-sm">🎨 Sectores</h5>
-          <div className="space-y-1">
+        <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-white p-2 sm:p-3 rounded-lg shadow-lg z-[1000] 
+                      max-w-[140px] sm:max-w-[160px] md:max-w-[180px] lg:max-w-[200px]">
+          <h5 className="font-semibold mb-1 sm:mb-2 text-xs sm:text-sm">🎨 Sectores</h5>
+          <div className="space-y-0.5 sm:space-y-1 max-h-24 sm:max-h-32 overflow-y-auto">
             {Array.from(new Set(clientesFiltrados.map((c: UbicacionCliente) => c.sector))).map((sector: string) => {
               const clientesEnSector = clientesFiltrados.filter((c: UbicacionCliente) => c.sector === sector).length;
               const color = getSectorColor(sector);
@@ -322,10 +314,10 @@ const MapaClientes = ({
               return (
                 <div key={sector} className="flex items-center text-xs">
                   <div
-                    className="w-3 h-3 rounded-full mr-2 border border-white"
+                    className="w-2 h-2 sm:w-3 sm:h-3 rounded-full mr-1 sm:mr-2 border border-white flex-shrink-0"
                     style={{ backgroundColor: color }}
                   />
-                  <span>{sector} ({clientesEnSector})</span>
+                  <span className="truncate">{sector} ({clientesEnSector})</span>
                 </div>
               );
             })}
@@ -333,32 +325,38 @@ const MapaClientes = ({
         </div>
       )}
 
-      {/* Leyenda de ruta si se está mostrando una */}
+      {/* Leyenda de ruta - Responsive */}
       {rutaSeleccionada && (
-        <div className="absolute bottom-2 left-2 bg-white p-3 rounded-lg shadow-lg z-[1000] max-w-[250px]">
-          <h5 className="font-semibold mb-2 text-sm">
-            🚗 Ruta: {rutaSeleccionada.nombre}
+        <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-white p-2 sm:p-3 rounded-lg shadow-lg z-[1000] 
+                      max-w-[160px] sm:max-w-[200px] md:max-w-[220px] lg:max-w-[250px]">
+          <h5 className="font-semibold mb-1 sm:mb-2 text-xs sm:text-sm truncate">
+            🚗 {rutaSeleccionada.nombre}
           </h5>
-          <div className="space-y-1 text-xs">
+          <div className="space-y-0.5 sm:space-y-1 text-xs">
             <div className="flex items-center">
               <div
-                className="w-3 h-3 rounded-full mr-2 border border-white"
+                className="w-2 h-2 sm:w-3 sm:h-3 rounded-full mr-1 sm:mr-2 border border-white flex-shrink-0"
                 style={{ backgroundColor: rutaSeleccionada.tipo_ruta === 'venta' ? '#52c41a' : '#fa8c16' }}
               />
               <span>{rutaSeleccionada.tipo_ruta === 'venta' ? 'Venta' : 'Entrega'}</span>
             </div>
-            <p><strong>Sector:</strong> {rutaSeleccionada.sector}</p>
+            <p className="truncate"><strong>Sector:</strong> {rutaSeleccionada.sector}</p>
             <p><strong>Estado:</strong> {rutaSeleccionada.estado}</p>
             {rutaSeleccionada.fecha_ejecucion && (
-              <p><strong>Fecha:</strong> {new Date(rutaSeleccionada.fecha_ejecucion).toLocaleDateString('es-ES')}</p>
+              <p className="text-xs"><strong>Fecha:</strong> {new Date(rutaSeleccionada.fecha_ejecucion).toLocaleDateString('es-ES')}</p>
             )}
-            <div className="mt-2 pt-2 border-t border-gray-200">
-              <p className="font-medium">Orden de visitas:</p>
-              {ubicacionesRuta.map((ub, idx) => (
-                <div key={idx} className="text-xs mt-1">
+            <div className="mt-1 sm:mt-2 pt-1 sm:pt-2 border-t border-gray-200 max-h-16 sm:max-h-20 overflow-y-auto">
+              <p className="font-medium text-xs">Orden de visitas:</p>
+              {ubicacionesRuta.slice(0, 3).map((ub, idx) => (
+                <div key={idx} className="text-xs mt-0.5 truncate">
                   <span className="font-medium">#{ub.orden}:</span> {ub.cliente}
                 </div>
               ))}
+              {ubicacionesRuta.length > 3 && (
+                <div className="text-xs text-gray-500 mt-0.5">
+                  +{ubicacionesRuta.length - 3} más
+                </div>
+              )}
             </div>
           </div>
         </div>

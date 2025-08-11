@@ -1,7 +1,10 @@
+import { Typography } from "antd";
+
 const HomeFacturador = () => {
   return (
     <div>
-      <h1>Home Facturador</h1>
+      <Typography.Title level={1}>Inicio Facturador</Typography.Title>
+      <Typography.Paragraph>Bienvenido a la sección de facturador</Typography.Paragraph>
     </div>
   );
 };

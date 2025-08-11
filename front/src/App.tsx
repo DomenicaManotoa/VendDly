@@ -98,7 +98,6 @@ export default function App() {
         }>
           <Route path="/facturador/home" element={<HomeFacturador />} />
           <Route path="/facturador/clientes" element={<ClientesFacturador />} />
-          <Route path="/facturador/vendedor" element={<VendedorFacturador />} />
           <Route path="/facturador/pedidos" element={<PedidosFacturador />} />
           <Route path="/facturador/facturar" element={<FacturarFacturador />} />
         </Route>
@@ -128,7 +127,6 @@ export default function App() {
           <Route path="/vendedor/clientes" element={<ClientesVendedor />} />
           <Route path="/vendedor/rutas" element={<RutasVendedor />} />
           <Route path="/vendedor/pedidos" element={<PedidosVendedor />} />
-          <Route path="/vendedor/caja" element={<CajaVendedor />} />
         </Route>
 
       </Routes>

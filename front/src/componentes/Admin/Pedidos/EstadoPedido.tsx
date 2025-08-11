@@ -37,12 +37,9 @@ const EstadoPedidos = () => {
   const [nuevoEstadoSeleccionado, setNuevoEstadoSeleccionado] = useState<string>("");
   const [actualizandoEstado, setActualizandoEstado] = useState(false);
 
-  // Hook para breakpoints responsivos
   const screens = useBreakpoint();
 
-  // Definir cuando es pantalla móvil
-  const esMovil = !screens.md; // md es ≥ 768px, así que si es false, estamos en móvil
-
+  const esMovil = !screens.md; 
   useEffect(() => {
     cargarPedidos();
   }, []);
@@ -65,7 +62,6 @@ const EstadoPedidos = () => {
 
       const ultimoEstadoPorPedido: { [key: number]: string } = {};
       todosLosEstados.forEach((estado: EstadoPedido) => {
-        // Mejor comparar fechas reales para obtener el último estado (asumiendo que fecha_actualizada es string ISO)
         if (
           !ultimoEstadoPorPedido[estado.id_estado_pedido] || 
           new Date(estado.fecha_actualizada) > new Date(ultimoEstadoPorPedido[estado.id_estado_pedido])
@@ -167,7 +163,6 @@ const EstadoPedidos = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <Card>
         <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
           <Col>
             <Title level={2} style={{ margin: 0 }}>Estados de Pedidos</Title>
@@ -177,7 +172,6 @@ const EstadoPedidos = () => {
           </Col>
         </Row>
 
-        {/* Si es móvil, mostrar cards */}
         {esMovil ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {pedidos.map(pedido => (
@@ -224,7 +218,6 @@ const EstadoPedidos = () => {
             size="middle"
           />
         )}
-      </Card>
 
       <Modal
         title={`Editar Estado - Pedido #${pedidoSeleccionado?.numero_pedido}`}

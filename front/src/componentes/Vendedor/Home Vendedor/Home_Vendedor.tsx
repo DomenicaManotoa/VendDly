@@ -1,8 +1,13 @@
+import { Typography } from "antd";
+
 const HomeVendedor: React.FC = () => {
   return (
-    <div>
-      <h1>Home Vendedor</h1>
-    </div>
+    <>
+      <Typography.Title level={1}>Home Vendedor</Typography.Title>
+      <Typography.Paragraph>
+        Bienvenido a la sección de Vendedor.
+      </Typography.Paragraph>
+    </>
   );
 };
 

@@ -1,8 +1,10 @@
+import Rutas from "componentes/Admin/Rutas/Rutas";
+
 const RutasVendedor = () => {
   return (
-    <div>
-      <h1>Rutas Vendedor</h1>
-    </div>
+    <>
+      <Rutas />
+    </>
   );
 };
 
