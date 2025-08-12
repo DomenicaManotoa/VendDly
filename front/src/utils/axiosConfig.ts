@@ -35,7 +35,7 @@ axios.interceptors.response.use(
   },
   (error) => {
     console.error('Error en interceptor de response:', error);
-    
+
     // Evitar múltiples redirects
     if (isRedirecting) {
       return Promise.reject(error);
@@ -43,15 +43,15 @@ axios.interceptors.response.use(
 
     if (error.response?.status === 401) {
       isRedirecting = true;
-      
+
       console.log('Token expirado o inválido, manejando logout...');
-      
+
       // Limpiar la sesión
       authService.logout();
-      
+
       // Mostrar notificación específica según el contexto
       const isLoginAttempt = error.config?.url?.includes('/login');
-      
+
       if (!isLoginAttempt) {
         // Error 401 en una petición normal (token expirado)
         notification.error({
@@ -64,18 +64,21 @@ axios.interceptors.response.use(
             border: '1px solid #ffccc7'
           }
         });
-        
+
         // Redirigir con mensaje de token expirado
         setTimeout(() => {
           window.location.href = '/?message=token-expired';
         }, 1500);
       }
-      
+
     } else if (error.response?.status === 403) {
-      // Error de permisos insuficientes
+      // Error de permisos insuficientes - mejorado para roles específicos
+      const userRole = authService.getUserRole?.() || 'No definido';
+      const correctRoute = authService.getHomeRouteByRole?.() || '/';
+
       notification.error({
         message: 'Permisos Insuficientes',
-        description: 'No tienes permisos para realizar esta acción. Contacta al administrador si crees que es un error.',
+        description: `No tienes permisos para realizar esta acción. Tu rol actual es: ${userRole}. Serás redirigido a tu área correspondiente.`,
         duration: 6,
         placement: 'topRight',
         style: {
@@ -83,7 +86,12 @@ axios.interceptors.response.use(
           border: '1px solid #ffccc7'
         }
       });
-      
+
+      // Redirigir a la ruta correcta según el rol
+      setTimeout(() => {
+        window.location.href = correctRoute;
+      }, 2000);
+
     } else if (error.response?.status === 404) {
       // Error de recurso no encontrado
       notification.error({
@@ -96,17 +104,17 @@ axios.interceptors.response.use(
           border: '1px solid #ffccc7'
         }
       });
-      
+
     } else if (error.response?.status === 422) {
       // Error de validación
       const validationErrors = error.response?.data?.detail;
       let errorMessage = 'Datos de entrada inválidos. Verifica la información e intenta nuevamente.';
-      
+
       if (Array.isArray(validationErrors)) {
         const firstError = validationErrors[0];
         errorMessage = `Error en ${firstError.loc?.join(' > ')}: ${firstError.msg}`;
       }
-      
+
       notification.error({
         message: 'Error de Validación',
         description: errorMessage,
@@ -117,7 +125,7 @@ axios.interceptors.response.use(
           border: '1px solid #ffccc7'
         }
       });
-      
+
     } else if (error.response?.status >= 500) {
       // Error del servidor
       notification.error({
@@ -130,7 +138,7 @@ axios.interceptors.response.use(
           border: '1px solid #ffccc7'
         }
       });
-      
+
     } else if (error.code === 'NETWORK_ERROR' || !error.response) {
       // Error de red/conectividad
       notification.error({
@@ -143,7 +151,7 @@ axios.interceptors.response.use(
           border: '1px solid #ffccc7'
         }
       });
-      
+
     } else if (error.code === 'TIMEOUT') {
       // Error de timeout
       notification.error({
@@ -157,7 +165,7 @@ axios.interceptors.response.use(
         }
       });
     }
-    
+
     return Promise.reject(error);
   }
 );

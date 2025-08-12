@@ -73,7 +73,6 @@ const SidebarVendedor: React.FC<SidebarCustomProps> = ({ onCollapseChange }) => 
     { key: '/vendedor/clientes', icon: <TeamOutlined />, label: 'Clientes' },
     { key: '/vendedor/rutas', icon: <EnvironmentOutlined />, label: 'Rutas' },
     { key: '/vendedor/pedidos', icon: <ShoppingCartOutlined />, label: 'Pedidos' },
-    { key: '/vendedor/caja', icon: <MoneyCollectOutlined />, label: 'Caja' },
   ];
 
   const logoutItem = [

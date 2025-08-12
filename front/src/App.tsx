@@ -30,7 +30,6 @@ import VendedorFacturador from 'componentes/Facturador/Vendedor Facturador/Vende
 import ClientesTransportista from 'componentes/Transportista/Clientes Transportista/Clientes_Transportista';
 import PedidosTransportista from 'componentes/Transportista/Pedidos Transportista/Pedidos_Transportista';
 import RutasTransportista from 'componentes/Transportista/Rutas Transportista/Rutas_Transportista';
-import CajaVendedor from 'componentes/Vendedor/Caja Vendedor/Caja_Vendedor';
 import CatalogoVendedor from 'componentes/Vendedor/Catalogo Vendedor/Catalogo_Vendedor';
 import ClientesVendedor from 'componentes/Vendedor/Clientes Vendedor/Clientes_Vendedor';
 import InventarioVendedor from 'componentes/Vendedor/Inventario Vendedor/Inventario_Vendedor';
@@ -56,7 +55,7 @@ export default function App() {
         
         {/* ✅ CAMBIO: Envolver LayoutConSidebar con ProtectedRoute */}
         <Route element={
-          <ProtectedRoute requiredRole="Admin"> {/* Agregar requiredRole */}
+          <ProtectedRoute requiredRole="Admin">
             <LayoutConSidebar />
           </ProtectedRoute>
         }>
@@ -92,7 +91,7 @@ export default function App() {
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarFacturador con ProtectedRoute */}
         <Route element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="Cajero">
             <LayoutConSidebarFacturador />
           </ProtectedRoute>
         }>
@@ -104,7 +103,7 @@ export default function App() {
 
         {/* ✅ CAMBIO: Envolver LayoutConSidebarTransportista con ProtectedRoute */}
         <Route element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="Transportista">
             <LayoutConSidebarTransportista />
           </ProtectedRoute>
         }>
@@ -112,12 +111,11 @@ export default function App() {
           <Route path="/transportista/clientes" element={<ClientesTransportista />} />
           <Route path="/transportista/pedidos" element={<PedidosTransportista />} />
           <Route path="/transportista/rutas" element={<RutasTransportista />} />
-
         </Route>
         
         {/* ✅ CAMBIO: Envolver LayoutConSidebarVendedor con ProtectedRoute */}
         <Route element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="Vendedor">
             <LayoutConSidebarVendedor />
           </ProtectedRoute>
         }>

@@ -12,19 +12,19 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
   const [shouldRedirect, setShouldRedirect] = useState(false);
-  
+
   useEffect(() => {
     const checkAuthentication = async () => {
       try {
         const isAuthenticated = authService.isAuthenticated();
         const currentUser = authService.getCurrentUser();
-        
+
         if (!isAuthenticated) {
           // Determinar el tipo de mensaje según la situación
-          const hasExpiredToken = localStorage.getItem('token') || 
-                                 localStorage.getItem('authToken') || 
-                                 localStorage.getItem('access_token');
-          
+          const hasExpiredToken = localStorage.getItem('token') ||
+            localStorage.getItem('authToken') ||
+            localStorage.getItem('access_token');
+
           if (hasExpiredToken) {
             // Había un token pero ya no es válido
             notification.error({
@@ -37,7 +37,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
                 border: '1px solid #ffccc7'
               }
             });
-            
+
             // Limpiar tokens inválidos
             authService.logout();
             setShouldRedirect(true);
@@ -55,7 +55,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
               }
             });
           }
-          
+
           setShouldRedirect(true);
           return;
         }
@@ -73,34 +73,63 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
               border: '1px solid #ffccc7'
             }
           });
-          
+
           setShouldRedirect(true);
           return;
         }
 
         // Verificar rol si es requerido
         if (requiredRole && currentUser) {
-          const userRole =
-            typeof currentUser.rol === "object"
-              ? currentUser.rol.descripcion
-              : currentUser.rol;
+          let userRole: string | undefined;
 
-          if (
-            typeof userRole === "string" &&
-            userRole.toLowerCase() !== requiredRole.toLowerCase()
-          ) {
-            notification.error({
-              message: 'Permisos insuficientes',
-              description: `No tienes acceso a esta sección. Se requiere rol: ${requiredRole}`,
+          // Obtener el rol del usuario de manera consistente
+          if (typeof currentUser.rol === "object" && currentUser.rol?.descripcion) {
+            userRole = currentUser.rol.descripcion;
+          } else if (typeof currentUser.rol === "string") {
+            userRole = currentUser.rol;
+          }
+
+          // Verificar si el usuario tiene el rol requerido
+          if (!userRole || userRole.toLowerCase() !== requiredRole.toLowerCase()) {
+            // Determinar la ruta de redirección basada en el rol actual del usuario
+            let correctPath = '/';
+
+            if (userRole) {
+              const roleLower = userRole.toLowerCase();
+              switch (roleLower) {
+                case 'admin':
+                  correctPath = '/home';
+                  break;
+                case 'bodeguero':
+                  correctPath = '/bodega/home';
+                  break;
+                case 'cajero':
+                  correctPath = '/facturador/home';
+                  break;
+                case 'transportista':
+                  correctPath = '/transportista/home';
+                  break;
+                case 'vendedor':
+                  correctPath = '/vendedor/home';
+                  break;
+                default:
+                  correctPath = '/';
+              }
+            }
+
+            notification.warning({
+              message: 'Acceso Restringido',
+              description: `Esta sección es para usuarios con rol ${requiredRole}. Tu rol actual es ${userRole}. Serás redirigido a tu área correspondiente.`,
               duration: 6,
               placement: 'topRight',
               style: {
-                backgroundColor: '#fff2f0',
-                border: '1px solid #ffccc7'
+                backgroundColor: '#fffbe6',
+                border: '1px solid #ffe58f'
               }
             });
-            setShouldRedirect(true);
-            return;
+
+            // Redirigir a la ruta correcta según el rol del usuario
+            return <Navigate to={correctPath} replace />;
           }
         }
 
@@ -132,10 +161,10 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
   // Mostrar loading mientras se verifica
   if (isChecking) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         fontSize: '16px',
         color: '#666'
@@ -144,13 +173,13 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
       </div>
     );
   }
-  
+
   // Redirigir si es necesario
   if (shouldRedirect) {
     console.log('Usuario no autenticado, redirigiendo al login...');
     return <Navigate to="/?message=access-denied" replace />;
   }
-  
+
   // Mostrar contenido protegido
   return <>{children}</>;
 };
