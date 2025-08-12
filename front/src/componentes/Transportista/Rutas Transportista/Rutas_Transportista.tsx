@@ -1,9 +1,9 @@
-import Rutas from "componentes/Admin/Rutas/Rutas";
+import Entregas from "componentes/Admin/Entregas/Entregas";
 
 const RutasTransportista = () => {
   return (
     <>
-      <Rutas />
+      <Entregas />
     </>
   );
 };

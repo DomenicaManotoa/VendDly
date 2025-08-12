@@ -10,6 +10,7 @@ import {
   ShoppingCartOutlined,
   TeamOutlined,
   LoadingOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useLogout } from '../../../hooks/useLogout';
 
@@ -67,7 +68,8 @@ const SidebarTransportista: React.FC<SidebarCustomProps> = ({ onCollapseChange }
     { key: '/transportista/home', icon: <HomeOutlined />, label: 'Home' },
     { key: '/transportista/clientes', icon: <TeamOutlined />, label: 'Clientes' },
     { key: '/transportista/pedidos', icon: <ShoppingCartOutlined />, label: 'Pedidos' },
-    { key: '/transportista/rutas', icon: <EnvironmentOutlined />, label: 'Rutas' },
+    { key: '/transportista/entregas', icon: <EnvironmentOutlined />, label: 'Entregas' },
+    { key: '/transportista/estado-pedido', icon: <ClockCircleOutlined />, label: 'Estado Pedido' },
   ];
 
   const logoutItem = [

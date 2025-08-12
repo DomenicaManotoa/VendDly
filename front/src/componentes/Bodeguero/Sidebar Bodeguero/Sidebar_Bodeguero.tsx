@@ -9,6 +9,9 @@ import {
   MenuUnfoldOutlined,
   ShoppingOutlined,
   LoadingOutlined,
+  TagsOutlined,
+  ShopOutlined,
+  ReadOutlined,
 } from '@ant-design/icons';
 import { useLogout } from '../../../hooks/useLogout';
 
@@ -66,7 +69,9 @@ const SidebarBodega: React.FC<SidebarBodegaProps> = ({ onCollapseChange }) => {
   const menuItems = [
     { key: '/bodega/home', icon: <HomeOutlined />, label: 'Home Bodega' },
     { key: '/bodega/inventario', icon: <ShoppingOutlined />, label: 'Inventario Bodega' },
-    { key: '/bodega/catalogo', icon: <AppstoreOutlined />, label: 'Catálogo Bodega' },
+    { key: '/bodega/catalogo', icon: <ReadOutlined />, label: 'Catálogo Bodega' },
+    { key: '/bodega/categoria', icon: <ShopOutlined />, label: 'Categorías Bodega' },
+    { key: '/bodega/marca', icon: <TagsOutlined />, label: 'Marcas Bodega' },
   ];
 
   // Item de logout con loading

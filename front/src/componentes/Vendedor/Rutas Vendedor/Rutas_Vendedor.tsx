@@ -1,11 +1,12 @@
-import Rutas from "componentes/Admin/Rutas/Rutas";
+import Venta from "componentes/Admin/Venta/Venta";
 
-const RutasVendedor = () => {
+
+const VentaVendedor = () => {
   return (
     <>
-      <Rutas />
+      <Venta />
     </>
   );
 };
 
-export default RutasVendedor;
+export default VentaVendedor;

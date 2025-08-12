@@ -2,19 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout, Menu, Button, Modal, Spin } from 'antd';
 import {
-  AppstoreOutlined,
   EnvironmentOutlined,
   HomeOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  MoneyCollectOutlined,
   ShoppingCartOutlined,
-  ShoppingOutlined,
   TeamOutlined,
   LoadingOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
-import { useLogout } from '../../../hooks/useLogout';
+import { useLogout } from 'hooks/useLogout';
 
 const { Sider } = Layout;
 
@@ -22,7 +20,7 @@ type SidebarCustomProps = {
   onCollapseChange?: (collapsed: boolean) => void;
 };
 
-const SidebarVendedor: React.FC<SidebarCustomProps> = ({ onCollapseChange }) => {
+const SidebarTransportista: React.FC<SidebarCustomProps> = ({ onCollapseChange }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const navigate = useNavigate();
@@ -67,12 +65,11 @@ const SidebarVendedor: React.FC<SidebarCustomProps> = ({ onCollapseChange }) => 
   };
 
   const menuItems = [
-    { key: '/vendedor/home', icon: <HomeOutlined />, label: 'Home' },
-    { key: '/vendedor/inventario', icon: <ShoppingOutlined />, label: 'Inventario' },
-    { key: '/vendedor/catalogo', icon: <AppstoreOutlined />, label: 'Catálogo' },
-    { key: '/vendedor/clientes', icon: <TeamOutlined />, label: 'Clientes' },
-    { key: '/vendedor/ventas', icon: <EnvironmentOutlined />, label: 'Ventas' },
-    { key: '/vendedor/pedidos', icon: <ShoppingCartOutlined />, label: 'Pedidos' },
+    { key: '/transportista/home', icon: <HomeOutlined />, label: 'Home' },
+    { key: '/transportista/clientes', icon: <TeamOutlined />, label: 'Clientes' },
+    { key: '/transportista/pedidos', icon: <ShoppingCartOutlined />, label: 'Pedidos' },
+    { key: '/transportista/entregas', icon: <EnvironmentOutlined />, label: 'Entregas' },
+    { key: '/transportista/estado-pedido', icon: <ClockCircleOutlined />, label: 'Estado Pedido' },
   ];
 
   const logoutItem = [
@@ -235,4 +232,4 @@ const SidebarVendedor: React.FC<SidebarCustomProps> = ({ onCollapseChange }) => 
   );
 };
 
-export default SidebarVendedor;
+export default SidebarTransportista;

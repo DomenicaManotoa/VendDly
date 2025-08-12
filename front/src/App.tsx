@@ -45,6 +45,8 @@ import { ProtectedRoute } from 'componentes/ProtectedRoute';
 import CategoriaBodeguero from "componentes/Bodeguero/Categoria Bodeguero/CategoriaBodeguero";
 import MarcaBodeguero from "componentes/Bodeguero/Marca Bodeguero/MarcaBodeguero";
 import Facturas from "componentes/Admin/Facturas/Facturas";
+import VentaVendedor from "componentes/Vendedor/Rutas Vendedor/Rutas_Vendedor";
+import EstadoPedido from "componentes/Admin/Pedidos/EstadoPedido";
 
 
 export default function App() {
@@ -111,6 +113,8 @@ export default function App() {
           <Route path="/transportista/clientes" element={<ClientesTransportista />} />
           <Route path="/transportista/pedidos" element={<PedidosTransportista />} />
           <Route path="/transportista/rutas" element={<RutasTransportista />} />
+          <Route path="/transportista/entregas" element={<Entregas />} />
+          <Route path="/transportista/estado-pedido" element={<EstadoPedido />} />
         </Route>
         
         {/* ✅ CAMBIO: Envolver LayoutConSidebarVendedor con ProtectedRoute */}
@@ -123,7 +127,7 @@ export default function App() {
           <Route path="/vendedor/inventario" element={<InventarioVendedor />} />
           <Route path="/vendedor/catalogo" element={<CatalogoVendedor />} />
           <Route path="/vendedor/clientes" element={<ClientesVendedor />} />
-          <Route path="/vendedor/rutas" element={<RutasVendedor />} />
+          <Route path="/vendedor/ventas" element={<VentaVendedor />} />
           <Route path="/vendedor/pedidos" element={<PedidosVendedor />} />
         </Route>
 
