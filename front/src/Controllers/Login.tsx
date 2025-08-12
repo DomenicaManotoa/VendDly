@@ -112,44 +112,44 @@ export const Login = () => {
 
         if (user?.rol) {
           if (typeof user.rol === "object" && user.rol.descripcion) {
-            const rolDescripcion = user.rol.descripcion.toLowerCase();
+            const rolDescripcion = user.rol.descripcion; // Sin toLowerCase()
 
             switch (rolDescripcion) {
-              case 'admin':
+              case 'Admin':
                 redirectPath = '/home';
                 break;
-              case 'bodeguero':
+              case 'Bodeguero':
                 redirectPath = '/bodega/home';
                 break;
-              case 'facturador':
+              case 'Cajero':
                 redirectPath = '/facturador/home';
                 break;
-              case 'transportista':
+              case 'Transportista':
                 redirectPath = '/transportista/home';
                 break;
-              case 'vendedor':
+              case 'Vendedor':
                 redirectPath = '/vendedor/home';
                 break;
               default:
                 redirectPath = '/home'; // Default para Admin
             }
           } else if (typeof user.rol === "string") {
-            const rolString = user.rol.toLowerCase();
+            const rolString = user.rol; // Sin toLowerCase()
 
             switch (rolString) {
-              case 'admin':
+              case 'Admin':
                 redirectPath = '/home';
                 break;
-              case 'bodeguero':
+              case 'Bodeguero':
                 redirectPath = '/bodega/home';
                 break;
-              case 'facturador':
+              case 'Cajero':
                 redirectPath = '/facturador/home';
                 break;
-              case 'transportista':
+              case 'Transportista':
                 redirectPath = '/transportista/home';
                 break;
-              case 'vendedor':
+              case 'Vendedor':
                 redirectPath = '/vendedor/home';
                 break;
               default:

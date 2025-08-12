@@ -350,22 +350,20 @@ export const authService = {
     return userRole?.toLowerCase() === roleName.toLowerCase();
   },
 
-  // Método para obtener la ruta principal según el rol
   getHomeRouteByRole: (): string => {
     const userRole = authService.getUserRole();
     if (!userRole) return '/';
 
-    const roleLower = userRole.toLowerCase();
-    switch (roleLower) {
-      case 'admin':
+    switch (userRole) {
+      case 'Admin':
         return '/home';
-      case 'bodeguero':
+      case 'Bodeguero':
         return '/bodega/home';
-      case 'cajero':
+      case 'Cajero':
         return '/facturador/home';
-      case 'transportista':
+      case 'Transportista':
         return '/transportista/home';
-      case 'vendedor':
+      case 'Vendedor':
         return '/vendedor/home';
       default:
         return '/home'; // Default para Admin
