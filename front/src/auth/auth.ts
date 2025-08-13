@@ -344,28 +344,43 @@ export const authService = {
     }
   },
 
+  // NUEVO: Verificar si el usuario actual es transportista
+  isTransportista: (): boolean => {
+    const role = authService.getUserRole();
+    return role ? role.toLowerCase().includes('Transportista') : false;
+  },
+
+  // NUEVO: Verificar si el usuario actual es admin
+  isAdmin: (): boolean => {
+    const role = authService.getUserRole();
+    return role ? role.toLowerCase().includes('Admin') : false;
+  },
+
   // Método para verificar si el usuario tiene un rol específico
   hasRole: (roleName: string): boolean => {
     const userRole = authService.getUserRole();
     return userRole?.toLowerCase() === roleName.toLowerCase();
   },
 
-  // Método para obtener la ruta principal según el rol
+  isVendedor: (): boolean => {
+  const role = authService.getUserRole();
+  return role ? role.toLowerCase().includes('Vendedor') : false;
+},
+
   getHomeRouteByRole: (): string => {
     const userRole = authService.getUserRole();
     if (!userRole) return '/';
 
-    const roleLower = userRole.toLowerCase();
-    switch (roleLower) {
-      case 'admin':
+    switch (userRole) {
+      case 'Admin':
         return '/home';
-      case 'bodeguero':
+      case 'Bodeguero':
         return '/bodega/home';
-      case 'cajero':
+      case 'Cajero':
         return '/facturador/home';
-      case 'transportista':
+      case 'Transportista':
         return '/transportista/home';
-      case 'vendedor':
+      case 'Vendedor':
         return '/vendedor/home';
       default:
         return '/home'; // Default para Admin
@@ -443,5 +458,9 @@ export const authService = {
       console.error('Error verificando inactividad:', error);
       return false;
     }
-  }
+  },
+
+
+
+  
 };

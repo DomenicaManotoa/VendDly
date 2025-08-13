@@ -90,26 +90,25 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
           }
 
           // Verificar si el usuario tiene el rol requerido
-          if (!userRole || userRole.toLowerCase() !== requiredRole.toLowerCase()) {
+          if (!userRole || userRole !== requiredRole) {
             // Determinar la ruta de redirección basada en el rol actual del usuario
             let correctPath = '/';
 
             if (userRole) {
-              const roleLower = userRole.toLowerCase();
-              switch (roleLower) {
-                case 'admin':
+              switch (userRole) {
+                case 'Admin':
                   correctPath = '/home';
                   break;
-                case 'bodeguero':
+                case 'Bodeguero':
                   correctPath = '/bodega/home';
                   break;
-                case 'cajero':
+                case 'Cajero':
                   correctPath = '/facturador/home';
                   break;
-                case 'transportista':
+                case 'Transportista':
                   correctPath = '/transportista/home';
                   break;
-                case 'vendedor':
+                case 'Vendedor':
                   correctPath = '/vendedor/home';
                   break;
                 default:

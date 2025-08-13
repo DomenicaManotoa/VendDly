@@ -69,7 +69,6 @@ const SidebarFacturador: React.FC<SidebarCustomProps> = ({ onCollapseChange }) =
     { key: '/facturador/clientes', icon: <TeamOutlined />, label: 'Clientes' },
     { key: '/facturador/facturar', icon: <FileTextOutlined />, label: 'Facturar' },
     { key: '/facturador/pedidos', icon: <ShoppingCartOutlined />, label: 'Pedidos' },
-    { key: '/facturador/vendedor', icon: <UserOutlined />, label: 'Vendedor' },
   ];
 
   const logoutItem = [

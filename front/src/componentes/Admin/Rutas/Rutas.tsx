@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Button, Modal, Form, Input, Select, Table, Tag, message, Card, Space, Popconfirm, DatePicker, Checkbox, Drawer, Typography } from "antd";
-import { PlusOutlined, EnvironmentOutlined, EditOutlined, DeleteOutlined, UserOutlined, CarOutlined, MenuOutlined } from "@ant-design/icons";
+import { Button, Modal, Form, Input, Select, Table, Tag, message, Card, Space, Popconfirm, DatePicker, Checkbox, Typography } from "antd";
+import { PlusOutlined, EnvironmentOutlined, EditOutlined, DeleteOutlined, UserOutlined, CarOutlined } from "@ant-design/icons";
 import type { ColumnsType } from 'antd/es/table';
 import MapaClientes from "./MapaClientes";
 import { ubicacionClienteService } from "../../Admin/ubicacionCliente/ubicacionClienteService";
@@ -29,18 +29,10 @@ export default function Rutas() {
   const [modalPedidoVisible, setModalPedidoVisible] = useState(false);
   const [pedidosDisponibles, setPedidosDisponibles] = useState<PedidoRuta[]>([]);
   const [rutaParaPedido, setRutaParaPedido] = useState<Ruta | null>(null);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
     cargarUbicacionesClientes();
     cargarRutas();
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const cargarUbicacionesClientes = async () => {
@@ -399,19 +391,11 @@ export default function Rutas() {
     {
       title: "Acciones",
       key: "acciones",
-      width: isMobile ? 80 : 120, // Menor ancho en móvil
-      fixed: isMobile ? undefined : 'right',
+      width: 120, // CAMBIAR: quitar el conditional isMobile
+      fixed: 'right',
       responsive: ['xs', 'sm', 'md', 'lg', 'xl'],
       render: (_: any, record: Ruta) => (
         <Space wrap size="small">
-          <Button
-            type="link"
-            icon={<EnvironmentOutlined />}
-            onClick={() => setRutaSeleccionada(record.sector)}
-            title="Ver en Mapa"
-            size="small"
-            className="p-0"
-          />
           <Button
             type="link"
             icon={<UserOutlined />}
@@ -487,12 +471,6 @@ export default function Rutas() {
               <Tag color="blue" className="ml-2">{ruta.sector}</Tag>
             </div>
             <Space size="small">
-              <Button
-                type="link"
-                icon={<EnvironmentOutlined />}
-                onClick={() => setRutaSeleccionada(ruta.sector)}
-                size="small"
-              />
               <Button
                 type="link"
                 icon={<UserOutlined />}
@@ -635,7 +613,7 @@ export default function Rutas() {
               {sectoresDisponibles.length > 0 && ` • Sectores: ${sectoresDisponibles.length}`}
             </p>
           </div>
-          
+
           <div className="flex gap-2 w-full sm:w-auto">
             <Button
               type="primary"
@@ -645,100 +623,32 @@ export default function Rutas() {
               className="flex-1 sm:flex-none"
             >
               <span className="hidden xs:inline">Crear Ruta</span>
-              <span className="xs:hidden">Crear</span>
-            </Button>
-            
-            <Button
-              className="sm:hidden"
-              icon={<MenuOutlined />}
-              onClick={() => setDrawerVisible(true)}
-              size="small"
-            >
-              Mapa
             </Button>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          {isMobile ? renderCards() : (
-            <Table
-              dataSource={rutas}
-              columns={columns}
-              rowKey="id_ruta"
-              loading={loadingRutas}
-              size="small"
-              scroll={{ x: 800 }}
-              pagination={{
-                pageSize: 10,
-                size: 'small',
-                showSizeChanger: true,
-                showQuickJumper: !isMobile,
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} de ${total} rutas`,
-                responsive: true
-              }}
-              locale={{
-                emptyText: 'No hay rutas registradas. Crea tu primera ruta usando el botón "Crear Ruta".'
-              }}
-            />
-          )}
+          <Table
+            dataSource={rutas}
+            columns={columns}
+            rowKey="id_ruta"
+            loading={loadingRutas}
+            size="small"
+            scroll={{ x: 800 }}
+            pagination={{
+              pageSize: 10,
+              size: 'small',
+              showSizeChanger: true,
+              showQuickJumper: true, // CAMBIAR: quitar conditional
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} de ${total} rutas`,
+              responsive: true
+            }}
+            locale={{
+              emptyText: 'No hay rutas registradas. Crea tu primera ruta usando el botón "Crear Ruta".'
+            }}
+          />
         </div>
-
-        {/* Drawer para móvil */}
-        <Drawer
-          title="Mapa de Ubicaciones"
-          placement="bottom"
-          onClose={() => setDrawerVisible(false)}
-          open={drawerVisible}
-          height="70%"
-          className="sm:hidden"
-        >
-          <div className="flex flex-col gap-3 mb-4">
-            <Select
-              placeholder="Filtrar por sector"
-              allowClear
-              className="w-full"
-              onChange={setRutaSeleccionada}
-              value={rutaSeleccionada}
-              loading={loadingUbicaciones}
-              size="small"
-            >
-              {sectoresDisponibles.map((sector) => (
-                <Option key={sector} value={sector}>
-                  {sector}
-                </Option>
-              ))}
-            </Select>
-
-            <Button
-              onClick={() => setRutaSeleccionada(null)}
-              disabled={!rutaSeleccionada}
-              size="small"
-              className="w-full"
-            >
-              Mostrar Todos
-            </Button>
-          </div>
-
-          {loadingUbicaciones ? (
-            <div className="text-center py-8">
-              Cargando ubicaciones de clientes...
-            </div>
-          ) : (
-            <>
-              <div className="mb-2 text-xs text-gray-600">
-                Mostrando {ubicacionesFiltradas.length} de {ubicacionesClientes.length} ubicaciones
-              </div>
-
-              <MapaClientes
-                sectorSeleccionado={rutaSeleccionada}
-                ubicacionesReales={ubicacionesFiltradas}
-                rutaSeleccionada={rutas.find(r => r.sector === rutaSeleccionada) || null}
-                mostrarRuta={!!rutaSeleccionada}
-              />
-            </>
-          )}
-        </Drawer>
         <Modal
           title={editingRuta ? "Editar Ruta" : "Crear Nueva Ruta"}
           open={modalVisible}
@@ -763,37 +673,51 @@ export default function Rutas() {
               <Input placeholder="Ej: Ruta Centro Mañana" />
             </Form.Item>
 
-            <Form.Item
-              name="sector"
-              label="Sector"
-              rules={[{ required: true, message: 'Por favor seleccione un sector' }]}
-            >
-              <Select
-                placeholder="Seleccione un sector"
-                showSearch
-                filterOption={(input, option) => {
-                  if (!option?.children) return false;
-                  return option.children.toString().toLowerCase().includes(input.toLowerCase());
-                }}
-              >
-                {sectoresDisponibles.map((sector) => {
-                  const clientesEnSector = ubicacionesClientes.filter(u => u.sector === sector).length;
-                  return (
-                    <Option key={sector} value={sector}>
-                      {sector} ({clientesEnSector} ubicación{clientesEnSector !== 1 ? 'es' : ''})
-                    </Option>
-                  );
-                })}
-
-                {['Este', 'Oeste', 'Centro Norte', 'Centro Sur', 'Periferia', 'Industrial', 'Comercial'].map(sector =>
-                  !sectoresDisponibles.includes(sector) && (
-                    <Option key={sector} value={sector}>
-                      {sector}
-                    </Option>
-                  )
-                )}
-              </Select>
-            </Form.Item>
+<Form.Item
+  name="sector"
+  label="Sector"
+  rules={[{ required: true, message: 'Por favor seleccione un sector' }]}
+>
+  <Select
+    placeholder="Seleccione un sector"
+    showSearch
+    optionLabelProp="label" // Esta prop hace que solo se muestre el valor principal en el input
+    filterOption={(input, option) => {
+      const label = option?.label?.toString() || '';
+      const children = option?.children?.toString() || '';
+      return label.toLowerCase().includes(input.toLowerCase()) || 
+             children.toLowerCase().includes(input.toLowerCase());
+    }}
+  >
+    {sectoresDisponibles.map((sector) => {
+      const ubicacionesEnSector = ubicacionesClientes.filter(u => u.sector === sector);
+      const clientesEnSector = ubicacionesEnSector.length;
+      
+      // Obtener códigos únicos de clientes en este sector
+      const codigosClientes = Array.from(new Set(
+        ubicacionesEnSector.map(u => u.cod_cliente)
+      )).slice(0, 3);
+      
+      return (
+        <Option 
+          key={sector} 
+          value={sector}
+          label={sector} // Esta prop define lo que se muestra en el input cuando se selecciona
+        >
+          <div className="py-1">
+            <div className="font-medium text-sm">
+              {sector} ({clientesEnSector} ubicación{clientesEnSector !== 1 ? 'es' : ''})
+            </div>
+            <div className="text-xs text-gray-500 truncate">
+              Clientes: {codigosClientes.join(', ')}
+              {ubicacionesEnSector.length > 3 && ` +${ubicacionesEnSector.length - 3} más`}
+            </div>
+          </div>
+        </Option>
+      );
+    })}
+  </Select>
+</Form.Item>
 
             <Form.Item
               name="direccion"

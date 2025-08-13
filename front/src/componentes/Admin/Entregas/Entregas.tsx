@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Table, Tag, Card, Select, message, Space, Button, Modal, Descriptions, Divider } from "antd";
+import { Table, Tag, Card, Select, message, Space, Button, Modal, Descriptions, Divider, notification } from "antd";
 import { EnvironmentOutlined, UserOutlined, TruckOutlined, ShoppingOutlined } from "@ant-design/icons";
 import type { ColumnsType } from 'antd/es/table';
 import MapaClientes from "../Rutas/MapaClientes";
 import { rutaService } from "../Rutas/rutaService";
 import { ubicacionClienteService } from "../../Admin/ubicacionCliente/ubicacionClienteService";
+import { authService } from "../../../auth/auth";
 import { Ruta, UbicacionCliente } from "../../../types/types";
 
 const { Option } = Select;
@@ -19,25 +20,78 @@ export default function Entregas() {
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<any | null>(null);
   const [modalDetallesVisible, setModalDetallesVisible] = useState(false);
 
+  // Obtener información del usuario actual - ACTUALIZADO
+  const currentUser = authService.getCurrentUser();
+  const userRole = authService.getUserRole(); // Usar el nuevo método
+  const isTransportista = authService.isTransportista(); // Usar el nuevo método
+  const isAdmin = authService.isAdmin(); // Usar el nuevo método
+
+  // ... resto del componente sin cambios hasta cargarRutasEntrega ...
+
+  // ACTUALIZAR la descripción del componente
+  const getDescripcionComponent = () => {
+    if (isTransportista) {
+      return `Rutas asignadas a ti: ${rutasEntrega.length} • Sectores: ${sectoresDisponibles.length}`;
+    } else if (isAdmin) {
+      return `Total de rutas de entrega: ${rutasEntrega.length} • Sectores disponibles: ${sectoresDisponibles.length}`;
+    } else {
+      return `Rutas de entrega disponibles: ${rutasEntrega.length} • Sectores: ${sectoresDisponibles.length}`;
+    }
+  };
+
   useEffect(() => {
     cargarRutasEntrega();
     cargarUbicacionesClientes();
   }, []);
 
-  const cargarRutasEntrega = async () => {
-    setLoadingRutas(true);
+
+  // Modifica la función que carga las rutas:
+  const fetchRutas = async () => {
     try {
-      const todasLasRutas = await rutaService.getRutas();
-      // Filtrar solo rutas de entrega
-      const rutasDeEntrega = todasLasRutas.filter(ruta => ruta.tipo_ruta === 'entrega');
-      setRutasEntrega(rutasDeEntrega);
+      let rutas;
+      if (authService.isAdmin()) {
+        rutas = await rutaService.getRutasEntregaAdmin();
+      } else {
+        rutas = await rutaService.getRutasEntregaUsuario();
+      }
+      setRutas(rutas);
     } catch (error) {
-      console.error('Error al cargar rutas de entrega:', error);
-      message.error('Error al cargar las rutas de entrega');
-    } finally {
-      setLoadingRutas(false);
+      console.error('Error obteniendo rutas:', error);
+      notification.error({
+        message: 'Error',
+        description: 'No se pudieron cargar las rutas'
+      });
     }
   };
+
+const cargarRutasEntrega = async () => {
+  setLoadingRutas(true);
+  try {
+    let rutasDeEntrega: Ruta[] = [];
+
+    // Verificar el rol del usuario y cargar rutas según corresponda
+    if (isAdmin) {
+      // Los administradores ven todas las rutas de entrega
+      rutasDeEntrega = await rutaService.getRutasEntregaAdmin();
+      console.log('Rutas de entrega cargadas para Admin:', rutasDeEntrega);
+    } else if (isTransportista) {
+      // Los transportistas solo ven sus rutas asignadas
+      rutasDeEntrega = await rutaService.getRutasEntregaUsuario();
+      console.log('Rutas de entrega cargadas para Transportista:', rutasDeEntrega);
+    } else {
+      // Otros roles pueden ver rutas según sea necesario
+      rutasDeEntrega = await rutaService.getRutasEntregaUsuario();
+      console.log('Rutas de entrega cargadas para usuario:', rutasDeEntrega);
+    }
+
+    setRutasEntrega(rutasDeEntrega);
+  } catch (error) {
+    console.error('Error al cargar rutas de entrega:', error);
+    message.error('Error al cargar las rutas de entrega');
+  } finally {
+    setLoadingRutas(false);
+  }
+};
 
   const cargarUbicacionesClientes = async () => {
     setLoadingUbicaciones(true);
@@ -52,10 +106,10 @@ export default function Entregas() {
     }
   };
 
-  // Obtener sectores únicos de las rutas de entrega
+  // Obtener sectores únicos de las rutas de entrega (filtradas por usuario si es transportista)
   const sectoresDisponibles = Array.from(new Set(rutasEntrega.map(r => r.sector)));
 
-  // Reemplazar la función ubicacionesFiltradas (línea aproximada 54-63)
+  // Filtrar ubicaciones según las rutas disponibles para el usuario
   const ubicacionesFiltradas = rutaSeleccionada
     ? ubicacionesClientes.filter(u => {
       // Mostrar ubicaciones que están en las asignaciones de la ruta seleccionada
@@ -70,7 +124,7 @@ export default function Entregas() {
             ruta.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion)
           );
       })
-      : // Mostrar solo ubicaciones que están asignadas a alguna ruta de entrega
+      : // Mostrar solo ubicaciones que están asignadas a alguna ruta de entrega (del usuario actual)
       ubicacionesClientes.filter(u =>
         rutasEntrega.some(ruta =>
           ruta.asignaciones?.some(asig => asig.id_ubicacion === u.id_ubicacion)
@@ -179,11 +233,15 @@ export default function Entregas() {
           return <span className="text-gray-400">Sin asignar</span>;
         }
 
+        // Resaltar si es el transportista actual
+        const isCurrentUser = isTransportista && transportista.identificacion_usuario === currentUser?.identificacion;
+
         return (
           <div>
-            <div className="font-medium flex items-center gap-1">
-              <TruckOutlined className="text-orange-500" />
+            <div className={`font-medium flex items-center gap-1 ${isCurrentUser ? 'text-blue-600' : ''}`}>
+              <TruckOutlined className={`${isCurrentUser ? 'text-blue-500' : 'text-orange-500'}`} />
               {transportista.identificacion_usuario}
+              {isCurrentUser && <Tag color="blue">TÚ</Tag>}
             </div>
             <div className="text-sm text-gray-500">
               {transportista.usuario?.nombre || 'Nombre no disponible'}
@@ -278,13 +336,16 @@ export default function Entregas() {
           <div>
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <TruckOutlined className="text-orange-500" />
-              Gestión de Entregas
+              {isTransportista ? 'Mis Entregas' : 'Gestión de Entregas'}
             </h2>
             <p className="text-gray-600">
-              Total de rutas de entrega: {rutasEntrega.length} •
-              Sectores disponibles: {sectoresDisponibles.length} •
-              Total ubicaciones: {ubicacionesClientes.length}
+              {getDescripcionComponent()} • Total ubicaciones: {ubicacionesClientes.length}
             </p>
+            {isTransportista && currentUser && (
+              <div className="mt-2">
+                <Tag color="blue">Transportista: {currentUser.identificacion} - {currentUser.nombre}</Tag>
+              </div>
+            )}
           </div>
         </div>
 
@@ -315,7 +376,7 @@ export default function Entregas() {
                 setSectorSeleccionado(null);
               }}
             >
-              Mostrar Todas las Rutas
+              {isTransportista ? 'Mostrar Todas Mis Rutas' : 'Mostrar Todas las Rutas'}
             </Button>
           )}
         </div>
@@ -328,6 +389,9 @@ export default function Entregas() {
               <span className="font-medium">Visualizando ruta: {rutaSeleccionada.nombre}</span>
               <Tag color="orange">Entrega</Tag>
               <Tag color="blue">{rutaSeleccionada.sector}</Tag>
+              {isTransportista && (
+                <Tag color="green">Mi Ruta</Tag>
+              )}
             </div>
           </div>
         )}
@@ -341,16 +405,19 @@ export default function Entregas() {
             pageSize: 10,
             showSizeChanger: true,
             showTotal: (total, range) =>
-              `${range[0]}-${range[1]} de ${total} rutas de entrega`
+              `${range[0]}-${range[1]} de ${total} ${isTransportista ? 'rutas asignadas' : 'rutas de entrega'}`
           }}
           locale={{
             emptyText: (
               <div className="text-center py-8">
                 <TruckOutlined className="text-6xl text-gray-300 mb-4" />
                 <div className="text-gray-500">
-                  No hay rutas de entrega registradas.
+                  {isTransportista
+                    ? "No tienes rutas de entrega asignadas."
+                    : "No hay rutas de entrega registradas."
+                  }
                   <br />
-                  Las rutas de entrega se crean desde la sección "Rutas".
+                  {!isTransportista && "Las rutas de entrega se crean desde la sección \"Rutas\"."}
                 </div>
               </div>
             )
@@ -365,7 +432,7 @@ export default function Entregas() {
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <EnvironmentOutlined />
-            Mapa de Rutas de Entrega
+            {isTransportista ? 'Mapa de Mis Rutas de Entrega' : 'Mapa de Rutas de Entrega'}
             {rutaSeleccionada && ` - ${rutaSeleccionada.nombre}`}
             {sectorSeleccionado && ` - Sector: ${sectorSeleccionado}`}
           </h3>
@@ -380,8 +447,8 @@ export default function Entregas() {
             <div className="mb-2 text-sm text-gray-600">
               Mostrando {ubicacionesFiltradas.length} ubicaciones de entrega
               {rutaSeleccionada && ` para la ruta "${rutaSeleccionada.nombre}"`}
-              {sectorSeleccionado && !rutaSeleccionada && ` en rutas de entrega del sector ${sectorSeleccionado}`}
-              {!rutaSeleccionada && !sectorSeleccionado && ` (solo ubicaciones asignadas a rutas de entrega)`}
+              {sectorSeleccionado && !rutaSeleccionada && ` en ${isTransportista ? 'mis ' : ''}rutas de entrega del sector ${sectorSeleccionado}`}
+              {!rutaSeleccionada && !sectorSeleccionado && ` (solo ubicaciones asignadas a ${isTransportista ? 'mis ' : ''}rutas de entrega)`}
             </div>
 
             <MapaClientes
@@ -394,7 +461,7 @@ export default function Entregas() {
         )}
       </Card>
 
-      {/* Modal para detalles del pedido - MOVIDO AQUÍ AL FINAL */}
+      {/* Modal para detalles del pedido */}
       <Modal
         title={
           <div className="flex items-center gap-2">
@@ -497,4 +564,8 @@ export default function Entregas() {
       </Modal>
     </div>
   );
+}
+
+function setRutas(rutas: Ruta[]) {
+  throw new Error("Function not implemented.");
 }

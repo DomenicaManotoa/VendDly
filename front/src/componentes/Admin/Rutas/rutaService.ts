@@ -1,6 +1,7 @@
 // Cambiar el archivo completo a:
 import axios from '../../../utils/axiosConfig';
 import { Ruta, CrearRutaData, ActualizarRutaData, UsuarioConRol, PedidoRuta } from '../../../types/types';
+import { authService } from '../../../auth/auth';
 
 export const rutaService = {
   // Obtener todas las rutas
@@ -80,6 +81,48 @@ export const rutaService = {
     }
   },
 
+  // Actualizar este método para que use el endpoint correcto:
+  getRutasEntregaUsuario: async (): Promise<Ruta[]> => {
+    try {
+      const user = authService.getCurrentUser();
+      if (!user) throw new Error("Usuario no autenticado");
+
+      if (authService.isAdmin()) {
+        return await rutaService.getRutasEntregaAdmin();
+      }
+
+      // Solo para Transportistas
+      const response = await axios.get(`/rutas/entregas/transportista/${user.identificacion}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener rutas de entrega:', error);
+      throw error;
+    }
+  },
+
+  // Método adicional para obtener todas las rutas (solo para administradores)
+  getRutasEntregaAdmin: async (): Promise<Ruta[]> => {
+    try {
+      const response = await axios.get('/rutas/entregas');
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener todas las rutas de entrega:', error);
+      throw error;
+    }
+  },
+
+  // En rutaService.ts
+// Agregar este nuevo método
+getRutasVentaUsuario: async (userId: string): Promise<Ruta[]> => {
+  try {
+    const response = await axios.get(`/rutas/ventas/vendedor/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener rutas de venta del usuario:', error);
+    throw error;
+  }
+},
+
   getUsuariosPorRol: async (rol: string): Promise<UsuarioConRol[]> => {
     try {
       const response = await axios.get(`/usuarios/rol/${rol}`);
@@ -150,7 +193,7 @@ export const rutaService = {
 
       console.log('Respuesta exitosa del servidor:', response.data);
       return response.data;
-      
+
     } catch (error: any) {
       console.error('Error detallado en asignación:', {
         status: error.response?.status,
@@ -161,7 +204,7 @@ export const rutaService = {
         method: error.config?.method,
         requestData: error.config?.data
       });
-      
+
       // Mejorar el manejo de errores específicos
       if (error.response?.status === 400) {
         const errorDetail = error.response.data?.detail || 'Error de validación en el servidor';
@@ -185,7 +228,7 @@ export const rutaService = {
       return response.data;
     } catch (error: any) {
       console.error('Error al desasignar pedido:', error.response?.data || error.message);
-      
+
       if (error.response?.status === 400) {
         throw new Error(error.response.data?.detail || 'Error de validación');
       } else if (error.response?.status === 404) {

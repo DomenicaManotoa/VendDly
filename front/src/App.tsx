@@ -53,8 +53,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Login />} /> 
-        
+        <Route path="/" element={<Login />} />
+
         {/* ✅ CAMBIO: Envolver LayoutConSidebar con ProtectedRoute */}
         <Route element={
           <ProtectedRoute requiredRole="Admin">
@@ -63,7 +63,7 @@ export default function App() {
         }>
           <Route path="/home" element={<Home />} />
           <Route path="/catalogo" element={<Catalogo />} />
-          <Route path="/clientes" element={<Clientes/>} />
+          <Route path="/clientes" element={<Clientes />} />
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/empleados" element={<Usuarios />} />
           <Route path="/entregas" element={<Entregas />} />
@@ -116,7 +116,7 @@ export default function App() {
           <Route path="/transportista/entregas" element={<Entregas />} />
           <Route path="/transportista/estado-pedido" element={<EstadoPedido />} />
         </Route>
-        
+
         {/* ✅ CAMBIO: Envolver LayoutConSidebarVendedor con ProtectedRoute */}
         <Route element={
           <ProtectedRoute requiredRole="Vendedor">
@@ -133,6 +133,6 @@ export default function App() {
 
       </Routes>
     </BrowserRouter>
-    
+
   );
 }
